@@ -13,16 +13,19 @@ const host = 'http://localhost:8008';
 const roomId = '!MMLsEB4klBO4GToM:bucephalus';
 
 window.onload = async (event) => {
-    const limit = 3000000;
+    const limit = 300000;
     const events = {};
     const latestEventsAndState = await postData(
         `${host}/api/roomserver/queryLatestEventsAndState`,
         { 'room_id': roomId },
     );
 
+    const showStateEvents = false;
     // grab the state events
-    for (const event of latestEventsAndState.state_events) {
-        events[event._event_id] = event;
+    if (showStateEvents) {
+        for (const event of latestEventsAndState.state_events) {
+            events[event._event_id] = event;
+        }
     }
 
     // add in the latest events
@@ -44,9 +47,9 @@ window.onload = async (event) => {
         for (const event of Object.values(events)) {
             if (event.type === 'm.room.create') rootId = event._event_id;
             if (event.state_key) event.prev_events = []; 
-            for (const prevEventId of event.prev_events.concat(event.auth_events)) {
-                if (!(prevEventId in events)) {
-                    missingEventIds[prevEventId] = 1;
+            for (const refId of event.prev_events.concat(event.auth_events)) {
+                if (!(refId in events)) {
+                    missingEventIds[refId] = 1;
                     missing = true;
                 }
             }
@@ -63,6 +66,7 @@ window.onload = async (event) => {
                 }
             }
         }
+
         // fill in placeholders for missing events
         for (const missingEventId of Object.keys(missingEventIds)) {
             console.log(`Synthesising missing event ${missingEventId}`);
@@ -75,8 +79,18 @@ window.onload = async (event) => {
         }
     } while(missing);
 
+    const hideMissingEvents = true;
     // tag events which receive multiple references
     for (const event of Object.values(events)) {
+        if (hideMissingEvents) {
+            if (event.type === 'missing') {
+                delete events[event._event_id];
+                continue;
+            }
+            event.prev_events = event.prev_events.filter(id=>(events[id].type !== 'missing'));
+            event.auth_events = event.auth_events.filter(id=>(events[id].type !== 'missing'));
+        }
+
         for (const parentId of event.prev_events.concat(event.auth_events)) {
             events[parentId].refs = events[parentId].refs ? (events[parentId].refs + 1) : 1;
         }
@@ -92,14 +106,17 @@ window.onload = async (event) => {
         return false;
     }
 
-    // collapse linear strands of the DAG (based on prev_events)
-    for (const event of Object.values(events)) {
-        if (event.skipped) continue;
-        while (shouldSkipParent(event)) {
-            const parent = events[event.prev_events[0]];
-            console.log(`Skipping boring parent ${parent._event_id}`);
-            event.prev_events = parent.prev_events;
-            parent.skipped = true;
+    const skipBoringParents = true;
+    if (skipBoringParents) {
+        // collapse linear strands of the DAG (based on prev_events)
+        for (const event of Object.values(events)) {
+            if (event.skipped) continue;
+            while (shouldSkipParent(event)) {
+                const parent = events[event.prev_events[0]];
+                console.log(`Skipping boring parent ${parent._event_id}`);
+                event.prev_events = parent.prev_events;
+                parent.skipped = true;
+            }
         }
     }
 
@@ -110,16 +127,23 @@ window.onload = async (event) => {
 
     //console.log(JSON.stringify(events));
 
+    const showAuthDag = false;
+    let parentIdFn;
+    if (showAuthDag) {
+        parentIdFn = (event) => event.prev_events.concat(event.auth_events.filter(id=>id!=rootId));
+    }
+    else {
+        parentIdFn = (event) => event.prev_events;
+    }
+
     // stratify the events into a DAG
     const dag = d3dag.dagStratify()
         .id((event) => event._event_id)
-        // console.log(source, target, (target._event_id in source.auth_events)); return { auth: (target._event_id in source.auth_events) } }
         .linkData((target, source) => { return { auth: source.auth_events.includes(target._event_id) } })
-        .parentIds((event) => event.prev_events.concat(event.auth_events.filter(id=>id!=rootId)))(Object.values(events));
-        // .parentIds((event) => event.prev_events)(Object.values(events));
+        .parentIds(parentIdFn)(Object.values(events));
 
-    const width = 3000;
-    const height = 1000;
+    const width = 2000;
+    const height = 4000;
 
     const nodeRadius = 10;
     const margin = nodeRadius * 4;
@@ -136,6 +160,7 @@ window.onload = async (event) => {
 
     // d3dag.zherebko()
     d3dag.sugiyama()
+        .layering(d3dag.layeringCoffmanGraham().width(2))
         .size([width, height])(dag);
 
     const steps = dag.size();
