@@ -118,11 +118,11 @@ window.onload = async (event) => {
                 parent.skipped = true;
             }
         }
-    }
 
-    // prune the events which were skipped
-    for (const event of Object.values(events)) {
-        if (event.skipped) delete events[event._event_id];
+        // prune the events which were skipped
+        for (const event of Object.values(events)) {
+            if (event.skipped) delete events[event._event_id];
+        }
     }
 
     //console.log(JSON.stringify(events));
@@ -141,6 +141,16 @@ window.onload = async (event) => {
         .id((event) => event._event_id)
         .linkData((target, source) => { return { auth: source.auth_events.includes(target._event_id) } })
         .parentIds(parentIdFn)(Object.values(events));
+
+    console.log(dag);
+
+    const hideOrphans = true;
+    if (hideOrphans) {
+        if (dag.id === undefined) {
+            // our root is an undefined placeholder, which means we have orphans
+            dag.children = dag.children.filter(node=>(node.children.length > 0));
+        }
+    }
 
     const width = 2000;
     const height = 4000;
