@@ -14,13 +14,20 @@ const roomId = '!MMLsEB4klBO4GToM:bucephalus';
 
 window.onload = async (event) => {
     const limit = 300000;
+    const showStateEvents = true;
+    const showAuthDag = true;
+    const hideMissingEvents = false;
+    const hideOrphans = false;
+
+    const width = 1920;
+    const height = 2920;
+
     const events = {};
     const latestEventsAndState = await postData(
         `${host}/api/roomserver/queryLatestEventsAndState`,
         { 'room_id': roomId },
     );
 
-    const showStateEvents = false;
     // grab the state events
     if (showStateEvents) {
         for (const event of latestEventsAndState.state_events) {
@@ -79,7 +86,6 @@ window.onload = async (event) => {
         }
     } while(missing);
 
-    const hideMissingEvents = true;
     // tag events which receive multiple references
     for (const event of Object.values(events)) {
         if (hideMissingEvents) {
@@ -127,7 +133,6 @@ window.onload = async (event) => {
 
     //console.log(JSON.stringify(events));
 
-    const showAuthDag = false;
     let parentIdFn;
     if (showAuthDag) {
         parentIdFn = (event) => event.prev_events.concat(event.auth_events.filter(id=>id!=rootId));
@@ -144,16 +149,12 @@ window.onload = async (event) => {
 
     console.log(dag);
 
-    const hideOrphans = true;
     if (hideOrphans) {
         if (dag.id === undefined) {
             // our root is an undefined placeholder, which means we have orphans
             dag.children = dag.children.filter(node=>(node.children.length > 0));
         }
     }
-
-    const width = 2000;
-    const height = 4000;
 
     const nodeRadius = 10;
     const margin = nodeRadius * 4;
