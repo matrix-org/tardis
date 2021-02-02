@@ -314,7 +314,7 @@ window.onload = async (event) => {
     // Add text to nodes with border
     nodes.append('text')
         .text((d) => {
-            return `${d.data.type} - ${d.data.content && d.data.content.body}`;
+            return `${d.data.type} - ${d.data.content && d.data.content.body} (depth=${d.data.depth})`;
         })
         .attr('transform', `translate(${nodeRadius + 10}, 0)`)
         .attr('font-family', 'sans-serif')
@@ -327,7 +327,7 @@ window.onload = async (event) => {
 
     nodes.append('text')
         .text((d) => {
-            return `${d.data.type} - ${d.data.content && d.data.content.body}`;
+            return `${d.data.type} - ${d.data.content && d.data.content.body} (depth=${d.data.depth})`;
         })
         .attr('transform', `translate(${nodeRadius + 10}, 0)`)
         .attr('font-family', 'sans-serif')
