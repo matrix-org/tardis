@@ -1,0 +1,629 @@
+{
+  "events_before": [
+    {
+      "auth_events": [
+        "$-XqUjBEMDviU9U9l9pjXsW8uyM98EWFQjH0lxGLHXm8",
+        "$Z4S9hTbiY8JbSSZK711oQ2Kr2TS4mCfiNSqAeZYdBLY",
+        "$TvggOE6uk48uXu5b2T7d0q1bfk594k60AKxRbxqucMk"
+      ],
+      "prev_events": [
+        "$RcUz4kTgxExqtDWZy9GejprO_tpY2eUTibCx3aHqYvY"
+      ],
+      "type": "m.room.message",
+      "room_id": "!bBAwYynvirrDqcGXRJ:hs1",
+      "sender": "@alice:hs1",
+      "content": {
+        "body": "Message 3",
+        "msgtype": "m.text"
+      },
+      "depth": 9,
+      "prev_state": [],
+      "origin_server_ts": 1612227218616,
+      "origin": "hs1",
+      "hashes": {
+        "sha256": "8mP02Jd9HS0oO+dn4R7kujGCjZFqmS5wPI/uLSMstOA"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_BXDh": "chxruiqU1TftetfZOSXvk94zoXsn/PibE1VI3wnmiZ8mdXPRfgXUmWoB9NW40T9j4TLodMwk0DX3XClLdEn+DA"
+        }
+      },
+      "unsigned": {
+        "age": 124
+      },
+      "event_id": "$_bLBHOgPgDihh5E7NKLxsyKCnkxxdN-l8ueh8tdebJM",
+      "user_id": "@alice:hs1",
+      "age": 124
+    },
+    {
+      "auth_events": [
+        "$-XqUjBEMDviU9U9l9pjXsW8uyM98EWFQjH0lxGLHXm8",
+        "$Z4S9hTbiY8JbSSZK711oQ2Kr2TS4mCfiNSqAeZYdBLY",
+        "$TvggOE6uk48uXu5b2T7d0q1bfk594k60AKxRbxqucMk"
+      ],
+      "prev_events": [
+        "$AN5Tli5_7sCvii2Cv563bkw3PLwtWYmV0CvRqSku9m4"
+      ],
+      "type": "m.room.message",
+      "room_id": "!bBAwYynvirrDqcGXRJ:hs1",
+      "sender": "@alice:hs1",
+      "content": {
+        "body": "Message 2",
+        "msgtype": "m.text"
+      },
+      "depth": 8,
+      "prev_state": [],
+      "origin_server_ts": 1612227218615,
+      "origin": "hs1",
+      "hashes": {
+        "sha256": "FFnpBdhRUmhCNAE8y289dTrVh86mClDWbB6T7DHb3+A"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_BXDh": "geuJQt1esPNOyuL9hSdDnTl1CfLlzPSG0/2UkfIgc0WRQr291XhhRrQ3r7+Xo7c1tzaiD4ShlMQG3jSbdGgjAA"
+        }
+      },
+      "unsigned": {
+        "age": 156
+      },
+      "event_id": "$RcUz4kTgxExqtDWZy9GejprO_tpY2eUTibCx3aHqYvY",
+      "user_id": "@alice:hs1",
+      "age": 156
+    },
+    {
+      "auth_events": [
+        "$-XqUjBEMDviU9U9l9pjXsW8uyM98EWFQjH0lxGLHXm8",
+        "$Z4S9hTbiY8JbSSZK711oQ2Kr2TS4mCfiNSqAeZYdBLY",
+        "$TvggOE6uk48uXu5b2T7d0q1bfk594k60AKxRbxqucMk"
+      ],
+      "prev_events": [
+        "$VF7hNqLEjuqwDwHpxIy9MFKEBJE-5NXIjyrRxzEQUOQ"
+      ],
+      "type": "m.room.message",
+      "room_id": "!bBAwYynvirrDqcGXRJ:hs1",
+      "sender": "@alice:hs1",
+      "content": {
+        "body": "Message C",
+        "msgtype": "m.text"
+      },
+      "depth": 8,
+      "prev_state": [],
+      "origin": "hs1",
+      "origin_server_ts": 1612227218693,
+      "hashes": {
+        "sha256": "ZRNuAeyBIwotdACQmp2C8DNP3Bj4+7oF5uuB7NY0Hag"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_BXDh": "Q1nGVVCdya/lbDwON31NYfVUyQBU/r9kiF+fhwEPJzpxVf0zGgY6QdRaH7t95LfcIGusLj3uFmTps2dLfj3YBg"
+        }
+      },
+      "unsigned": {
+        "age": 235
+      },
+      "event_id": "$92x9aKGxaxt5aVhBul0IySe6vk_IKNRCrgW05rqn3aY",
+      "user_id": "@alice:hs1",
+      "age": 235
+    },
+    {
+      "auth_events": [
+        "$-XqUjBEMDviU9U9l9pjXsW8uyM98EWFQjH0lxGLHXm8",
+        "$Z4S9hTbiY8JbSSZK711oQ2Kr2TS4mCfiNSqAeZYdBLY",
+        "$TvggOE6uk48uXu5b2T7d0q1bfk594k60AKxRbxqucMk"
+      ],
+      "prev_events": [
+        "$tUAkGmH62FbpPn8S8siFE0KT3N8WXZmpAh7hjBGUgPY"
+      ],
+      "type": "m.room.message",
+      "room_id": "!bBAwYynvirrDqcGXRJ:hs1",
+      "sender": "@alice:hs1",
+      "content": {
+        "body": "Message 1",
+        "msgtype": "m.text"
+      },
+      "depth": 7,
+      "prev_state": [],
+      "origin_server_ts": 1612227218614,
+      "origin": "hs1",
+      "hashes": {
+        "sha256": "CgH6A+GkC19bsc0uxDjwaWkGdEJQJBYE69IeUI1CzKg"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_BXDh": "bu74sLCmyiyaRA61Y7skMLtawBZO/Snv+mYZ82dhKuy1He6gOwsw+NzOdPOtwx8ur0KY/PqoZacHivj/R04TAg"
+        }
+      },
+      "unsigned": {
+        "age": 182
+      },
+      "event_id": "$AN5Tli5_7sCvii2Cv563bkw3PLwtWYmV0CvRqSku9m4",
+      "user_id": "@alice:hs1",
+      "age": 182
+    },
+    {
+      "auth_events": [
+        "$-XqUjBEMDviU9U9l9pjXsW8uyM98EWFQjH0lxGLHXm8",
+        "$Z4S9hTbiY8JbSSZK711oQ2Kr2TS4mCfiNSqAeZYdBLY",
+        "$TvggOE6uk48uXu5b2T7d0q1bfk594k60AKxRbxqucMk"
+      ],
+      "prev_events": [
+        "$tUAkGmH62FbpPn8S8siFE0KT3N8WXZmpAh7hjBGUgPY"
+      ],
+      "type": "m.room.message",
+      "room_id": "!bBAwYynvirrDqcGXRJ:hs1",
+      "sender": "@alice:hs1",
+      "content": {
+        "body": "Message B",
+        "msgtype": "m.text"
+      },
+      "depth": 7,
+      "prev_state": [],
+      "origin": "hs1",
+      "origin_server_ts": 1612227218634,
+      "hashes": {
+        "sha256": "SGD23OPuNtV/sda/2T3k37wRLiEZ6TOOeuL4IOHDZl0"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_BXDh": "5adPRqXmZ9E7JdIiNw5lcjOdRcUg7EcY6rRr0H+2fjz8W+aqx+/+ipduNjZxiqVvesxkiTbRNpho5ZBVbRXWAg"
+        }
+      },
+      "unsigned": {
+        "age": 294
+      },
+      "event_id": "$VF7hNqLEjuqwDwHpxIy9MFKEBJE-5NXIjyrRxzEQUOQ",
+      "user_id": "@alice:hs1",
+      "age": 294
+    },
+    {
+      "auth_events": [
+        "$-XqUjBEMDviU9U9l9pjXsW8uyM98EWFQjH0lxGLHXm8",
+        "$Z4S9hTbiY8JbSSZK711oQ2Kr2TS4mCfiNSqAeZYdBLY",
+        "$TvggOE6uk48uXu5b2T7d0q1bfk594k60AKxRbxqucMk"
+      ],
+      "prev_events": [
+        "$xCtSXTydyn3uatfvyl_C8-Iq2wxgRpC5bSxNc9191-g"
+      ],
+      "type": "m.room.message",
+      "room_id": "!bBAwYynvirrDqcGXRJ:hs1",
+      "sender": "@alice:hs1",
+      "content": {
+        "body": "Message A",
+        "msgtype": "m.text"
+      },
+      "depth": 6,
+      "prev_state": [],
+      "origin": "hs1",
+      "origin_server_ts": 1612227218542,
+      "hashes": {
+        "sha256": "TN/hfy3hdGIvIdOY4LpAOoCa421lGPhacs+lOQhZ7Q0"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_BXDh": "ZZW7UvS4fgD1YhOXtrn/2oIZ0/4WV/Y0F4QP9v5TbM0aG0MP5wz8g38vBVdkv7Rgl1PuhNHntDo1u3K9cvSUDQ"
+        }
+      },
+      "unsigned": {
+        "age": 386
+      },
+      "event_id": "$tUAkGmH62FbpPn8S8siFE0KT3N8WXZmpAh7hjBGUgPY",
+      "user_id": "@alice:hs1",
+      "age": 386
+    },
+    {
+      "auth_events": [
+        "$-XqUjBEMDviU9U9l9pjXsW8uyM98EWFQjH0lxGLHXm8",
+        "$Z4S9hTbiY8JbSSZK711oQ2Kr2TS4mCfiNSqAeZYdBLY",
+        "$TvggOE6uk48uXu5b2T7d0q1bfk594k60AKxRbxqucMk"
+      ],
+      "prev_events": [
+        "$xEfMKOL59s7305p_s9Kx0TTuKLWhLHH-qNgygg8zQEw"
+      ],
+      "type": "m.room.history_visibility",
+      "room_id": "!bBAwYynvirrDqcGXRJ:hs1",
+      "sender": "@alice:hs1",
+      "content": {
+        "history_visibility": "shared"
+      },
+      "depth": 5,
+      "prev_state": [],
+      "state_key": "",
+      "origin": "hs1",
+      "origin_server_ts": 1612227218481,
+      "hashes": {
+        "sha256": "/lSrm4/Y4CWDGsVRZnFSbiP3YRNivFR7TQARVtMXQQU"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_BXDh": "mjaE56SnX3A3C4soy48lKevOtjLxGqv4gxavCg0tsxfSCMhvVlzbYMofAX23K7Aq8Tg4cF3bf8HIVMkeNsLMAA"
+        }
+      },
+      "unsigned": {
+        "age": 447
+      },
+      "event_id": "$xCtSXTydyn3uatfvyl_C8-Iq2wxgRpC5bSxNc9191-g",
+      "user_id": "@alice:hs1",
+      "age": 447
+    },
+    {
+      "auth_events": [
+        "$-XqUjBEMDviU9U9l9pjXsW8uyM98EWFQjH0lxGLHXm8",
+        "$Z4S9hTbiY8JbSSZK711oQ2Kr2TS4mCfiNSqAeZYdBLY",
+        "$TvggOE6uk48uXu5b2T7d0q1bfk594k60AKxRbxqucMk"
+      ],
+      "prev_events": [
+        "$TvggOE6uk48uXu5b2T7d0q1bfk594k60AKxRbxqucMk"
+      ],
+      "type": "m.room.join_rules",
+      "room_id": "!bBAwYynvirrDqcGXRJ:hs1",
+      "sender": "@alice:hs1",
+      "content": {
+        "join_rule": "public"
+      },
+      "depth": 4,
+      "prev_state": [],
+      "state_key": "",
+      "origin": "hs1",
+      "origin_server_ts": 1612227218448,
+      "hashes": {
+        "sha256": "3+iuQliDoWsIrkY/tK4EhD+aoeW3nEoL9QSe4c197OU"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_BXDh": "Wk7NtPF0+Urd5NYUsaQwrGuOYs7Pio2bztu6TVXDTjgo6lIBtQNwWDte1lNzIP5TK4WEFofR7sl8NoYE9DYZAA"
+        }
+      },
+      "unsigned": {
+        "age": 480
+      },
+      "event_id": "$xEfMKOL59s7305p_s9Kx0TTuKLWhLHH-qNgygg8zQEw",
+      "user_id": "@alice:hs1",
+      "age": 480
+    },
+    {
+      "auth_events": [
+        "$-XqUjBEMDviU9U9l9pjXsW8uyM98EWFQjH0lxGLHXm8",
+        "$Z4S9hTbiY8JbSSZK711oQ2Kr2TS4mCfiNSqAeZYdBLY"
+      ],
+      "prev_events": [
+        "$-XqUjBEMDviU9U9l9pjXsW8uyM98EWFQjH0lxGLHXm8"
+      ],
+      "type": "m.room.power_levels",
+      "room_id": "!bBAwYynvirrDqcGXRJ:hs1",
+      "sender": "@alice:hs1",
+      "content": {
+        "users": {
+          "@alice:hs1": 100
+        },
+        "users_default": 0,
+        "events": {
+          "m.room.name": 50,
+          "m.room.power_levels": 100,
+          "m.room.history_visibility": 100,
+          "m.room.canonical_alias": 50,
+          "m.room.avatar": 50,
+          "m.room.tombstone": 100,
+          "m.room.server_acl": 100,
+          "m.room.encryption": 100
+        },
+        "events_default": 0,
+        "state_default": 50,
+        "ban": 50,
+        "kick": 50,
+        "redact": 50,
+        "invite": 50
+      },
+      "depth": 3,
+      "prev_state": [],
+      "state_key": "",
+      "origin": "hs1",
+      "origin_server_ts": 1612227218413,
+      "hashes": {
+        "sha256": "bp3AcMT21CsKy3JDiQBbghGJuNftEz+HUB3X/XBdocs"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_BXDh": "zoGF6psTpZVUP1hvaxc0ElgILnkMcEJToiqcQQwOo8au8EaCw7yyXPn35KGUWn77CU6yup70L4dUa9bVARLyBQ"
+        }
+      },
+      "unsigned": {
+        "age": 515
+      },
+      "event_id": "$TvggOE6uk48uXu5b2T7d0q1bfk594k60AKxRbxqucMk",
+      "user_id": "@alice:hs1",
+      "age": 515
+    },
+    {
+      "auth_events": [
+        "$Z4S9hTbiY8JbSSZK711oQ2Kr2TS4mCfiNSqAeZYdBLY"
+      ],
+      "prev_events": [
+        "$Z4S9hTbiY8JbSSZK711oQ2Kr2TS4mCfiNSqAeZYdBLY"
+      ],
+      "type": "m.room.member",
+      "room_id": "!bBAwYynvirrDqcGXRJ:hs1",
+      "sender": "@alice:hs1",
+      "content": {
+        "membership": "join",
+        "displayname": "alice"
+      },
+      "depth": 2,
+      "prev_state": [],
+      "state_key": "@alice:hs1",
+      "origin": "hs1",
+      "origin_server_ts": 1612227218374,
+      "hashes": {
+        "sha256": "Ijm11zXRu0bHwFUSDCULX878nJtVXxSYUWbdYcMSBQs"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_BXDh": "guhM3fw+cXOOQ++Qb/wmZJkednj7XnTDqMx84daq3BO8FGznV4kYrpb1PWKFhsCRX3IULSCNq/+0Q0ysdM9FBA"
+        }
+      },
+      "unsigned": {
+        "age": 554
+      },
+      "event_id": "$-XqUjBEMDviU9U9l9pjXsW8uyM98EWFQjH0lxGLHXm8",
+      "user_id": "@alice:hs1",
+      "age": 554
+    },
+    {
+      "auth_events": [],
+      "prev_events": [],
+      "type": "m.room.create",
+      "room_id": "!bBAwYynvirrDqcGXRJ:hs1",
+      "sender": "@alice:hs1",
+      "content": {
+        "room_version": "6",
+        "creator": "@alice:hs1"
+      },
+      "depth": 1,
+      "prev_state": [],
+      "state_key": "",
+      "origin": "hs1",
+      "origin_server_ts": 1612227218316,
+      "hashes": {
+        "sha256": "sxgLivP2OWcQ/52fEu7go5azKZ2Jomf1Vh+MX4eMsW0"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_BXDh": "3J6FB4wBoNwYr1xLRidjXvl8aZ5ujgD16azhb83O/+G5A2A1ONLjYxRgidrI5zCx6s9+9hQFAd0CSgtu41ryBg"
+        }
+      },
+      "unsigned": {
+        "age": 612
+      },
+      "event_id": "$Z4S9hTbiY8JbSSZK711oQ2Kr2TS4mCfiNSqAeZYdBLY",
+      "user_id": "@alice:hs1",
+      "age": 612
+    }
+  ],
+  "events_after": [],
+  "start": "t1-1_0_0_0_0_0_0_0_0",
+  "end": "t10-13_0_0_0_0_0_0_0_0",
+  "event": {
+    "auth_events": [
+      "$-XqUjBEMDviU9U9l9pjXsW8uyM98EWFQjH0lxGLHXm8",
+      "$Z4S9hTbiY8JbSSZK711oQ2Kr2TS4mCfiNSqAeZYdBLY",
+      "$TvggOE6uk48uXu5b2T7d0q1bfk594k60AKxRbxqucMk"
+    ],
+    "prev_events": [
+      "$_bLBHOgPgDihh5E7NKLxsyKCnkxxdN-l8ueh8tdebJM",
+      "$92x9aKGxaxt5aVhBul0IySe6vk_IKNRCrgW05rqn3aY"
+    ],
+    "type": "m.room.message",
+    "room_id": "!bBAwYynvirrDqcGXRJ:hs1",
+    "sender": "@alice:hs1",
+    "content": {
+      "body": "Message *",
+      "msgtype": "m.text"
+    },
+    "depth": 10,
+    "prev_state": [],
+    "origin": "hs1",
+    "origin_server_ts": 1612227218843,
+    "hashes": {
+      "sha256": "CKDr404T4N78Veiv8h+3XCgm3Wg6Uck+FC9WOx2EAwI"
+    },
+    "signatures": {
+      "hs1": {
+        "ed25519:a_BXDh": "ukDEsQR0lzR3PFWOFU6VcuNcwai/cLm+O/9i+eo7QzYKlOTf/E6OLXUAQhY7pbHwhwYcSydP+vshSl9ve560Bw"
+      }
+    },
+    "unsigned": {
+      "age": 85
+    },
+    "event_id": "$l-gc9mYSYrUlIUiGSpRf4J1jU2c8FMjYlP1KUZZX7Xc",
+    "user_id": "@alice:hs1",
+    "age": 85
+  },
+  "state": [
+    {
+      "auth_events": [],
+      "prev_events": [],
+      "type": "m.room.create",
+      "room_id": "!bBAwYynvirrDqcGXRJ:hs1",
+      "sender": "@alice:hs1",
+      "content": {
+        "room_version": "6",
+        "creator": "@alice:hs1"
+      },
+      "depth": 1,
+      "prev_state": [],
+      "state_key": "",
+      "origin": "hs1",
+      "origin_server_ts": 1612227218316,
+      "hashes": {
+        "sha256": "sxgLivP2OWcQ/52fEu7go5azKZ2Jomf1Vh+MX4eMsW0"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_BXDh": "3J6FB4wBoNwYr1xLRidjXvl8aZ5ujgD16azhb83O/+G5A2A1ONLjYxRgidrI5zCx6s9+9hQFAd0CSgtu41ryBg"
+        }
+      },
+      "unsigned": {
+        "age": 612
+      },
+      "event_id": "$Z4S9hTbiY8JbSSZK711oQ2Kr2TS4mCfiNSqAeZYdBLY",
+      "user_id": "@alice:hs1",
+      "age": 612
+    },
+    {
+      "auth_events": [
+        "$-XqUjBEMDviU9U9l9pjXsW8uyM98EWFQjH0lxGLHXm8",
+        "$Z4S9hTbiY8JbSSZK711oQ2Kr2TS4mCfiNSqAeZYdBLY"
+      ],
+      "prev_events": [
+        "$-XqUjBEMDviU9U9l9pjXsW8uyM98EWFQjH0lxGLHXm8"
+      ],
+      "type": "m.room.power_levels",
+      "room_id": "!bBAwYynvirrDqcGXRJ:hs1",
+      "sender": "@alice:hs1",
+      "content": {
+        "users": {
+          "@alice:hs1": 100
+        },
+        "users_default": 0,
+        "events": {
+          "m.room.name": 50,
+          "m.room.power_levels": 100,
+          "m.room.history_visibility": 100,
+          "m.room.canonical_alias": 50,
+          "m.room.avatar": 50,
+          "m.room.tombstone": 100,
+          "m.room.server_acl": 100,
+          "m.room.encryption": 100
+        },
+        "events_default": 0,
+        "state_default": 50,
+        "ban": 50,
+        "kick": 50,
+        "redact": 50,
+        "invite": 50
+      },
+      "depth": 3,
+      "prev_state": [],
+      "state_key": "",
+      "origin": "hs1",
+      "origin_server_ts": 1612227218413,
+      "hashes": {
+        "sha256": "bp3AcMT21CsKy3JDiQBbghGJuNftEz+HUB3X/XBdocs"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_BXDh": "zoGF6psTpZVUP1hvaxc0ElgILnkMcEJToiqcQQwOo8au8EaCw7yyXPn35KGUWn77CU6yup70L4dUa9bVARLyBQ"
+        }
+      },
+      "unsigned": {
+        "age": 515
+      },
+      "event_id": "$TvggOE6uk48uXu5b2T7d0q1bfk594k60AKxRbxqucMk",
+      "user_id": "@alice:hs1",
+      "age": 515
+    },
+    {
+      "auth_events": [
+        "$-XqUjBEMDviU9U9l9pjXsW8uyM98EWFQjH0lxGLHXm8",
+        "$Z4S9hTbiY8JbSSZK711oQ2Kr2TS4mCfiNSqAeZYdBLY",
+        "$TvggOE6uk48uXu5b2T7d0q1bfk594k60AKxRbxqucMk"
+      ],
+      "prev_events": [
+        "$TvggOE6uk48uXu5b2T7d0q1bfk594k60AKxRbxqucMk"
+      ],
+      "type": "m.room.join_rules",
+      "room_id": "!bBAwYynvirrDqcGXRJ:hs1",
+      "sender": "@alice:hs1",
+      "content": {
+        "join_rule": "public"
+      },
+      "depth": 4,
+      "prev_state": [],
+      "state_key": "",
+      "origin": "hs1",
+      "origin_server_ts": 1612227218448,
+      "hashes": {
+        "sha256": "3+iuQliDoWsIrkY/tK4EhD+aoeW3nEoL9QSe4c197OU"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_BXDh": "Wk7NtPF0+Urd5NYUsaQwrGuOYs7Pio2bztu6TVXDTjgo6lIBtQNwWDte1lNzIP5TK4WEFofR7sl8NoYE9DYZAA"
+        }
+      },
+      "unsigned": {
+        "age": 480
+      },
+      "event_id": "$xEfMKOL59s7305p_s9Kx0TTuKLWhLHH-qNgygg8zQEw",
+      "user_id": "@alice:hs1",
+      "age": 480
+    },
+    {
+      "auth_events": [
+        "$-XqUjBEMDviU9U9l9pjXsW8uyM98EWFQjH0lxGLHXm8",
+        "$Z4S9hTbiY8JbSSZK711oQ2Kr2TS4mCfiNSqAeZYdBLY",
+        "$TvggOE6uk48uXu5b2T7d0q1bfk594k60AKxRbxqucMk"
+      ],
+      "prev_events": [
+        "$xEfMKOL59s7305p_s9Kx0TTuKLWhLHH-qNgygg8zQEw"
+      ],
+      "type": "m.room.history_visibility",
+      "room_id": "!bBAwYynvirrDqcGXRJ:hs1",
+      "sender": "@alice:hs1",
+      "content": {
+        "history_visibility": "shared"
+      },
+      "depth": 5,
+      "prev_state": [],
+      "state_key": "",
+      "origin": "hs1",
+      "origin_server_ts": 1612227218481,
+      "hashes": {
+        "sha256": "/lSrm4/Y4CWDGsVRZnFSbiP3YRNivFR7TQARVtMXQQU"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_BXDh": "mjaE56SnX3A3C4soy48lKevOtjLxGqv4gxavCg0tsxfSCMhvVlzbYMofAX23K7Aq8Tg4cF3bf8HIVMkeNsLMAA"
+        }
+      },
+      "unsigned": {
+        "age": 447
+      },
+      "event_id": "$xCtSXTydyn3uatfvyl_C8-Iq2wxgRpC5bSxNc9191-g",
+      "user_id": "@alice:hs1",
+      "age": 447
+    },
+    {
+      "auth_events": [
+        "$Z4S9hTbiY8JbSSZK711oQ2Kr2TS4mCfiNSqAeZYdBLY"
+      ],
+      "prev_events": [
+        "$Z4S9hTbiY8JbSSZK711oQ2Kr2TS4mCfiNSqAeZYdBLY"
+      ],
+      "type": "m.room.member",
+      "room_id": "!bBAwYynvirrDqcGXRJ:hs1",
+      "sender": "@alice:hs1",
+      "content": {
+        "membership": "join",
+        "displayname": "alice"
+      },
+      "depth": 2,
+      "prev_state": [],
+      "state_key": "@alice:hs1",
+      "origin": "hs1",
+      "origin_server_ts": 1612227218374,
+      "hashes": {
+        "sha256": "Ijm11zXRu0bHwFUSDCULX878nJtVXxSYUWbdYcMSBQs"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_BXDh": "guhM3fw+cXOOQ++Qb/wmZJkednj7XnTDqMx84daq3BO8FGznV4kYrpb1PWKFhsCRX3IULSCNq/+0Q0ysdM9FBA"
+        }
+      },
+      "unsigned": {
+        "age": 554
+      },
+      "event_id": "$-XqUjBEMDviU9U9l9pjXsW8uyM98EWFQjH0lxGLHXm8",
+      "user_id": "@alice:hs1",
+      "age": 554
+    }
+  ]
+}

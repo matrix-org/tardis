@@ -1,6 +1,8 @@
 import * as d3 from 'd3';
 import * as d3dag from 'd3-dag';
 
+import rawJson from './context-response.json';
+
 async function postData(url = '', data = {}) {
     const response = await fetch(url, {
         method: 'POST',
@@ -19,30 +21,37 @@ window.onload = async (event) => {
     const hideMissingEvents = false;
     const hideOrphans = false;
 
-    const width = 1920;
-    const height = 2920;
+    const width = 900;
+    const height = 700;
 
     const events = {};
-    const latestEventsAndState = await postData(
-        `${host}/api/roomserver/queryLatestEventsAndState`,
-        { 'room_id': roomId },
-    );
-
-    // grab the state events
-    if (showStateEvents) {
-        for (const event of latestEventsAndState.state_events) {
-            events[event._event_id] = event;
-        }
+    for (const e of rawJson.events_before) {
+        console.log('e.event_id', e.event_id)
+        e._event_id = e.event_id;
+        events[e.event_id] = e;
     }
+    console.log('events', events);
 
-    // add in the latest events
-    const eventsById = await postData(
-        `${host}/api/roomserver/queryEventsByID`,
-        { 'event_ids': latestEventsAndState.latest_events.map((e)=>e[0]) },
-    );
-    for (const event of eventsById.events) {
-        events[event._event_id] = event;
-    }
+    // const latestEventsAndState = await postData(
+    //     `${host}/api/roomserver/queryLatestEventsAndState`,
+    //     { 'room_id': roomId },
+    // );
+
+    // // grab the state events
+    // if (showStateEvents) {
+    //     for (const event of latestEventsAndState.state_events) {
+    //         events[event._event_id] = event;
+    //     }
+    // }
+
+    // // add in the latest events
+    // const eventsById = await postData(
+    //     `${host}/api/roomserver/queryEventsByID`,
+    //     { 'event_ids': latestEventsAndState.latest_events.map((e)=>e[0]) },
+    // );
+    // for (const event of eventsById.events) {
+    //     events[event._event_id] = event;
+    // }
 
     // spider some prev events    
     let missingEventIds;
@@ -61,18 +70,18 @@ window.onload = async (event) => {
                 }
             }
         }
-        if (Object.keys(missingEventIds).length > 0 && Object.keys(events).length < limit) {
-            const eventsById = await postData(
-                `${host}/api/roomserver/queryEventsByID`,
-                { 'event_ids': Object.keys(missingEventIds) },
-            );
-            if (eventsById && eventsById.events && eventsById.events.length > 0) {
-                for (const event of eventsById.events) {
-                    events[event._event_id] = event;
-                    delete missingEventIds[event._event_id];
-                }
-            }
-        }
+        // if (Object.keys(missingEventIds).length > 0 && Object.keys(events).length < limit) {
+        //     const eventsById = await postData(
+        //         `${host}/api/roomserver/queryEventsByID`,
+        //         { 'event_ids': Object.keys(missingEventIds) },
+        //     );
+        //     if (eventsById && eventsById.events && eventsById.events.length > 0) {
+        //         for (const event of eventsById.events) {
+        //             events[event._event_id] = event;
+        //             delete missingEventIds[event._event_id];
+        //         }
+        //     }
+        // }
 
         // fill in placeholders for missing events
         for (const missingEventId of Object.keys(missingEventIds)) {
@@ -90,6 +99,7 @@ window.onload = async (event) => {
     for (const event of Object.values(events)) {
         if (hideMissingEvents) {
             if (event.type === 'missing') {
+                console.warn('Hiding event', event._event_id);
                 delete events[event._event_id];
                 continue;
             }
@@ -112,7 +122,7 @@ window.onload = async (event) => {
         return false;
     }
 
-    const skipBoringParents = true;
+    const skipBoringParents = false;
     if (skipBoringParents) {
         // collapse linear strands of the DAG (based on prev_events)
         for (const event of Object.values(events)) {
@@ -169,10 +179,54 @@ window.onload = async (event) => {
     // below is derived from
     // https://observablehq.com/@erikbrinkman/d3-dag-sugiyama-with-arrows
 
-    // d3dag.zherebko()
-    d3dag.sugiyama()
-        .layering(d3dag.layeringCoffmanGraham().width(2))
-        .size([width, height])(dag);
+    const layout = [
+        //d3dag.zherebko()
+        //d3dag.arquint()
+        d3dag.sugiyama()
+    ]
+
+    const layering = [
+        //d3dag.layeringCoffmanGraham().width(2),
+        d3dag.layeringTopological(),
+        //d3dag.layeringLongestPath(),
+        //d3dag.layeringSimplex(),
+    ]
+
+    const decross = [
+        //d3dag.decrossTwoLayer().order(d3dag.twolayerOpt()),
+        d3dag.decrossTwoLayer().order(d3dag.twolayerMedian()),
+        //d3dag.decrossTwoLayer(),
+        //d3dag.decrossOpt()
+    ]
+
+    const columnAssignment = [
+        d3dag.columnSimpleLeft(),
+        //d3dag.columnSimpleCenter(),
+        //d3dag.columnAdjacent(),
+        //d3dag.columnAdjacent().center(true),
+        //d3dag.columnComplex(),
+        //d3dag.columnComplex().center(true),
+    ]
+    
+    const coord = [
+        //d3dag.coordVert(),
+        //d3dag.coordMinCurve(),
+        d3dag.coordGreedy(),
+        //d3dag.coordCenter(),
+    ]
+
+    const myLayout = layout[0]
+        .size([width, height])
+        .layering(layering[0])
+        .decross(decross[0])
+        .coord(coord[0])
+        //.columnAssignment(columnAssignment[0])
+        //.interLayerSeparation(10)
+        //.columnWidth(100)
+        //.columnSeparation(100);
+
+    myLayout(dag);
+
 
     const steps = dag.size();
     const interp = d3.interpolateRainbow;
@@ -259,7 +313,9 @@ window.onload = async (event) => {
 
     // Add text to nodes with border
     nodes.append('text')
-        .text((d) => d.data.type)
+        .text((d) => {
+            return `${d.data.type} - ${d.data.content && d.data.content.body}`;
+        })
         .attr('transform', `translate(${nodeRadius + 10}, 0)`)
         .attr('font-family', 'sans-serif')
         .attr('text-anchor', 'left')
@@ -270,7 +326,9 @@ window.onload = async (event) => {
         .attr('stroke-width', 4);
 
     nodes.append('text')
-        .text((d) => d.data.type)
+        .text((d) => {
+            return `${d.data.type} - ${d.data.content && d.data.content.body}`;
+        })
         .attr('transform', `translate(${nodeRadius + 10}, 0)`)
         .attr('font-family', 'sans-serif')
         .attr('text-anchor', 'left')
