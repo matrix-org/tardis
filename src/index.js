@@ -65,6 +65,10 @@ window.onload = async (event) => {
             if (event.state_key) event.prev_events = []; 
             for (const refId of event.prev_events.concat(event.auth_events)) {
                 if (!(refId in events)) {
+                    // Just remove the missing events from the graph
+                    event.prev_events = event.prev_events.filter((id) => id !== refId);
+                    event.auth_events = event.auth_events.filter((id) => id !== refId);
+
                     missingEventIds[refId] = 1;
                     missing = true;
                 }
@@ -84,15 +88,15 @@ window.onload = async (event) => {
         // }
 
         // fill in placeholders for missing events
-        for (const missingEventId of Object.keys(missingEventIds)) {
-            console.log(`Synthesising missing event ${missingEventId}`);
-            events[missingEventId] = {
-                _event_id: missingEventId,
-                prev_events: [],
-                auth_events: [],
-                type: 'missing',
-            }
-        }
+        // for (const missingEventId of Object.keys(missingEventIds)) {
+        //     console.log(`Synthesising missing event ${missingEventId}`);
+        //     events[missingEventId] = {
+        //         _event_id: missingEventId,
+        //         prev_events: [],
+        //         auth_events: [],
+        //         type: 'missing',
+        //     }
+        // }
     } while(missing);
 
     // tag events which receive multiple references
@@ -176,6 +180,91 @@ window.onload = async (event) => {
     const svgSelection = d3.select(svgNode);
     const defs = svgSelection.append('defs');
 
+
+
+    // From https://github.com/erikbrinkman/d3-dag/blob/eca4f5d333ccc08a8dcb95ec6f6ae2910d5f2942/src/sugiyama/coord/greedy.js
+    // function customCoordGreedy() {
+    //     let assignment = mean;
+      
+    //     function coordGreedy(layers, separation) {
+    //       // Assign degrees
+    //       // The 3 at the end ensures that dummy nodes have the lowest priority
+    //       layers.forEach((layer) =>
+    //         layer.forEach((n) => (n.degree = n.children.length + (n.data ? 0 : -3)))
+    //       );
+    //       layers.forEach((layer) =>
+    //         layer.forEach((n) => n.children.forEach((c) => ++c.degree))
+    //       );
+      
+    //       // Set first nodes
+    //       layers[0][0].x = 0;
+    //       layers[0].slice(1).forEach((node, i) => {
+    //         const last = layers[0][i];
+    //         node.x = last.x + separation(last, node);
+    //       });
+      
+    //       // Set remaining nodes
+    //       layers.slice(0, layers.length - 1).forEach((top, i) => {
+    //         const bottom = layers[i + 1];
+    //         assignment(top, bottom);
+    //         // FIXME This order is import, i.e. we right and then left. We should actually do both, and then take the average
+    //         bottom
+    //           .map((n, j) => [n, j])
+    //           .sort(([an, aj], [bn, bj]) =>
+    //             an.degree === bn.degree ? aj - bj : bn.degree - an.degree
+    //           )
+    //           .forEach(([n, j]) => {
+    //             bottom.slice(j + 1).reduce((last, node) => {
+    //             //console.log('node', node);
+    //             let nodeValue = Math.max(node.x, last.x + separation(last, node));
+    //             console.log('nodeValue', nodeValue)
+                
+    //             const isHistorical = node.data && node.data.content && node.data.content.body && node.data.content.body.startsWith('Historical');
+    //             const isInsertion = node.data && node.data.type === 'org.matrix.msc2716.insertion';
+    //             if(isHistorical || isInsertion) {
+    //                 nodeValue += 1;
+    //             }
+                
+    //               node.x = nodeValue;
+    //               return node;
+    //             }, n);
+    //             bottom
+    //               .slice(0, j)
+    //               .reverse()
+    //               .reduce((last, node) => {
+    //                 node.x = Math.min(node.x, last.x - separation(node, last));
+    //                 return node;
+    //               }, n);
+    //           });
+    //       });
+      
+    //       const min = Math.min(
+    //         ...layers.map((layer) => Math.min(...layer.map((n) => n.x)))
+    //       );
+    //       const span =
+    //         Math.max(...layers.map((layer) => Math.max(...layer.map((n) => n.x)))) -
+    //         min;
+    //       layers.forEach((layer) => layer.forEach((n) => (n.x = (n.x - min) / span)));
+    //       layers.forEach((layer) => layer.forEach((n) => delete n.degree));
+    //       return layers;
+    //     }
+      
+    //     return coordGreedy;
+    //   }
+      
+    //   function mean(topLayer, bottomLayer) {
+    //     bottomLayer.forEach((node) => {
+    //       node.x = 0.0;
+    //       node._count = 0.0;
+    //     });
+    //     topLayer.forEach((n) =>
+    //       n.children.forEach((c) => (c.x += (n.x - c.x) / ++c._count))
+    //     );
+    //     bottomLayer.forEach((n) => delete n._count);
+    //   }
+
+
+
     // below is derived from
     // https://observablehq.com/@erikbrinkman/d3-dag-sugiyama-with-arrows
 
@@ -186,8 +275,9 @@ window.onload = async (event) => {
     ]
 
     const layering = [
-        //d3dag.layeringCoffmanGraham().width(2),
+        //d3dag.layeringCoffmanGraham().width(4),
         d3dag.layeringTopological(),
+        //d3dag.layeringLongestPath().topDown(false),
         //d3dag.layeringLongestPath(),
         //d3dag.layeringSimplex(),
     ]
@@ -196,7 +286,9 @@ window.onload = async (event) => {
         //d3dag.decrossTwoLayer().order(d3dag.twolayerOpt()),
         d3dag.decrossTwoLayer().order(d3dag.twolayerMedian()),
         //d3dag.decrossTwoLayer(),
-        //d3dag.decrossOpt()
+        //d3dag.decrossOpt(),
+        //d3dag.decrossOpt().debug(true),
+        
     ]
 
     const columnAssignment = [
@@ -211,11 +303,14 @@ window.onload = async (event) => {
     const coord = [
         //d3dag.coordVert(),
         //d3dag.coordMinCurve(),
+        //d3dag.coordMinCurve().weight(0.5),
         d3dag.coordGreedy(),
+        //customCoordGreedy(),
         //d3dag.coordCenter(),
     ]
 
     const myLayout = layout[0]
+        //.debug(true)
         .size([width, height])
         .layering(layering[0])
         .decross(decross[0])
