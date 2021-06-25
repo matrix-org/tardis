@@ -1,6 +1,8 @@
 import * as d3 from 'd3';
 import * as d3dag from 'd3-dag';
 
+import rawJson from './context-response.json';
+
 async function postData(url = '', data = {}) {
     const response = await fetch(url, {
         method: 'POST',
@@ -19,30 +21,37 @@ window.onload = async (event) => {
     const hideMissingEvents = false;
     const hideOrphans = false;
 
-    const width = 1920;
-    const height = 2920;
+    const width = 900;
+    const height = 700;
 
     const events = {};
-    const latestEventsAndState = await postData(
-        `${host}/api/roomserver/queryLatestEventsAndState`,
-        { 'room_id': roomId },
-    );
-
-    // grab the state events
-    if (showStateEvents) {
-        for (const event of latestEventsAndState.state_events) {
-            events[event._event_id] = event;
-        }
+    for (const e of rawJson.events_before) {
+        console.log('e.event_id', e.event_id)
+        e._event_id = e.event_id;
+        events[e.event_id] = e;
     }
+    console.log('events', events);
 
-    // add in the latest events
-    const eventsById = await postData(
-        `${host}/api/roomserver/queryEventsByID`,
-        { 'event_ids': latestEventsAndState.latest_events.map((e)=>e[0]) },
-    );
-    for (const event of eventsById.events) {
-        events[event._event_id] = event;
-    }
+    // const latestEventsAndState = await postData(
+    //     `${host}/api/roomserver/queryLatestEventsAndState`,
+    //     { 'room_id': roomId },
+    // );
+
+    // // grab the state events
+    // if (showStateEvents) {
+    //     for (const event of latestEventsAndState.state_events) {
+    //         events[event._event_id] = event;
+    //     }
+    // }
+
+    // // add in the latest events
+    // const eventsById = await postData(
+    //     `${host}/api/roomserver/queryEventsByID`,
+    //     { 'event_ids': latestEventsAndState.latest_events.map((e)=>e[0]) },
+    // );
+    // for (const event of eventsById.events) {
+    //     events[event._event_id] = event;
+    // }
 
     // spider some prev events    
     let missingEventIds;
@@ -56,40 +65,45 @@ window.onload = async (event) => {
             if (event.state_key) event.prev_events = []; 
             for (const refId of event.prev_events.concat(event.auth_events)) {
                 if (!(refId in events)) {
+                    // Just remove the missing events from the graph
+                    event.prev_events = event.prev_events.filter((id) => id !== refId);
+                    event.auth_events = event.auth_events.filter((id) => id !== refId);
+
                     missingEventIds[refId] = 1;
                     missing = true;
                 }
             }
         }
-        if (Object.keys(missingEventIds).length > 0 && Object.keys(events).length < limit) {
-            const eventsById = await postData(
-                `${host}/api/roomserver/queryEventsByID`,
-                { 'event_ids': Object.keys(missingEventIds) },
-            );
-            if (eventsById && eventsById.events && eventsById.events.length > 0) {
-                for (const event of eventsById.events) {
-                    events[event._event_id] = event;
-                    delete missingEventIds[event._event_id];
-                }
-            }
-        }
+        // if (Object.keys(missingEventIds).length > 0 && Object.keys(events).length < limit) {
+        //     const eventsById = await postData(
+        //         `${host}/api/roomserver/queryEventsByID`,
+        //         { 'event_ids': Object.keys(missingEventIds) },
+        //     );
+        //     if (eventsById && eventsById.events && eventsById.events.length > 0) {
+        //         for (const event of eventsById.events) {
+        //             events[event._event_id] = event;
+        //             delete missingEventIds[event._event_id];
+        //         }
+        //     }
+        // }
 
         // fill in placeholders for missing events
-        for (const missingEventId of Object.keys(missingEventIds)) {
-            console.log(`Synthesising missing event ${missingEventId}`);
-            events[missingEventId] = {
-                _event_id: missingEventId,
-                prev_events: [],
-                auth_events: [],
-                type: 'missing',
-            }
-        }
+        // for (const missingEventId of Object.keys(missingEventIds)) {
+        //     console.log(`Synthesising missing event ${missingEventId}`);
+        //     events[missingEventId] = {
+        //         _event_id: missingEventId,
+        //         prev_events: [],
+        //         auth_events: [],
+        //         type: 'missing',
+        //     }
+        // }
     } while(missing);
 
     // tag events which receive multiple references
     for (const event of Object.values(events)) {
         if (hideMissingEvents) {
             if (event.type === 'missing') {
+                console.warn('Hiding event', event._event_id);
                 delete events[event._event_id];
                 continue;
             }
@@ -112,7 +126,7 @@ window.onload = async (event) => {
         return false;
     }
 
-    const skipBoringParents = true;
+    const skipBoringParents = false;
     if (skipBoringParents) {
         // collapse linear strands of the DAG (based on prev_events)
         for (const event of Object.values(events)) {
@@ -166,13 +180,148 @@ window.onload = async (event) => {
     const svgSelection = d3.select(svgNode);
     const defs = svgSelection.append('defs');
 
+
+
+    // From https://github.com/erikbrinkman/d3-dag/blob/eca4f5d333ccc08a8dcb95ec6f6ae2910d5f2942/src/sugiyama/coord/greedy.js
+    // function customCoordGreedy() {
+    //     let assignment = mean;
+      
+    //     function coordGreedy(layers, separation) {
+    //       // Assign degrees
+    //       // The 3 at the end ensures that dummy nodes have the lowest priority
+    //       layers.forEach((layer) =>
+    //         layer.forEach((n) => (n.degree = n.children.length + (n.data ? 0 : -3)))
+    //       );
+    //       layers.forEach((layer) =>
+    //         layer.forEach((n) => n.children.forEach((c) => ++c.degree))
+    //       );
+      
+    //       // Set first nodes
+    //       layers[0][0].x = 0;
+    //       layers[0].slice(1).forEach((node, i) => {
+    //         const last = layers[0][i];
+    //         node.x = last.x + separation(last, node);
+    //       });
+      
+    //       // Set remaining nodes
+    //       layers.slice(0, layers.length - 1).forEach((top, i) => {
+    //         const bottom = layers[i + 1];
+    //         assignment(top, bottom);
+    //         // FIXME This order is import, i.e. we right and then left. We should actually do both, and then take the average
+    //         bottom
+    //           .map((n, j) => [n, j])
+    //           .sort(([an, aj], [bn, bj]) =>
+    //             an.degree === bn.degree ? aj - bj : bn.degree - an.degree
+    //           )
+    //           .forEach(([n, j]) => {
+    //             bottom.slice(j + 1).reduce((last, node) => {
+    //             //console.log('node', node);
+    //             let nodeValue = Math.max(node.x, last.x + separation(last, node));
+    //             console.log('nodeValue', nodeValue)
+                
+    //             const isHistorical = node.data && node.data.content && node.data.content.body && node.data.content.body.startsWith('Historical');
+    //             const isInsertion = node.data && node.data.type === 'org.matrix.msc2716.insertion';
+    //             if(isHistorical || isInsertion) {
+    //                 nodeValue += 1;
+    //             }
+                
+    //               node.x = nodeValue;
+    //               return node;
+    //             }, n);
+    //             bottom
+    //               .slice(0, j)
+    //               .reverse()
+    //               .reduce((last, node) => {
+    //                 node.x = Math.min(node.x, last.x - separation(node, last));
+    //                 return node;
+    //               }, n);
+    //           });
+    //       });
+      
+    //       const min = Math.min(
+    //         ...layers.map((layer) => Math.min(...layer.map((n) => n.x)))
+    //       );
+    //       const span =
+    //         Math.max(...layers.map((layer) => Math.max(...layer.map((n) => n.x)))) -
+    //         min;
+    //       layers.forEach((layer) => layer.forEach((n) => (n.x = (n.x - min) / span)));
+    //       layers.forEach((layer) => layer.forEach((n) => delete n.degree));
+    //       return layers;
+    //     }
+      
+    //     return coordGreedy;
+    //   }
+      
+    //   function mean(topLayer, bottomLayer) {
+    //     bottomLayer.forEach((node) => {
+    //       node.x = 0.0;
+    //       node._count = 0.0;
+    //     });
+    //     topLayer.forEach((n) =>
+    //       n.children.forEach((c) => (c.x += (n.x - c.x) / ++c._count))
+    //     );
+    //     bottomLayer.forEach((n) => delete n._count);
+    //   }
+
+
+
     // below is derived from
     // https://observablehq.com/@erikbrinkman/d3-dag-sugiyama-with-arrows
 
-    // d3dag.zherebko()
-    d3dag.sugiyama()
-        .layering(d3dag.layeringCoffmanGraham().width(2))
-        .size([width, height])(dag);
+    const layout = [
+        //d3dag.zherebko()
+        //d3dag.arquint()
+        d3dag.sugiyama()
+    ]
+
+    const layering = [
+        //d3dag.layeringCoffmanGraham().width(4),
+        d3dag.layeringTopological(),
+        //d3dag.layeringLongestPath().topDown(false),
+        //d3dag.layeringLongestPath(),
+        //d3dag.layeringSimplex(),
+    ]
+
+    const decross = [
+        //d3dag.decrossTwoLayer().order(d3dag.twolayerOpt()),
+        d3dag.decrossTwoLayer().order(d3dag.twolayerMedian()),
+        //d3dag.decrossTwoLayer(),
+        //d3dag.decrossOpt(),
+        //d3dag.decrossOpt().debug(true),
+        
+    ]
+
+    const columnAssignment = [
+        d3dag.columnSimpleLeft(),
+        //d3dag.columnSimpleCenter(),
+        //d3dag.columnAdjacent(),
+        //d3dag.columnAdjacent().center(true),
+        //d3dag.columnComplex(),
+        //d3dag.columnComplex().center(true),
+    ]
+    
+    const coord = [
+        //d3dag.coordVert(),
+        //d3dag.coordMinCurve(),
+        //d3dag.coordMinCurve().weight(0.5),
+        d3dag.coordGreedy(),
+        //customCoordGreedy(),
+        //d3dag.coordCenter(),
+    ]
+
+    const myLayout = layout[0]
+        //.debug(true)
+        .size([width, height])
+        .layering(layering[0])
+        .decross(decross[0])
+        .coord(coord[0])
+        //.columnAssignment(columnAssignment[0])
+        //.interLayerSeparation(10)
+        //.columnWidth(100)
+        //.columnSeparation(100);
+
+    myLayout(dag);
+
 
     const steps = dag.size();
     const interp = d3.interpolateRainbow;
@@ -259,7 +408,9 @@ window.onload = async (event) => {
 
     // Add text to nodes with border
     nodes.append('text')
-        .text((d) => d.data.type)
+        .text((d) => {
+            return `${d.data.type} - ${d.data.content && d.data.content.body} (depth=${d.data.depth})`;
+        })
         .attr('transform', `translate(${nodeRadius + 10}, 0)`)
         .attr('font-family', 'sans-serif')
         .attr('text-anchor', 'left')
@@ -270,7 +421,9 @@ window.onload = async (event) => {
         .attr('stroke-width', 4);
 
     nodes.append('text')
-        .text((d) => d.data.type)
+        .text((d) => {
+            return `${d.data.type} - ${d.data.content && d.data.content.body} (depth=${d.data.depth})`;
+        })
         .attr('transform', `translate(${nodeRadius + 10}, 0)`)
         .attr('font-family', 'sans-serif')
         .attr('text-anchor', 'left')

@@ -1,0 +1,986 @@
+{
+  "events_before": [
+    {
+      "auth_events": [
+        "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E",
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8",
+        "$-VpZnSVmpJJSPjTPofh8XTtof0_419-4Laz4jQ99iJ0"
+      ],
+      "prev_events": [
+        "$7iGIFjGcD2Ox1Mq2PaCrEvsIMAi0q3uVejyfU99EVxQ"
+      ],
+      "type": "m.room.message",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@alice:hs1",
+      "content": {
+        "body": "Message 0",
+        "msgtype": "m.text"
+      },
+      "depth": 10,
+      "prev_state": [],
+      "origin": "hs1",
+      "origin_server_ts": 1624596454830,
+      "hashes": {
+        "sha256": "csdQc8UC/hqsyU96EEAYetiZiZ/OutUgxu+ZhFphQcQ"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "b58ym4ZAQEmjkzMG6RTl2qpCK4bNzbqyYphX9XL9Cxkk28PoA4KKiX1hv8TmCmaoA6x50TfXOJnjbE120FY3BA"
+        }
+      },
+      "unsigned": {
+        "age": 274
+      },
+      "event_id": "$KRhq6E7u-enASoFJW2J72be9OfWjVQw12Nhcgl8LXe4",
+      "user_id": "@alice:hs1",
+      "age": 274
+    },
+    {
+      "auth_events": [
+        "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E",
+        "$Jfj7brYeHb-2HyYHI-9vJeehCpKbNPt5udeDa4q_OQ8",
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8"
+      ],
+      "prev_events": [
+        "$iMevudXV6hieeYT_zAqjppfzVQBOAYiFJYDe6oy2cRY"
+      ],
+      "type": "org.matrix.msc2716.insertion",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@maria:hs1",
+      "content": {
+        "org.matrix.msc2716.next_chunk_id": "cKIwRbfIpTiticymrDWPHiHLffYOhWRkktmHYAoazsuGORhWRUQWcPCnkoUAstrK",
+        "org.matrix.msc2716.historical": true
+      },
+      "depth": 10,
+      "prev_state": [],
+      "origin_server_ts": 1624596454825,
+      "origin": "hs1",
+      "hashes": {
+        "sha256": "9VNHBHdG8aSWKkKLi/zQNvw9eDZlhov+knkWFNlRt5U"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "uAfI3yZb+ydLsRWyjj88s+QghZ5aeMGcSw2nR5RNHnqsBQj/yRv7jDQ+QjzkGbksvZE6jRnJx1YOFbt1zouTDg"
+        }
+      },
+      "unsigned": {
+        "age": 132
+      },
+      "event_id": "$J0_tSYoDtTv0nVGIj1R_yeuTHCrALRrkw1iSwqrEgxE",
+      "user_id": "@maria:hs1",
+      "age": 132
+    },
+    {
+      "auth_events": [
+        "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E",
+        "$Jfj7brYeHb-2HyYHI-9vJeehCpKbNPt5udeDa4q_OQ8",
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8"
+      ],
+      "prev_events": [
+        "$nydq7DXffxgog9lDzhP3QqV0Ozrv8bIRo6WWfyMwpNk"
+      ],
+      "type": "m.room.message",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@maria:hs1",
+      "content": {
+        "body": "Historical 2 (chunk=0)",
+        "msgtype": "m.text",
+        "org.matrix.msc2716.historical": true,
+        "org.matrix.msc2716.chunk_id": "cKIwRbfIpTiticymrDWPHiHLffYOhWRkktmHYAoazsuGORhWRUQWcPCnkoUAstrK"
+      },
+      "depth": 10,
+      "prev_state": [],
+      "origin_server_ts": 1624596454825,
+      "origin": "hs1",
+      "hashes": {
+        "sha256": "p7rr2SR5GXjIeeCmXnPvpzoLLSYPp0yuyEz2sU9loUo"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "Qx/G1lKSt09FKLRbNbwx/qtX9q2HZ17GkNmqzgB712ICGjcPYDmFKhucrAPQJLYjvaWNF5/UFhI/MWgtz5AyCw"
+        }
+      },
+      "unsigned": {
+        "age": 136
+      },
+      "event_id": "$iMevudXV6hieeYT_zAqjppfzVQBOAYiFJYDe6oy2cRY",
+      "user_id": "@maria:hs1",
+      "age": 136
+    },
+    {
+      "auth_events": [
+        "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E",
+        "$Jfj7brYeHb-2HyYHI-9vJeehCpKbNPt5udeDa4q_OQ8",
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8"
+      ],
+      "prev_events": [
+        "$brDVVn9XXIzMrj6b6t0HIacyHjBj244jtD6O8oBTwog"
+      ],
+      "type": "m.room.message",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@maria:hs1",
+      "content": {
+        "body": "Historical 1 (chunk=0)",
+        "msgtype": "m.text",
+        "org.matrix.msc2716.historical": true
+      },
+      "depth": 10,
+      "prev_state": [],
+      "origin_server_ts": 1624596454824,
+      "origin": "hs1",
+      "hashes": {
+        "sha256": "Rh/XOqwK8O6SR6DcZetyKqs4uQ3oktC98CnyoLFa3WE"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "h2S6ChTV6YwUifgsz/dvY0uquKoSgMCXjUmUj7dvWBOyRoFzwaTJMQLCd+TlO6PjHOAz692c76peBS+l3LqDCw"
+        }
+      },
+      "unsigned": {
+        "age": 140
+      },
+      "event_id": "$nydq7DXffxgog9lDzhP3QqV0Ozrv8bIRo6WWfyMwpNk",
+      "user_id": "@maria:hs1",
+      "age": 140
+    },
+    {
+      "auth_events": [
+        "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E",
+        "$Jfj7brYeHb-2HyYHI-9vJeehCpKbNPt5udeDa4q_OQ8",
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8"
+      ],
+      "prev_events": [
+        "$GSf15o7Y2OuvwHTneT_2TFl139Ytzu9VjWP6fqK7dkw"
+      ],
+      "type": "m.room.message",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@maria:hs1",
+      "content": {
+        "body": "Historical 0 (chunk=0)",
+        "msgtype": "m.text",
+        "org.matrix.msc2716.historical": true
+      },
+      "depth": 10,
+      "prev_state": [],
+      "origin_server_ts": 1624596454823,
+      "origin": "hs1",
+      "hashes": {
+        "sha256": "wmim3ox9tycKUi7fcVXzDCCSkD4JnQaZwrq2N+PyX74"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "SloAF5seCyMW0FFTtyQWuhDUJrJb602I5HHZXUwCgNIxAafJg6JFMMOQXBS8rIQpwD6GGMm4zt2rRzoMXebdAg"
+        }
+      },
+      "unsigned": {
+        "age": 146
+      },
+      "event_id": "$brDVVn9XXIzMrj6b6t0HIacyHjBj244jtD6O8oBTwog",
+      "user_id": "@maria:hs1",
+      "age": 146
+    },
+    {
+      "auth_events": [
+        "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E",
+        "$Jfj7brYeHb-2HyYHI-9vJeehCpKbNPt5udeDa4q_OQ8",
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8"
+      ],
+      "prev_events": [
+        "$7iGIFjGcD2Ox1Mq2PaCrEvsIMAi0q3uVejyfU99EVxQ"
+      ],
+      "type": "org.matrix.msc2716.insertion",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@maria:hs1",
+      "content": {
+        "org.matrix.msc2716.next_chunk_id": "pGQtPbNZHnGRRgIGDzChftNUjZXwWfBZPYsNYqbARSxQnoGIakLIybBwZhguOAmT",
+        "org.matrix.msc2716.historical": true
+      },
+      "depth": 10,
+      "prev_state": [],
+      "origin_server_ts": 1624596454823,
+      "origin": "hs1",
+      "hashes": {
+        "sha256": "fs8W5hJRmwHQXK006i4isnMF3MOAB1LHgydd2sdolZE"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "FBhfRUmhNEJ2fESMlVW3Scz3GMJ+TpcD3yf1RYCmeGALakXNBQaZyu8G3n/a09O9s/5KyWGRlq4HFqW2zhVBAA"
+        }
+      },
+      "unsigned": {
+        "age": 148
+      },
+      "event_id": "$GSf15o7Y2OuvwHTneT_2TFl139Ytzu9VjWP6fqK7dkw",
+      "user_id": "@maria:hs1",
+      "age": 148
+    },
+    {
+      "auth_events": [
+        "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E",
+        "$PnIS3V2Yp8QkGemDB9d-bX6ruCDxEATTVYrZ8lVOTeA",
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8"
+      ],
+      "prev_events": [
+        "$PNVpFjZdj6ia8ll_oefanXRXkhTZbWOrRDRA89NkLAs"
+      ],
+      "type": "m.room.message",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@maria:hs1",
+      "content": {
+        "body": "Historical 2 (chunk=1)",
+        "msgtype": "m.text",
+        "org.matrix.msc2716.historical": true,
+        "org.matrix.msc2716.chunk_id": "pGQtPbNZHnGRRgIGDzChftNUjZXwWfBZPYsNYqbARSxQnoGIakLIybBwZhguOAmT"
+      },
+      "depth": 10,
+      "prev_state": [],
+      "origin_server_ts": 1624596454822,
+      "origin": "hs1",
+      "hashes": {
+        "sha256": "ZohKkV46i+PJl9+dPdwooD60OCHJ4fxoR6twqcRvsZU"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "MNQl9/0AqtwYQzl9dduaF2JNXbtOMGrAIfV4Qi9W1p1JkTg0D/Ax4CjO30ml/A6N9t+NLzBArAem5ChrstpVDw"
+        }
+      },
+      "unsigned": {
+        "age": 63
+      },
+      "event_id": "$rcXmgqCX5bLUIYj4R2KWcxSIVMCWr5vWtLXzYGiVAtE",
+      "user_id": "@maria:hs1",
+      "age": 63
+    },
+    {
+      "auth_events": [
+        "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E",
+        "$PnIS3V2Yp8QkGemDB9d-bX6ruCDxEATTVYrZ8lVOTeA",
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8"
+      ],
+      "prev_events": [
+        "$nNV98UVFydAm4kq70n9iujtt1AogEzOjsgbTMmrJRXE"
+      ],
+      "type": "m.room.message",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@maria:hs1",
+      "content": {
+        "body": "Historical 1 (chunk=1)",
+        "msgtype": "m.text",
+        "org.matrix.msc2716.historical": true
+      },
+      "depth": 10,
+      "prev_state": [],
+      "origin_server_ts": 1624596454821,
+      "origin": "hs1",
+      "hashes": {
+        "sha256": "c6FgrVaq1grEK5cazx6aKLHlG/7xR6k0gloVL+QhEM0"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "wseSWiS5Rpp3RYV4bn9E0Oxp8szMU4oOQvi6y++o/L0qNuBjmBH8zG+n//He9MzFfZovV6LIJ4k3WzPqdnxZCw"
+        }
+      },
+      "unsigned": {
+        "age": 67
+      },
+      "event_id": "$PNVpFjZdj6ia8ll_oefanXRXkhTZbWOrRDRA89NkLAs",
+      "user_id": "@maria:hs1",
+      "age": 67
+    },
+    {
+      "auth_events": [
+        "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E",
+        "$PnIS3V2Yp8QkGemDB9d-bX6ruCDxEATTVYrZ8lVOTeA",
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8"
+      ],
+      "prev_events": [
+        "$giQ3gIwrlGJRimHdQ0F77q6FblSQBjcd2nXLMRFeNLg"
+      ],
+      "type": "m.room.message",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@maria:hs1",
+      "content": {
+        "body": "Historical 0 (chunk=1)",
+        "msgtype": "m.text",
+        "org.matrix.msc2716.historical": true
+      },
+      "depth": 10,
+      "prev_state": [],
+      "origin_server_ts": 1624596454820,
+      "origin": "hs1",
+      "hashes": {
+        "sha256": "Xz3qKwOIYrA1B7AktBSSuQzB315rpKMNnk+xMmaHQz0"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "l1FdergKrEhiGX0lBvbBbRSKz7xmZJosHyBQV0h0/oIE+t/Jz2Bxg90K7R1fqt/LJhjyPBVcJRJ+ucHkhbI/DA"
+        }
+      },
+      "unsigned": {
+        "age": 71
+      },
+      "event_id": "$nNV98UVFydAm4kq70n9iujtt1AogEzOjsgbTMmrJRXE",
+      "user_id": "@maria:hs1",
+      "age": 71
+    },
+    {
+      "auth_events": [
+        "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E",
+        "$PnIS3V2Yp8QkGemDB9d-bX6ruCDxEATTVYrZ8lVOTeA",
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8"
+      ],
+      "prev_events": [
+        "$7iGIFjGcD2Ox1Mq2PaCrEvsIMAi0q3uVejyfU99EVxQ"
+      ],
+      "type": "org.matrix.msc2716.insertion",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@maria:hs1",
+      "content": {
+        "org.matrix.msc2716.next_chunk_id": "vFIUrnDpuuhXfcayECWKMmFwRaUqdrJToHfIBZMhPVmGygUdKDRMvDssBhrqSQUD",
+        "org.matrix.msc2716.historical": true
+      },
+      "depth": 10,
+      "prev_state": [],
+      "origin_server_ts": 1624596454820,
+      "origin": "hs1",
+      "hashes": {
+        "sha256": "yg3/YHKWLnO0MHCU1MlTKbGOxWywTAa1ANyr0vKLG8w"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "7ZWO/SInG46HqmU1rH9T+aewCVOgRXcXPugcOMofY81KSTMPx2w7lYXdBeuLu/W4ABMBKzjTDN5gXA838HZ9BA"
+        }
+      },
+      "unsigned": {
+        "age": 72
+      },
+      "event_id": "$giQ3gIwrlGJRimHdQ0F77q6FblSQBjcd2nXLMRFeNLg",
+      "user_id": "@maria:hs1",
+      "age": 72
+    },
+    {
+      "auth_events": [
+        "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E",
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8",
+        "$-VpZnSVmpJJSPjTPofh8XTtof0_419-4Laz4jQ99iJ0"
+      ],
+      "prev_events": [
+        "$SkBg3ECOfH8toCOMCztZldqtJhhqbLW0FbR0T_5g5j8"
+      ],
+      "type": "m.room.message",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@alice:hs1",
+      "content": {
+        "body": "Message 1",
+        "msgtype": "m.text"
+      },
+      "depth": 9,
+      "prev_state": [],
+      "origin": "hs1",
+      "origin_server_ts": 1624596454787,
+      "hashes": {
+        "sha256": "nQ/IvLIPpgnuT26/AyPiz8gtfME1YkeMfeafmJkyVZY"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "oShDQ1nUsW9NOWnbfitbbH3OUlc90NS08lpxkuQeBbjzjdLHQSL1EFukjzYaqvUPE032o2yK5mH6PExH440kBA"
+        }
+      },
+      "unsigned": {
+        "age": 317
+      },
+      "event_id": "$7iGIFjGcD2Ox1Mq2PaCrEvsIMAi0q3uVejyfU99EVxQ",
+      "user_id": "@alice:hs1",
+      "age": 317
+    },
+    {
+      "auth_events": [
+        "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E",
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8",
+        "$-VpZnSVmpJJSPjTPofh8XTtof0_419-4Laz4jQ99iJ0"
+      ],
+      "prev_events": [
+        "$-VpZnSVmpJJSPjTPofh8XTtof0_419-4Laz4jQ99iJ0"
+      ],
+      "type": "m.room.message",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@alice:hs1",
+      "content": {
+        "body": "Message 0",
+        "msgtype": "m.text"
+      },
+      "depth": 8,
+      "prev_state": [],
+      "origin": "hs1",
+      "origin_server_ts": 1624596454722,
+      "hashes": {
+        "sha256": "3nSRTi2lNK02O8zWY94QZQP6/mHZoPVFCwOxK3QiAaQ"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "LAUDVLA+CMdiVdhsdD/U7RAX2af4BGkfVKi+xLZrEH1xZZZVNudmqQny0k42XCcH6PXLD1P0qnMK2tRlCKePCw"
+        }
+      },
+      "unsigned": {
+        "age": 382
+      },
+      "event_id": "$SkBg3ECOfH8toCOMCztZldqtJhhqbLW0FbR0T_5g5j8",
+      "user_id": "@alice:hs1",
+      "age": 382
+    },
+    {
+      "auth_events": [
+        "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E",
+        "$redqTWDRu-nU66RFvrIQMxqdUSKidh8IFoWmZGhqHHE",
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8"
+      ],
+      "prev_events": [
+        "$I4Xj84aKSovCEVtYR5ZcXzi367HUzTGpB7X_YcoIFuA"
+      ],
+      "type": "m.room.member",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@alice:hs1",
+      "content": {
+        "membership": "join",
+        "displayname": "alice"
+      },
+      "depth": 7,
+      "prev_state": [],
+      "state_key": "@alice:hs1",
+      "origin": "hs1",
+      "origin_server_ts": 1624596454686,
+      "hashes": {
+        "sha256": "Mm3wpur8/zNYK3XcUKTmocYeCvHvd4TTPvX8hjoi324"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "EXGyeXHNCuUnsvs4n4AhJa2TpMKDJZ4gfnRf3n6yHDy8WaUDxmnKHqrYCNxAWEMF/dMscxGEQsaJ3/lIzi9VAQ"
+        }
+      },
+      "unsigned": {
+        "age": 418
+      },
+      "event_id": "$-VpZnSVmpJJSPjTPofh8XTtof0_419-4Laz4jQ99iJ0",
+      "user_id": "@alice:hs1",
+      "age": 418
+    },
+    {
+      "auth_events": [
+        "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E",
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8",
+        "$rO2ZWh-yVwvxEjp3Cy1XmOQ6RA69lzuDRSQ7LjXvApI"
+      ],
+      "prev_events": [
+        "$zgEgBdD9qZYCvpxvgUWRSH2fslgPngpDRlsvG-SPu0U"
+      ],
+      "type": "m.room.name",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@the-bridge-user:hs1",
+      "content": {
+        "name": "the hangout spot"
+      },
+      "depth": 6,
+      "prev_state": [],
+      "state_key": "",
+      "origin": "hs1",
+      "origin_server_ts": 1624596454650,
+      "hashes": {
+        "sha256": "doKkyGK/Bvpw+yFPJZdz1tHiAd1w++dBpo58MtxiH4g"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "qVG6uYGLpd+xuY/LLWIK7aDqPJcM6H01E1pGEINmbwYi66zunn0hOXD7u0v9Z1tapPWMYRhvQcbYncQN0ZIwAw"
+        }
+      },
+      "unsigned": {
+        "age": 454
+      },
+      "event_id": "$I4Xj84aKSovCEVtYR5ZcXzi367HUzTGpB7X_YcoIFuA",
+      "user_id": "@the-bridge-user:hs1",
+      "age": 454
+    },
+    {
+      "auth_events": [
+        "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E",
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8",
+        "$rO2ZWh-yVwvxEjp3Cy1XmOQ6RA69lzuDRSQ7LjXvApI"
+      ],
+      "prev_events": [
+        "$redqTWDRu-nU66RFvrIQMxqdUSKidh8IFoWmZGhqHHE"
+      ],
+      "type": "m.room.history_visibility",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@the-bridge-user:hs1",
+      "content": {
+        "history_visibility": "shared"
+      },
+      "depth": 5,
+      "prev_state": [],
+      "state_key": "",
+      "origin": "hs1",
+      "origin_server_ts": 1624596454622,
+      "hashes": {
+        "sha256": "NhNAPyi6fijyvD1P/hWTl+sSAqmxdgx3oyeQ2+NZqz0"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "AMM1h3clmuFwa2mAk4EkPrlUDdlO4PJODSV+Ibtum5Eqae/M7J+s/MzaK7RFcwnvKjhfJnrujAG8UMhyviVeCg"
+        }
+      },
+      "unsigned": {
+        "age": 482
+      },
+      "event_id": "$zgEgBdD9qZYCvpxvgUWRSH2fslgPngpDRlsvG-SPu0U",
+      "user_id": "@the-bridge-user:hs1",
+      "age": 482
+    },
+    {
+      "auth_events": [
+        "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E",
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8",
+        "$rO2ZWh-yVwvxEjp3Cy1XmOQ6RA69lzuDRSQ7LjXvApI"
+      ],
+      "prev_events": [
+        "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E"
+      ],
+      "type": "m.room.join_rules",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@the-bridge-user:hs1",
+      "content": {
+        "join_rule": "public"
+      },
+      "depth": 4,
+      "prev_state": [],
+      "state_key": "",
+      "origin": "hs1",
+      "origin_server_ts": 1624596454599,
+      "hashes": {
+        "sha256": "MYU1+Rwq0bUdx2qbbpcUOhsdpw1JHSL4SQDXRCS8DyI"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "bRtVTg9uyixUeCe5Evi1CBje2sjODZ8isk3R7TJ3+EbWQVCXm7ceijJwJsoADKtZpH/I1+uFbf08i0V3qthUCQ"
+        }
+      },
+      "unsigned": {
+        "age": 505
+      },
+      "event_id": "$redqTWDRu-nU66RFvrIQMxqdUSKidh8IFoWmZGhqHHE",
+      "user_id": "@the-bridge-user:hs1",
+      "age": 505
+    },
+    {
+      "auth_events": [
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8",
+        "$rO2ZWh-yVwvxEjp3Cy1XmOQ6RA69lzuDRSQ7LjXvApI"
+      ],
+      "prev_events": [
+        "$rO2ZWh-yVwvxEjp3Cy1XmOQ6RA69lzuDRSQ7LjXvApI"
+      ],
+      "type": "m.room.power_levels",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@the-bridge-user:hs1",
+      "content": {
+        "users": {
+          "@the-bridge-user:hs1": 100
+        },
+        "users_default": 0,
+        "events": {
+          "m.room.name": 50,
+          "m.room.power_levels": 100,
+          "m.room.history_visibility": 100,
+          "m.room.canonical_alias": 50,
+          "m.room.avatar": 50,
+          "m.room.tombstone": 100,
+          "m.room.server_acl": 100,
+          "m.room.encryption": 100
+        },
+        "events_default": 0,
+        "state_default": 50,
+        "ban": 50,
+        "kick": 50,
+        "redact": 50,
+        "invite": 50
+      },
+      "depth": 3,
+      "prev_state": [],
+      "state_key": "",
+      "origin": "hs1",
+      "origin_server_ts": 1624596454578,
+      "hashes": {
+        "sha256": "gzafJskereLODGMfTNwYRH4yM+qMdrGxTkerMBvPLOc"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "eWqdz9SZKOJycvAbntbYkmDpuUf8NgAtmdG5ojW98hWauEpp5/ryL6rND/+Z6QdOTulpx0Jm+JRanAQyUJ1bBg"
+        }
+      },
+      "unsigned": {
+        "age": 526
+      },
+      "event_id": "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E",
+      "user_id": "@the-bridge-user:hs1",
+      "age": 526
+    },
+    {
+      "auth_events": [
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8"
+      ],
+      "prev_events": [
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8"
+      ],
+      "type": "m.room.member",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@the-bridge-user:hs1",
+      "content": {
+        "membership": "join"
+      },
+      "depth": 2,
+      "prev_state": [],
+      "state_key": "@the-bridge-user:hs1",
+      "origin": "hs1",
+      "origin_server_ts": 1624596454550,
+      "hashes": {
+        "sha256": "jlfhgk49GIdKOl3WLb/Ey1TWKmb9p9qXsLv+jIV0qIQ"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "LJC93mH33qHlxx3N9RrhaJmKREsql6dmOpSpnM00gOBrmOlQ9fWpfaCdl+uZ9J9vkuE6rFIu8B02NM1oLEXdCQ"
+        }
+      },
+      "unsigned": {
+        "age": 554
+      },
+      "event_id": "$rO2ZWh-yVwvxEjp3Cy1XmOQ6RA69lzuDRSQ7LjXvApI",
+      "user_id": "@the-bridge-user:hs1",
+      "age": 554
+    },
+    {
+      "auth_events": [],
+      "prev_events": [],
+      "type": "m.room.create",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@the-bridge-user:hs1",
+      "content": {
+        "room_version": "6",
+        "creator": "@the-bridge-user:hs1"
+      },
+      "depth": 1,
+      "prev_state": [],
+      "state_key": "",
+      "origin": "hs1",
+      "origin_server_ts": 1624596454495,
+      "hashes": {
+        "sha256": "88R7TEnQbHJ3YKmeKOzdMK7NDPESgeRp9h3Vbbv+Tt4"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "4wcyRj84hz//vG+8HonbyRnCrl8ltp8wGQ5/17PrKA+78cCky6M6bXQjPiMeEPt9cXhPZKb1ITdO2cl/De9hAA"
+        }
+      },
+      "unsigned": {
+        "age": 609
+      },
+      "event_id": "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8",
+      "user_id": "@the-bridge-user:hs1",
+      "age": 609
+    }
+  ],
+  "events_after": [],
+  "start": "t1-1_0_0_0_0_0_0_0_0",
+  "end": "t11-12_0_0_0_0_0_0_0_0",
+  "event": {
+    "auth_events": [
+      "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E",
+      "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8",
+      "$-VpZnSVmpJJSPjTPofh8XTtof0_419-4Laz4jQ99iJ0"
+    ],
+    "prev_events": [
+      "$KRhq6E7u-enASoFJW2J72be9OfWjVQw12Nhcgl8LXe4"
+    ],
+    "type": "m.room.message",
+    "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+    "sender": "@alice:hs1",
+    "content": {
+      "body": "Message 1",
+      "msgtype": "m.text"
+    },
+    "depth": 11,
+    "prev_state": [],
+    "origin": "hs1",
+    "origin_server_ts": 1624596454870,
+    "hashes": {
+      "sha256": "7QjahOWLZ7h1lJMzippyHh8Z94qUorPX7po6Ji5btLE"
+    },
+    "signatures": {
+      "hs1": {
+        "ed25519:a_wEqj": "YDcawKx4mJV407yhCeb1eb7MNMuzWuiEjI/6IJXQ2Slif97konm9f+4KP4YLEF/fGqRS9jHeAwxciGHxiflADQ"
+      }
+    },
+    "unsigned": {
+      "age": 234
+    },
+    "event_id": "$mi4l7OEHvk5pB9ApEPFwd29zsVFS9T63loRA3QIhFjI",
+    "user_id": "@alice:hs1",
+    "age": 234
+  },
+  "state": [
+    {
+      "auth_events": [],
+      "prev_events": [],
+      "type": "m.room.create",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@the-bridge-user:hs1",
+      "content": {
+        "room_version": "6",
+        "creator": "@the-bridge-user:hs1"
+      },
+      "depth": 1,
+      "prev_state": [],
+      "state_key": "",
+      "origin": "hs1",
+      "origin_server_ts": 1624596454495,
+      "hashes": {
+        "sha256": "88R7TEnQbHJ3YKmeKOzdMK7NDPESgeRp9h3Vbbv+Tt4"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "4wcyRj84hz//vG+8HonbyRnCrl8ltp8wGQ5/17PrKA+78cCky6M6bXQjPiMeEPt9cXhPZKb1ITdO2cl/De9hAA"
+        }
+      },
+      "unsigned": {
+        "age": 609
+      },
+      "event_id": "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8",
+      "user_id": "@the-bridge-user:hs1",
+      "age": 609
+    },
+    {
+      "auth_events": [
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8",
+        "$rO2ZWh-yVwvxEjp3Cy1XmOQ6RA69lzuDRSQ7LjXvApI"
+      ],
+      "prev_events": [
+        "$rO2ZWh-yVwvxEjp3Cy1XmOQ6RA69lzuDRSQ7LjXvApI"
+      ],
+      "type": "m.room.power_levels",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@the-bridge-user:hs1",
+      "content": {
+        "users": {
+          "@the-bridge-user:hs1": 100
+        },
+        "users_default": 0,
+        "events": {
+          "m.room.name": 50,
+          "m.room.power_levels": 100,
+          "m.room.history_visibility": 100,
+          "m.room.canonical_alias": 50,
+          "m.room.avatar": 50,
+          "m.room.tombstone": 100,
+          "m.room.server_acl": 100,
+          "m.room.encryption": 100
+        },
+        "events_default": 0,
+        "state_default": 50,
+        "ban": 50,
+        "kick": 50,
+        "redact": 50,
+        "invite": 50
+      },
+      "depth": 3,
+      "prev_state": [],
+      "state_key": "",
+      "origin": "hs1",
+      "origin_server_ts": 1624596454578,
+      "hashes": {
+        "sha256": "gzafJskereLODGMfTNwYRH4yM+qMdrGxTkerMBvPLOc"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "eWqdz9SZKOJycvAbntbYkmDpuUf8NgAtmdG5ojW98hWauEpp5/ryL6rND/+Z6QdOTulpx0Jm+JRanAQyUJ1bBg"
+        }
+      },
+      "unsigned": {
+        "age": 526
+      },
+      "event_id": "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E",
+      "user_id": "@the-bridge-user:hs1",
+      "age": 526
+    },
+    {
+      "auth_events": [
+        "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E",
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8",
+        "$rO2ZWh-yVwvxEjp3Cy1XmOQ6RA69lzuDRSQ7LjXvApI"
+      ],
+      "prev_events": [
+        "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E"
+      ],
+      "type": "m.room.join_rules",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@the-bridge-user:hs1",
+      "content": {
+        "join_rule": "public"
+      },
+      "depth": 4,
+      "prev_state": [],
+      "state_key": "",
+      "origin": "hs1",
+      "origin_server_ts": 1624596454599,
+      "hashes": {
+        "sha256": "MYU1+Rwq0bUdx2qbbpcUOhsdpw1JHSL4SQDXRCS8DyI"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "bRtVTg9uyixUeCe5Evi1CBje2sjODZ8isk3R7TJ3+EbWQVCXm7ceijJwJsoADKtZpH/I1+uFbf08i0V3qthUCQ"
+        }
+      },
+      "unsigned": {
+        "age": 505
+      },
+      "event_id": "$redqTWDRu-nU66RFvrIQMxqdUSKidh8IFoWmZGhqHHE",
+      "user_id": "@the-bridge-user:hs1",
+      "age": 505
+    },
+    {
+      "auth_events": [
+        "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E",
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8",
+        "$rO2ZWh-yVwvxEjp3Cy1XmOQ6RA69lzuDRSQ7LjXvApI"
+      ],
+      "prev_events": [
+        "$redqTWDRu-nU66RFvrIQMxqdUSKidh8IFoWmZGhqHHE"
+      ],
+      "type": "m.room.history_visibility",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@the-bridge-user:hs1",
+      "content": {
+        "history_visibility": "shared"
+      },
+      "depth": 5,
+      "prev_state": [],
+      "state_key": "",
+      "origin": "hs1",
+      "origin_server_ts": 1624596454622,
+      "hashes": {
+        "sha256": "NhNAPyi6fijyvD1P/hWTl+sSAqmxdgx3oyeQ2+NZqz0"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "AMM1h3clmuFwa2mAk4EkPrlUDdlO4PJODSV+Ibtum5Eqae/M7J+s/MzaK7RFcwnvKjhfJnrujAG8UMhyviVeCg"
+        }
+      },
+      "unsigned": {
+        "age": 482
+      },
+      "event_id": "$zgEgBdD9qZYCvpxvgUWRSH2fslgPngpDRlsvG-SPu0U",
+      "user_id": "@the-bridge-user:hs1",
+      "age": 482
+    },
+    {
+      "auth_events": [
+        "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E",
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8",
+        "$rO2ZWh-yVwvxEjp3Cy1XmOQ6RA69lzuDRSQ7LjXvApI"
+      ],
+      "prev_events": [
+        "$zgEgBdD9qZYCvpxvgUWRSH2fslgPngpDRlsvG-SPu0U"
+      ],
+      "type": "m.room.name",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@the-bridge-user:hs1",
+      "content": {
+        "name": "the hangout spot"
+      },
+      "depth": 6,
+      "prev_state": [],
+      "state_key": "",
+      "origin": "hs1",
+      "origin_server_ts": 1624596454650,
+      "hashes": {
+        "sha256": "doKkyGK/Bvpw+yFPJZdz1tHiAd1w++dBpo58MtxiH4g"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "qVG6uYGLpd+xuY/LLWIK7aDqPJcM6H01E1pGEINmbwYi66zunn0hOXD7u0v9Z1tapPWMYRhvQcbYncQN0ZIwAw"
+        }
+      },
+      "unsigned": {
+        "age": 454
+      },
+      "event_id": "$I4Xj84aKSovCEVtYR5ZcXzi367HUzTGpB7X_YcoIFuA",
+      "user_id": "@the-bridge-user:hs1",
+      "age": 454
+    },
+    {
+      "auth_events": [
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8"
+      ],
+      "prev_events": [
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8"
+      ],
+      "type": "m.room.member",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@the-bridge-user:hs1",
+      "content": {
+        "membership": "join"
+      },
+      "depth": 2,
+      "prev_state": [],
+      "state_key": "@the-bridge-user:hs1",
+      "origin": "hs1",
+      "origin_server_ts": 1624596454550,
+      "hashes": {
+        "sha256": "jlfhgk49GIdKOl3WLb/Ey1TWKmb9p9qXsLv+jIV0qIQ"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "LJC93mH33qHlxx3N9RrhaJmKREsql6dmOpSpnM00gOBrmOlQ9fWpfaCdl+uZ9J9vkuE6rFIu8B02NM1oLEXdCQ"
+        }
+      },
+      "unsigned": {
+        "age": 554
+      },
+      "event_id": "$rO2ZWh-yVwvxEjp3Cy1XmOQ6RA69lzuDRSQ7LjXvApI",
+      "user_id": "@the-bridge-user:hs1",
+      "age": 554
+    },
+    {
+      "auth_events": [
+        "$Opu0EtRMH-ImNeCtO4iL_EzRH8oL-gZ31z4Vxqt-1-E",
+        "$redqTWDRu-nU66RFvrIQMxqdUSKidh8IFoWmZGhqHHE",
+        "$JEdh5mGJ61BJhPglKr77ovTwBfcYW8IVbXjSc9Kapg8"
+      ],
+      "prev_events": [
+        "$I4Xj84aKSovCEVtYR5ZcXzi367HUzTGpB7X_YcoIFuA"
+      ],
+      "type": "m.room.member",
+      "room_id": "!dVkykRQfFMTSXaznyI:hs1",
+      "sender": "@alice:hs1",
+      "content": {
+        "membership": "join",
+        "displayname": "alice"
+      },
+      "depth": 7,
+      "prev_state": [],
+      "state_key": "@alice:hs1",
+      "origin": "hs1",
+      "origin_server_ts": 1624596454686,
+      "hashes": {
+        "sha256": "Mm3wpur8/zNYK3XcUKTmocYeCvHvd4TTPvX8hjoi324"
+      },
+      "signatures": {
+        "hs1": {
+          "ed25519:a_wEqj": "EXGyeXHNCuUnsvs4n4AhJa2TpMKDJZ4gfnRf3n6yHDy8WaUDxmnKHqrYCNxAWEMF/dMscxGEQsaJ3/lIzi9VAQ"
+        }
+      },
+      "unsigned": {
+        "age": 418
+      },
+      "event_id": "$-VpZnSVmpJJSPjTPofh8XTtof0_419-4Laz4jQ99iJ0",
+      "user_id": "@alice:hs1",
+      "age": 418
+    }
+  ]
+}
