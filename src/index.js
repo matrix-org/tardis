@@ -9,10 +9,22 @@ async function postData(url = '', data = {}) {
     return response.json();
 }
 
-const host = 'http://localhost:8008';
-const roomId = '!MMLsEB4klBO4GToM:bucephalus';
+let host = "http://localhost:18008";
+let roomId;
 
 window.onload = async (event) => {
+    document.getElementById("homeserver").value = host;
+    document.getElementById("roomid").addEventListener("blur", (ev) => {
+        roomId = ev.target.value;
+        loadDag();
+    });
+    document.getElementById("homeserver").addEventListener("blur", (ev) => {
+        host = ev.target.value;
+        loadDag();
+    });
+}
+
+const loadDag = async() => {
     const limit = 300000;
     const showStateEvents = true;
     const showAuthDag = true;
@@ -142,6 +154,7 @@ window.onload = async (event) => {
     }
 
     // stratify the events into a DAG
+    console.log(events);
     const dag = d3dag.dagStratify()
         .id((event) => event._event_id)
         .linkData((target, source) => { return { auth: source.auth_events.includes(target._event_id) } })
