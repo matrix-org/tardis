@@ -5,9 +5,12 @@
         </style>
     </head>
     <body>
-        <div id="header">
+        <div id="header" style="position: fixed;">
             <input id="homeserver" type="text" placeholder="homeserver"/>
             <input id="roomid" type="text" placeholder="room ID"/>
+            <label>Auth Events?<input id="showauthevents" type="checkbox"/></label>
+            <label>Outliers?<input id="showoutliers" type="checkbox"/></label>
+            <label>Missing events?<input id="showmissing" type="checkbox"/></label>
         </div>
         <div id="svgcontainer"/>
     </body>

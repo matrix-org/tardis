@@ -12,6 +12,21 @@ async function postData(url = '', data = {}) {
 let host = "http://localhost:18008";
 let roomId;
 
+const flags = {
+    showAuthDag: false,
+    showMissing: true,
+    showOutliers: true,
+}
+
+const hookupCheckbox = (domId, flagName) => {
+    const checkbox = document.getElementById(domId);
+    checkbox.addEventListener("change", () => {
+        flags[flagName] = checkbox.checked;
+        loadDag();
+    });
+    checkbox.checked = flags[flagName];
+}
+
 window.onload = async (event) => {
     document.getElementById("homeserver").value = host;
     document.getElementById("roomid").addEventListener("blur", (ev) => {
@@ -22,19 +37,82 @@ window.onload = async (event) => {
         host = ev.target.value;
         loadDag();
     });
+    hookupCheckbox("showauthevents", "showAuthDag");
+    hookupCheckbox("showmissing", "showMissing");
+    hookupCheckbox("showoutliers", "showOutliers");
+
+}
+
+// walk backwards from the `frontierEvents` given, using the `lookupKey` to find earlier events.
+// Stops when there is nowhere to go (create event) or when `hopsBack` has been reached.
+// Returns a map of event ID to event.
+const loadEarlierEvents = async(frontierEvents, lookupKey, hopsBack) => {
+    let result = {}; // event_id -> Event JSON
+    let hop = 0;
+    do {
+        // walk the DAG backwards starting at the frontier entries
+        let missingEventIds = {};
+        for (const frontier of Object.values(frontierEvents)) {
+            for (const refId of frontier[lookupKey]) {
+                if (!(refId in result)) {
+                    missingEventIds[refId] = 1;
+                }
+            }
+        }
+        console.log("hop ", hop, "/", hopsBack, Object.keys(frontierEvents), " -> ", Object.keys(missingEventIds));
+        if (Object.keys(missingEventIds).length === 0) {
+            return result;
+        }
+        // missingEventIds now contains the prev|auth events for the frontier entries, let's fetch them.
+        const eventsById = await postData(
+            `${host}/api/roomserver/queryEventsByID`,
+            { 'event_ids': Object.keys(missingEventIds) },
+        );
+        if (eventsById && eventsById.events && eventsById.events.length > 0) {
+            frontierEvents = {};
+            for (const event of eventsById.events) {
+                result[event._event_id] = event;
+                delete missingEventIds[event._event_id];
+                // these events now become frontiers themselves
+                frontierEvents[event._event_id] = event;
+            }
+        }
+
+        // fill in placeholders for missing events
+        for (const missingEventId of Object.keys(missingEventIds)) {
+            console.log(`Synthesising missing event ${missingEventId}`);
+            result[missingEventId] = {
+                _event_id: missingEventId,
+                prev_events: [],
+                auth_events: [],
+                type: 'missing',
+            }
+        }
+        hop++;
+    } while(hop < hopsBack);
+    return result;
 }
 
 const loadDag = async() => {
-    const limit = 300000;
     const showStateEvents = true;
-    const showAuthDag = true;
-    const hideMissingEvents = false;
-    const hideOrphans = false;
+    const showAuthDag = flags.showAuthDag;
+    const hideMissingEvents = !flags.showMissing;
+    const hideOrphans = !flags.showOutliers;
+    document.getElementById("svgcontainer").innerHTML = "";
 
-    const width = 1920;
-    const height = 2920;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
 
     const events = {};
+    let rootId;
+
+    // {
+    //   state_events: [ { EVENT JSON } ]
+    //   latest_events: [
+    //     [ $eventid, { sha256: ... } ],
+    //     ...
+    //   ]
+    // }
     const latestEventsAndState = await postData(
         `${host}/api/roomserver/queryLatestEventsAndState`,
         { 'room_id': roomId },
@@ -44,70 +122,36 @@ const loadDag = async() => {
     if (showStateEvents) {
         for (const event of latestEventsAndState.state_events) {
             events[event._event_id] = event;
+            if (event.type === 'm.room.create' && event.state_key === "") {
+                rootId = event._event_id;
+            }
         }
     }
 
     // add in the latest events
+    let latestEvents = {};
     const eventsById = await postData(
         `${host}/api/roomserver/queryEventsByID`,
         { 'event_ids': latestEventsAndState.latest_events.map((e)=>e[0]) },
     );
     for (const event of eventsById.events) {
         events[event._event_id] = event;
+        latestEvents[event._event_id] = event;
     }
 
     // spider some prev events    
-    let missingEventIds;
-    let missing;
-    let rootId;
-    do {
-        missing = false;
-        missingEventIds = {};
-        for (const event of Object.values(events)) {
-            if (event.type === 'm.room.create') rootId = event._event_id;
-            if (event.state_key) event.prev_events = []; 
-            for (const refId of event.prev_events.concat(event.auth_events)) {
-                if (!(refId in events)) {
-                    missingEventIds[refId] = 1;
-                    missing = true;
-                }
-            }
-        }
-        if (Object.keys(missingEventIds).length > 0 && Object.keys(events).length < limit) {
-            const eventsById = await postData(
-                `${host}/api/roomserver/queryEventsByID`,
-                { 'event_ids': Object.keys(missingEventIds) },
-            );
-            if (eventsById && eventsById.events && eventsById.events.length > 0) {
-                for (const event of eventsById.events) {
-                    events[event._event_id] = event;
-                    delete missingEventIds[event._event_id];
-                }
-            }
-        }
-
-        // fill in placeholders for missing events
-        for (const missingEventId of Object.keys(missingEventIds)) {
-            console.log(`Synthesising missing event ${missingEventId}`);
-            events[missingEventId] = {
-                _event_id: missingEventId,
-                prev_events: [],
-                auth_events: [],
-                type: 'missing',
-            }
-        }
-    } while(missing);
+    const prevEvents = await loadEarlierEvents(latestEvents, "prev_events", 5); // TODO: config hops back
 
     // tag events which receive multiple references
-    for (const event of Object.values(events)) {
+    for (const event of Object.values(prevEvents)) {
         if (hideMissingEvents) {
             if (event.type === 'missing') {
-                delete events[event._event_id];
                 continue;
             }
             event.prev_events = event.prev_events.filter(id=>(events[id].type !== 'missing'));
             event.auth_events = event.auth_events.filter(id=>(events[id].type !== 'missing'));
         }
+        events[event._event_id] = event;
 
         for (const parentId of event.prev_events.concat(event.auth_events)) {
             events[parentId].refs = events[parentId].refs ? (events[parentId].refs + 1) : 1;
@@ -115,16 +159,20 @@ const loadDag = async() => {
     }
 
     function shouldSkipParent(event) {
-        if (event.prev_events.length == 1) {
-            const parent = events[event.prev_events[0]];
-            if (parent.prev_events.length == 1 && parent.refs == 1) {
-                return true;
-            }
+        if (event.prev_events.length !== 1) {
+            return false;
+        }
+        const parent = events[event.prev_events[0]];
+        if (!parent) {
+            return false;
+        }
+        if (parent.prev_events.length == 1 && parent.refs == 1) {
+            return true;
         }
         return false;
     }
 
-    const skipBoringParents = true;
+    const skipBoringParents = false;
     if (skipBoringParents) {
         // collapse linear strands of the DAG (based on prev_events)
         for (const event of Object.values(events)) {
@@ -142,7 +190,7 @@ const loadDag = async() => {
             if (event.skipped) delete events[event._event_id];
         }
     }
-
+    //return;
     //console.log(JSON.stringify(events));
 
     let parentIdFn;
