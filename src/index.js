@@ -38,7 +38,7 @@ window.onload = async (event) => {
         loadDag();
     });
     hookupCheckbox("showauthevents", "showAuthDag");
-    hookupCheckbox("showmissing", "showMissing");
+    // hookupCheckbox("showmissing", "showMissing");
     hookupCheckbox("showoutliers", "showOutliers");
 
 }
@@ -152,6 +152,7 @@ const loadDag = async() => {
         { 'event_ids': latestEventsAndState.latest_events.map((e)=>e[0]) },
     );
     for (const event of eventsById.events) {
+        event.forward_extremity = true;
         events[event._event_id] = event;
         latestEvents[event._event_id] = event;
     }
@@ -160,6 +161,7 @@ const loadDag = async() => {
     const prevEvents = await loadEarlierEvents(latestEvents, "prev_events", 5); // TODO: config hops back
     let earlierEvents = Object.values(prevEvents.events);
     if (showAuthDag) {
+        console.log("create", rootId);
         // spider some auth events
         const dagPortion = prevEvents.events;
         for (const event of Object.values(latestEvents)) {
@@ -168,16 +170,21 @@ const loadDag = async() => {
         const authEvents = await loadEarlierEvents(dagPortion, "auth_events", 5); // TODO: config hops back
         // We don't care about the prev_events for auth chain events, so snip them
         // We also don't care about the link to the create event as all events have this so it's just noise, so snip it.
+        let createInChain = false;
         for (let authEvent of Object.values(authEvents.events)) {
             if (dagPortion[authEvent._event_id]) {
                 continue; // the auth event is part of the dag, we DO care about prev_events
             }
             authEvent.prev_events = [];
+            if (authEvent.auth_events.length == 1 && authEvent.auth_events.includes(rootId)) {
+                createInChain = true;
+                continue; // don't strip the create event ref if it is the only one (initial member event has this)
+            }
             authEvent.auth_events = authEvent.auth_events.filter((id) => { return id !== rootId; })
         }
         // we don't want the m.room.create event unless it is part of the dag, as it will be orphaned
         // due to not having auth events linking to it.
-        if (!dagPortion[rootId]) {
+        if (!dagPortion[rootId] && !createInChain) {
             delete events[rootId];
             delete authEvents.events[rootId];
         }
@@ -193,7 +200,7 @@ const loadDag = async() => {
         }
         events[event._event_id] = event;
     }
-    console.log(events);
+    
     // tag events which receive multiple references
     for (const event of earlierEvents) {
         let prevIds = event.prev_events;
@@ -365,7 +372,7 @@ const loadDag = async() => {
         .attr('font-family', 'sans-serif')
         .attr('text-anchor', 'left')
         .attr('alignment-baseline', 'middle')
-        .attr('fill', 'black');
+        .attr('fill', (d) => d.data.forward_extremity ? 'red' : 'black');
 
     d3.select('#svgcontainer').append(()=>svgNode);
 };
