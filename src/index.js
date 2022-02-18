@@ -43,13 +43,16 @@ window.onload = async (event) => {
 
 }
 
-// walk backwards from the `frontierEvents` given, using the `lookupKey` to find earlier events.
+// walk backwards from the `frontierEvents` (event_id -> Event JSON) given, using the `lookupKey` to find earlier events.
 // Stops when there is nowhere to go (create event) or when `hopsBack` has been reached.
-// Returns a map of event ID to event.
+// Returns:
+// {
+//   events: {...} a map of event ID to event.
+//   frontiers: {...} the new frontier events (a map of event ID to event)
+// }
 const loadEarlierEvents = async(frontierEvents, lookupKey, hopsBack) => {
     let result = {}; // event_id -> Event JSON
-    let hop = 0;
-    do {
+    for (let i = 0; i < hopsBack; i++) {
         // walk the DAG backwards starting at the frontier entries
         let missingEventIds = {};
         for (const frontier of Object.values(frontierEvents)) {
@@ -59,9 +62,9 @@ const loadEarlierEvents = async(frontierEvents, lookupKey, hopsBack) => {
                 }
             }
         }
-        console.log("hop ", hop, "/", hopsBack, Object.keys(frontierEvents), " -> ", Object.keys(missingEventIds));
+        console.log("hop ", i+1, "/", hopsBack, Object.keys(frontierEvents), " -> ", Object.keys(missingEventIds));
         if (Object.keys(missingEventIds).length === 0) {
-            return result;
+            break;
         }
         // missingEventIds now contains the prev|auth events for the frontier entries, let's fetch them.
         const eventsById = await postData(
@@ -88,13 +91,29 @@ const loadEarlierEvents = async(frontierEvents, lookupKey, hopsBack) => {
                 type: 'missing',
             }
         }
-        hop++;
-    } while(hop < hopsBack);
-    return result;
+    }
+    // the remaining frontier events need entries in the result for prev_events|auth_events - they aren't "missing", they just need to be loaded
+    for (const frontier of Object.values(frontierEvents)) {
+        frontier[lookupKey].forEach((prevEventId) => {
+            if (result[prevEventId]) {
+                return;
+            }
+            result[prevEventId] = {
+                _event_id: prevEventId,
+                prev_events: [],
+                auth_events: [],
+                type: '...',
+            }
+        });
+    }
+    return {
+        events: result,
+        frontiers: frontierEvents,
+    };
 }
 
 const loadDag = async() => {
-    const showStateEvents = true;
+    const showStateEvents = false;
     const showAuthDag = flags.showAuthDag;
     const hideMissingEvents = !flags.showMissing;
     const hideOrphans = !flags.showOutliers;
@@ -119,12 +138,10 @@ const loadDag = async() => {
     );
 
     // grab the state events
-    if (showStateEvents) {
-        for (const event of latestEventsAndState.state_events) {
-            events[event._event_id] = event;
-            if (event.type === 'm.room.create' && event.state_key === "") {
-                rootId = event._event_id;
-            }
+    for (const event of latestEventsAndState.state_events) {
+        if (event.type === 'm.room.create' && event.state_key === "") {
+            rootId = event._event_id;
+            break;
         }
     }
 
@@ -139,11 +156,34 @@ const loadDag = async() => {
         latestEvents[event._event_id] = event;
     }
 
-    // spider some prev events    
+    // spider some prev events
     const prevEvents = await loadEarlierEvents(latestEvents, "prev_events", 5); // TODO: config hops back
-
-    // tag events which receive multiple references
-    for (const event of Object.values(prevEvents)) {
+    let earlierEvents = Object.values(prevEvents.events);
+    if (showAuthDag) {
+        // spider some auth events
+        const dagPortion = prevEvents.events;
+        for (const event of Object.values(latestEvents)) {
+            dagPortion[event._event_id] = event;
+        }
+        const authEvents = await loadEarlierEvents(dagPortion, "auth_events", 5); // TODO: config hops back
+        // We don't care about the prev_events for auth chain events, so snip them
+        // We also don't care about the link to the create event as all events have this so it's just noise, so snip it.
+        for (let authEvent of Object.values(authEvents.events)) {
+            if (dagPortion[authEvent._event_id]) {
+                continue; // the auth event is part of the dag, we DO care about prev_events
+            }
+            authEvent.prev_events = [];
+            authEvent.auth_events = authEvent.auth_events.filter((id) => { return id !== rootId; })
+        }
+        // we don't want the m.room.create event unless it is part of the dag, as it will be orphaned
+        // due to not having auth events linking to it.
+        if (!dagPortion[rootId]) {
+            delete events[rootId];
+            delete authEvents.events[rootId];
+        }
+        earlierEvents = earlierEvents.concat(Object.values(authEvents.events));
+    }
+    for (const event of earlierEvents) {
         if (hideMissingEvents) {
             if (event.type === 'missing') {
                 continue;
@@ -152,53 +192,27 @@ const loadDag = async() => {
             event.auth_events = event.auth_events.filter(id=>(events[id].type !== 'missing'));
         }
         events[event._event_id] = event;
-
-        for (const parentId of event.prev_events.concat(event.auth_events)) {
+    }
+    console.log(events);
+    // tag events which receive multiple references
+    for (const event of earlierEvents) {
+        let prevIds = event.prev_events;
+        if (showAuthDag) {
+            prevIds = prevIds.concat(event.auth_events);
+        }
+        for (const parentId of prevIds) {
+            if (!events[parentId]) {
+                events[parentId] = {
+                    _event_id: parentId,
+                    prev_events: [],
+                    auth_events: [],
+                    refs: 1,
+                    type: '...',
+                };
+                continue;
+            }
             events[parentId].refs = events[parentId].refs ? (events[parentId].refs + 1) : 1;
         }
-    }
-
-    function shouldSkipParent(event) {
-        if (event.prev_events.length !== 1) {
-            return false;
-        }
-        const parent = events[event.prev_events[0]];
-        if (!parent) {
-            return false;
-        }
-        if (parent.prev_events.length == 1 && parent.refs == 1) {
-            return true;
-        }
-        return false;
-    }
-
-    const skipBoringParents = false;
-    if (skipBoringParents) {
-        // collapse linear strands of the DAG (based on prev_events)
-        for (const event of Object.values(events)) {
-            if (event.skipped) continue;
-            while (shouldSkipParent(event)) {
-                const parent = events[event.prev_events[0]];
-                console.log(`Skipping boring parent ${parent._event_id}`);
-                event.prev_events = parent.prev_events;
-                parent.skipped = true;
-            }
-        }
-
-        // prune the events which were skipped
-        for (const event of Object.values(events)) {
-            if (event.skipped) delete events[event._event_id];
-        }
-    }
-    //return;
-    //console.log(JSON.stringify(events));
-
-    let parentIdFn;
-    if (showAuthDag) {
-        parentIdFn = (event) => event.prev_events.concat(event.auth_events.filter(id=>id!=rootId));
-    }
-    else {
-        parentIdFn = (event) => event.prev_events;
     }
 
     // stratify the events into a DAG
@@ -206,7 +220,13 @@ const loadDag = async() => {
     const dag = d3dag.dagStratify()
         .id((event) => event._event_id)
         .linkData((target, source) => { return { auth: source.auth_events.includes(target._event_id) } })
-        .parentIds(parentIdFn)(Object.values(events));
+        .parentIds((event) => {
+            if (showAuthDag) {
+                return event.prev_events.concat(event.auth_events.filter(id=>id!=rootId));
+            } else {
+                return event.prev_events;
+            }
+        })(Object.values(events));
 
     console.log(dag);
 
@@ -258,7 +278,10 @@ const loadDag = async() => {
         .attr('d', ({data}) => line(data.points))
         .attr('fill', 'none')
         .attr('stroke-width', 3)
-        .attr('stroke', ({source, target}) => {
+        .attr('stroke', (dagLink) => {
+            const source = dagLink.source;
+            const target = dagLink.target;
+            
             const gradId = `${source.id}-${target.id}`;
             const grad = defs.append('linearGradient')
                 .attr('id', gradId)
@@ -267,10 +290,16 @@ const loadDag = async() => {
                 .attr('x2', target.x)
                 .attr('y1', source.y)
                 .attr('y2', target.y);
+
+            /*
             grad.append('stop')
                 .attr('offset', '0%').attr('stop-color', colorMap[source.id]);
             grad.append('stop')
-                .attr('offset', '100%').attr('stop-color', colorMap[target.id]);
+                .attr('offset', '100%').attr('stop-color', colorMap[target.id]); */
+            grad.append('stop')
+                .attr('offset', '0%').attr('stop-color', dagLink.data.auth ? colorMap[source.id] : '#000');
+            grad.append('stop')
+                .attr('offset', '100%').attr('stop-color', dagLink.data.auth ? colorMap[target.id] : '#000');
             return `url(#${gradId})`;
         });
 
