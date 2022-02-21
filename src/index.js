@@ -9,8 +9,11 @@ async function postData(url = '', data = {}) {
     return response.json();
 }
 
-let host = "http://localhost:18008";
-let roomId;
+// global cache of events. NO METADATA ON THESE.
+let eventsGlobalCache = {};
+let roomIdToLatestEventsCache = {}; // room_id => latest events object
+let prevEventsHopsBack = 5;
+let authEventsHopsBack = 5;
 
 const flags = {
     showAuthDag: false,
@@ -18,24 +21,27 @@ const flags = {
     showOutliers: true,
 }
 
-const hookupCheckbox = (domId, flagName) => {
-    const checkbox = document.getElementById(domId);
-    checkbox.addEventListener("change", () => {
-        flags[flagName] = checkbox.checked;
-        loadDag();
-    });
-    checkbox.checked = flags[flagName];
-}
-
 window.onload = async (event) => {
+    let roomId;
+    let host = "http://localhost:18008";
+
+    const hookupCheckbox = (domId, flagName) => {
+        const checkbox = document.getElementById(domId);
+        checkbox.addEventListener("change", () => {
+            flags[flagName] = checkbox.checked;
+            loadDag(host, roomId);
+        });
+        checkbox.checked = flags[flagName];
+    }
+
     document.getElementById("homeserver").value = host;
     document.getElementById("roomid").addEventListener("blur", (ev) => {
         roomId = ev.target.value;
-        loadDag();
+        loadDag(host, roomId);
     });
     document.getElementById("homeserver").addEventListener("blur", (ev) => {
         host = ev.target.value;
-        loadDag();
+        loadDag(host, roomId);
     });
     document.getElementById("closeinfocontainer").addEventListener("click", (ev) => {
         document.getElementById("infocontainer").style = "display: none;";
@@ -54,7 +60,8 @@ window.onload = async (event) => {
 //   events: {...} a map of event ID to event.
 //   frontiers: {...} the new frontier events (a map of event ID to event)
 // }
-const loadEarlierEvents = async(frontierEvents, lookupKey, hopsBack) => {
+const loadEarlierEvents = async(host, frontierEvents, lookupKey, hopsBack) => {
+    console.log("loadEarlierEvents", frontierEvents);
     let result = {}; // event_id -> Event JSON
     for (let i = 0; i < hopsBack; i++) {
         // walk the DAG backwards starting at the frontier entries
@@ -71,13 +78,11 @@ const loadEarlierEvents = async(frontierEvents, lookupKey, hopsBack) => {
             break;
         }
         // missingEventIds now contains the prev|auth events for the frontier entries, let's fetch them.
-        const eventsById = await postData(
-            `${host}/api/roomserver/queryEventsByID`,
-            { 'event_ids': Object.keys(missingEventIds) },
-        );
-        if (eventsById && eventsById.events && eventsById.events.length > 0) {
+        const eventsById = await fetchEvents(host, Object.keys(missingEventIds));
+        const events = Object.values(eventsById);
+        if (events.length > 0) {
             frontierEvents = {};
-            for (const event of eventsById.events) {
+            for (const event of events) {
                 result[event._event_id] = event;
                 delete missingEventIds[event._event_id];
                 // these events now become frontiers themselves
@@ -104,6 +109,7 @@ const loadEarlierEvents = async(frontierEvents, lookupKey, hopsBack) => {
             }
             result[prevEventId] = {
                 _event_id: prevEventId,
+                _backwards_extremity_key: lookupKey,
                 prev_events: [],
                 auth_events: [],
                 type: '...',
@@ -116,19 +122,38 @@ const loadEarlierEvents = async(frontierEvents, lookupKey, hopsBack) => {
     };
 }
 
-const loadDag = async() => {
-    const showStateEvents = false;
-    const showAuthDag = flags.showAuthDag;
-    const hideMissingEvents = !flags.showMissing;
-    const hideOrphans = !flags.showOutliers;
-    document.getElementById("svgcontainer").innerHTML = "";
+// Returns: { event_id: JSON }
+const fetchEvents = async(host, eventIds) => {
+    // fetch as many locally as possible
+    let result = {};
+    let toFetch = [];
+    eventIds.forEach((eid) => {
+        if (eventsGlobalCache[eid]) {
+            result[eid] = eventsGlobalCache[eid];
+            return;
+        }
+        toFetch.push(eid);
+    });
+    if (toFetch.length > 0) {
+        const eventsById = await postData(
+            `${host}/api/roomserver/queryEventsByID`,
+            { 'event_ids': toFetch },
+        );
+        for (const event of eventsById.events) {
+            eventsGlobalCache[event._event_id] = event;
+            result[event._event_id] = event;
+        }
+    }
+    const gotEvents = Object.keys(result).length;
+    if (gotEvents != eventIds.length) {
+        console.warn("fetchEvents asked for " + eventIds.length + " events, only got " + gotEvents);
+    }
+    // always return copies
+    return JSON.parse(JSON.stringify(result));
+}
 
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-
-    const events = {};
-    let rootId;
-
+// Returns: { create_event_id: $abc123, latest_events: [ JSON, JSON ]}
+const loadLatestEvents = async(host, roomId) => {
     // {
     //   state_events: [ { EVENT JSON } ]
     //   latest_events: [
@@ -140,7 +165,7 @@ const loadDag = async() => {
         `${host}/api/roomserver/queryLatestEventsAndState`,
         { 'room_id': roomId },
     );
-
+    let rootId;
     // grab the state events
     for (const event of latestEventsAndState.state_events) {
         if (event.type === 'm.room.create' && event.state_key === "") {
@@ -150,61 +175,78 @@ const loadDag = async() => {
     }
 
     // add in the latest events
-    let latestEvents = {};
-    const eventsById = await postData(
-        `${host}/api/roomserver/queryEventsByID`,
-        { 'event_ids': latestEventsAndState.latest_events.map((e)=>e[0]) },
-    );
-    for (const event of eventsById.events) {
+    const latestEvents = await fetchEvents(host, latestEventsAndState.latest_events.map((e)=>e[0]));
+    for (const event of Object.values(latestEvents)) {
         event.forward_extremity = true;
-        events[event._event_id] = event;
         latestEvents[event._event_id] = event;
     }
+    return {
+        create_event_id: rootId,
+        latest_events: latestEvents,
+    }
+}
+
+const loadDag = async(host, roomId) => {
+    const showAuthDag = flags.showAuthDag;
+    const hideMissingEvents = !flags.showMissing;
+    const hideOrphans = !flags.showOutliers;
+    document.getElementById("svgcontainer").innerHTML = "";
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    let latestEvents;// = roomIdToLatestEventsCache[roomId];
+    if (!latestEvents) {
+        latestEvents = await loadLatestEvents(host, roomId);
+        // roomIdToLatestEventsCache[roomId] = latestEvents;
+        // TODO: cache without leaking between runs
+    }
+    const eventsToRender = latestEvents.latest_events;
 
     // spider some prev events
-    const prevEvents = await loadEarlierEvents(latestEvents, "prev_events", 5); // TODO: config hops back
+    const prevEvents = await loadEarlierEvents(host, latestEvents.latest_events, "prev_events", prevEventsHopsBack);
     let earlierEvents = Object.values(prevEvents.events);
     if (showAuthDag) {
-        console.log("create", rootId);
+        console.log("create", latestEvents.create_event_id);
         // spider some auth events
         const dagPortion = prevEvents.events;
-        for (const event of Object.values(latestEvents)) {
+        console.log("dag latest only:", Object.keys(latestEvents.latest_events));
+        for (const event of Object.values(latestEvents.latest_events)) {
             dagPortion[event._event_id] = event;
         }
-        const authEvents = await loadEarlierEvents(dagPortion, "auth_events", 5); // TODO: config hops back
+        
+        const authEvents = await loadEarlierEvents(host, dagPortion, "auth_events", authEventsHopsBack);
         // We don't care about the prev_events for auth chain events, so snip them
         // We also don't care about the link to the create event as all events have this so it's just noise, so snip it.
         let createInChain = false;
         for (let authEvent of Object.values(authEvents.events)) {
+            console.log("processing auth event ", authEvent._event_id, " prevs=", authEvent.prev_events);
             if (dagPortion[authEvent._event_id]) {
+                console.log("event ", authEvent._event_id, " is in DAG, keeping prevs");
                 continue; // the auth event is part of the dag, we DO care about prev_events
             }
             authEvent.prev_events = [];
-            if (authEvent.auth_events.length == 1 && authEvent.auth_events.includes(rootId)) {
+            if (authEvent.auth_events.length == 1 && authEvent.auth_events.includes(latestEvents.create_event_id)) {
                 createInChain = true;
                 continue; // don't strip the create event ref if it is the only one (initial member event has this)
             }
-            authEvent.auth_events = authEvent.auth_events.filter((id) => { return id !== rootId; })
+            // remove the create event from auth_events for this auth event
+            authEvent.auth_events = authEvent.auth_events.filter((id) => { return id !== latestEvents.create_event_id; })
         }
         // we don't want the m.room.create event unless it is part of the dag, as it will be orphaned
         // due to not having auth events linking to it.
-        if (!dagPortion[rootId] && !createInChain) {
-            delete events[rootId];
-            delete authEvents.events[rootId];
+        if (!dagPortion[latestEvents.create_event_id] && !createInChain) {
+            delete eventsToRender[latestEvents.create_event_id];
+            delete authEvents.events[latestEvents.create_event_id];
         }
         earlierEvents = earlierEvents.concat(Object.values(authEvents.events));
     }
+
     for (const event of earlierEvents) {
-        if (hideMissingEvents) {
-            if (event.type === 'missing') {
-                continue;
-            }
-            event.prev_events = event.prev_events.filter(id=>(events[id].type !== 'missing'));
-            event.auth_events = event.auth_events.filter(id=>(events[id].type !== 'missing'));
-        }
-        events[event._event_id] = event;
+        eventsToRender[event._event_id] = event;
     }
     
+    /*
     // tag events which receive multiple references
     for (const event of earlierEvents) {
         let prevIds = event.prev_events;
@@ -224,20 +266,20 @@ const loadDag = async() => {
             }
             events[parentId].refs = events[parentId].refs ? (events[parentId].refs + 1) : 1;
         }
-    }
+    } */
 
     // stratify the events into a DAG
-    console.log(events);
+    console.log(eventsToRender);
     const dag = d3dag.dagStratify()
         .id((event) => event._event_id)
         .linkData((target, source) => { return { auth: source.auth_events.includes(target._event_id) } })
         .parentIds((event) => {
             if (showAuthDag) {
-                return event.prev_events.concat(event.auth_events.filter(id=>id!=rootId));
+                return event.prev_events.concat(event.auth_events.filter(id=>id!=latestEvents.create_event_id));
             } else {
                 return event.prev_events;
             }
-        })(Object.values(events));
+        })(Object.values(eventsToRender));
 
     console.log(dag);
 
@@ -373,7 +415,22 @@ const loadDag = async() => {
     nodes.append('text')
         .text((d) => d.data.type)
         .attr('cursor', 'pointer')
-        .on("click", (d) => {
+        .on("click", async (d) => {
+            if (d.data._backwards_extremity_key) {
+                // load more events
+                await loadEarlierEvents(host, {[d.data._event_id]: {
+                    [d.data._backwards_extremity_key]: [d.data._event_id],
+                }}, d.data._backwards_extremity_key, 1);
+                if (d.data._backwards_extremity_key === "prev_events") {
+                    prevEventsHopsBack += 5;
+                } else if (d.data._backwards_extremity_key === "auth_events") {
+                    authEventsHopsBack += 5;
+                } else {
+                    console.warn("unknown backwards extremity key: ", d.data._backwards_extremity_key)
+                }
+                loadDag(host, roomId);
+                return;
+            }
             document.getElementById("eventdetails").textContent = JSON.stringify(d.data, null, 2);
             document.getElementById("infocontainer").style = "display: block;"
         })
