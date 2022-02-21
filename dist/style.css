@@ -12,10 +12,13 @@
 
 #svgcontainer{
     overflow: scroll;
+    flex-basis: 75%;
+    flex-grow: 3; /* when the infocontainer is closed, let svgcontainer take all the space */
 }
 
 #infocontainer{
     overflow: scroll;
+    flex-basis: 25%;
 }
 
 #closeinfocontainer {
