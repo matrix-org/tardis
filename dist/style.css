@@ -1,0 +1,23 @@
+
+#header{
+ top: 0;
+ left: 0;
+ padding: 8px;
+ background-color: white;
+}
+
+#flexcontainer{
+    display: flex;
+}
+
+#svgcontainer{
+    overflow: scroll;
+}
+
+#infocontainer{
+    overflow: scroll;
+}
+
+#closeinfocontainer {
+    cursor: pointer;
+}

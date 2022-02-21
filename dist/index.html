@@ -1,17 +1,22 @@
 <html>
     <head>
         <script type="text/javascript" src="bundle.js"></script>
-        <style type="text/css">
-        </style>
+        <link rel="stylesheet" href="style.css">
     </head>
     <body>
-        <div id="header" style="position: fixed;">
+        <div id="header">
             <input id="homeserver" type="text" placeholder="homeserver"/>
             <input id="roomid" type="text" placeholder="room ID"/>
             <label>Auth Events?<input id="showauthevents" type="checkbox"/></label>
             <label>Outliers?<input id="showoutliers" type="checkbox"/></label>
             <!-- <label>Missing events?<input id="showmissing" type="checkbox"/></label> -->
         </div>
-        <div id="svgcontainer"/>
+        <div id="flexcontainer">
+            <div id="infocontainer">
+                <pre id="closeinfocontainer">[ Close ]</pre>
+                <pre id="eventdetails"/>
+            </div>
+            <div id="svgcontainer"/>
+        </div>
     </body>
 </html>

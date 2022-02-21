@@ -37,9 +37,13 @@ window.onload = async (event) => {
         host = ev.target.value;
         loadDag();
     });
+    document.getElementById("closeinfocontainer").addEventListener("click", (ev) => {
+        document.getElementById("infocontainer").style = "display: none;";
+    })
     hookupCheckbox("showauthevents", "showAuthDag");
     // hookupCheckbox("showmissing", "showMissing");
     hookupCheckbox("showoutliers", "showOutliers");
+    document.getElementById("infocontainer").style = "display: none;";
 
 }
 
@@ -368,6 +372,11 @@ const loadDag = async() => {
 
     nodes.append('text')
         .text((d) => d.data.type)
+        .attr('cursor', 'pointer')
+        .on("click", (d) => {
+            document.getElementById("eventdetails").textContent = JSON.stringify(d.data, null, 2);
+            document.getElementById("infocontainer").style = "display: block;"
+        })
         .attr('transform', `translate(${nodeRadius + 10}, 0)`)
         .attr('font-family', 'sans-serif')
         .attr('text-anchor', 'left')
