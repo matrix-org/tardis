@@ -262,9 +262,10 @@ class Dag {
             // at this point we know this event points to a prev event which is uninteresting, so we aren't
             // interested in ourselves, so remove ourselves and fix up the graph as we go
             delete events[id];
-            const child = events[data.from];
+            const child = JSON.parse(JSON.stringify(events[data.from]));
             // console.log("Delete ", id, "new: ", child.prev_events, " -> ", ev.prev_events);
             child.prev_events = ev.prev_events;
+            events[data.from] = child;
             // anything in the queue referencing this id needs to be repointed to reference the child
             queue.forEach((q) => {
                 if (q.from === id) {
