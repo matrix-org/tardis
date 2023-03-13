@@ -63,9 +63,9 @@ class Dag {
         this.collapse = col;
     }
     async refresh() {
-        const renderEvents = await this.recalculate();
+        let renderEvents = await this.recalculate();
         if (this.collapse) {
-            this.collapsifier(renderEvents);
+            renderEvents = this.collapsifier(renderEvents);
         }
         await this.render(this.eventsToCompleteDag(renderEvents));
     }
@@ -220,7 +220,80 @@ class Dag {
     // Removes events from this map for long linear sequences, instead replacing with a placeholder
     // "... N more ..." event. Forks are never replaced.
     collapsifier(events) {
+        // take a copy of the events as we will be directly altering prev_events
+        events = JSON.parse(JSON.stringify(events));
         const latestEvents = this.findForwardExtremities(events);
+
+        // this algorithm works in two phases:
+        // - figure out the "interesting" events (events which merge or create forks, fwd/backwards extremities)
+        // - figure out the "keep list" which is the set of interesting events + 1 event padding for all interesting events
+        //   we need the event padding so we can show forks sensibly, e.g consider:
+        //      A   <-- keep as pointed to by >1 event
+        //     / \
+        //    B   C <-- these will be discarded as they have 1 prev_event and aren't a fwd extremity.
+        //     \ /
+        //      D   <-- keep as >1 prev_event
+        //      |
+        //      E   <-- keep as this is fwd extremity
+
+        // work out the "interesting" events, which meet one of the criteria:
+        // - Has 0 or 2+ prev_events (i.e not linear or is create/missing event)
+        // - is a forward extremity
+        // - is pointed to by >1 event (i.e "next_events")
+        const interestingEvents = new Set();
+        latestEvents.forEach((id) => {
+            interestingEvents.add(id); // is a forward extremity
+        });
+        const pointCount = Object.create(null); // event ID -> num events pointing to it
+        for (let evId in events) {
+            const ev = events[evId];
+            ev.prev_events.forEach((pe) => {
+                let val = pointCount[pe] || 0;
+                val += 1;
+                pointCount[pe] = val;
+            });
+            if (ev.prev_events.length !== 1) {
+                interestingEvents.add(ev._event_id); // Has 0 or 2+ prev_events (i.e not linear or is create/missing event)
+            }
+        }
+        for (let id in pointCount) {
+            if (pointCount[id] > 1) {
+                interestingEvents.add(id); // is pointed to by >1 event (i.e "next_events")
+            }
+        }
+
+        // make the keep list
+        const keepList = new Set();
+        for (let evId in events) {
+            if (interestingEvents.has(evId)) {
+                keepList.add(evId);
+                continue;
+            }
+            // we might have this id in the keep list, if:
+            // - THIS event points to an interesting event (C -> A in the example above)
+            // - ANY interesting event points to THIS event (D -> C in the example above)
+            const ev = events[evId];
+            if (interestingEvents.has(ev.prev_events[0])) {
+                keepList.add(evId);
+                continue;
+            }
+            // slower O(n) loop
+            for (let interestingId of interestingEvents) {
+                const interestingEvent = events[interestingId];
+                let added = false;
+                for (let pe of interestingEvent.prev_events) {
+                    if (pe === evId) {
+                        keepList.add(evId);
+                        added = true;
+                        break;
+                    }
+                }
+                if (added) {
+                    break;
+                }
+            }
+        }
+
         const queue = [];
         latestEvents.forEach((id) => {
             queue.push({
@@ -233,8 +306,9 @@ class Dag {
             const data = queue.pop();
             const id = data.id;
             const ev = events[id];
-            console.log(data);
+            console.log(data.id , "prevs:", ev ? ev.prev_events : "null");
             if (!ev) {
+                console.log("  no event");
                 continue;
             }
             // continue walking..
@@ -245,27 +319,27 @@ class Dag {
                 });
             });
 
-            // keep all events which merge forks, or events which are create/... nodes
-            if (ev.prev_events.length !== 1) {
+            if (keepList.has(id)) {
+                console.log("  KEEP");
                 continue;
             }
-            // keep the latest events, even if they are part of uninteresting chains
-            if (latestEvents.has(ev._event_id)) {
-                continue;
-            }
-            // some single prev events are special, i.e ones which point to events with 0 prev_events
-            // as it indicates a ... or create event, or 2+ prev_events as it continues post merge so keep it.
-            const prev = events[ev.prev_events[0]];
-            if (!prev || prev.prev_events.length !== 1) {
-                continue;
-            }
-            // at this point we know this event points to a prev event which is uninteresting, so we aren't
-            // interested in ourselves, so remove ourselves and fix up the graph as we go
+
+            // at this point we know this event is uninteresting, so remove ourselves and fix up the graph as we go
             delete events[id];
-            const child = JSON.parse(JSON.stringify(events[data.from]));
+            const child = events[data.from];
             // console.log("Delete ", id, "new: ", child.prev_events, " -> ", ev.prev_events);
-            child.prev_events = ev.prev_events;
+            const newPrevEvents = [ev.prev_events[0]];
+            // the child may have interesting prev events, keep the ones in the keep list
+            for (let pe in child.prev_events) {
+                if (keepList.has(pe)) {
+                    newPrevEvents.push(pe);
+                }
+            }
+            child.prev_events = newPrevEvents;
+            child._collapse = child._collapse || 0;
+            child._collapse += 1;
             events[data.from] = child;
+            console.log("  REMOVE: pointing " + data.from + " to " + ev.prev_events);
             // anything in the queue referencing this id needs to be repointed to reference the child
             queue.forEach((q) => {
                 if (q.from === id) {
@@ -273,6 +347,7 @@ class Dag {
                 }
             });
         }
+        return events;
     }
 
     // render a set of events
@@ -437,7 +512,7 @@ class Dag {
     
         // Add text to nodes with border
         nodes.append('text')
-            .text((d) => d.data.type)
+            .text((d) => d.data._event_id.substr(0, 5) + " " + d.data.type)
             .attr('transform', `translate(${nodeRadius + 10}, 0)`)
             .attr('font-family', 'sans-serif')
             .attr('text-anchor', 'left')
@@ -448,7 +523,12 @@ class Dag {
             .attr('stroke-width', 4);
     
         nodes.append('text')
-            .text((d) => d.data.type)
+            .text((d) => {
+                const id = d.data._event_id.substr(0, 5);
+                const evType = d.data.type;
+                const collapse = d.data._collapse ? ("+" + d.data._collapse + " more") : "";
+                return `${id} ${evType} ${collapse}`;
+            })
             .attr('cursor', 'pointer')
             .on("click", async (d) => {
                 if (d.data._backwards_extremity_key) {
