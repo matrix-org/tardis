@@ -181,6 +181,7 @@ class Dag {
                             _backwards_extremity_key: key,
                             prev_events: [],
                             auth_events: [],
+                            state_key: "...",
                             type: '...',
                         }
                     } else {
@@ -188,6 +189,7 @@ class Dag {
                             _event_id: id,
                             prev_events: [],
                             auth_events: [],
+                            state_key: "missing",
                             type: 'missing',
                         }
                     }
@@ -440,7 +442,17 @@ class Dag {
             .append('path')
             .attr('d', ({data}) => line(data.points))
             .attr('fill', 'none')
-            .attr('stroke-width', 3)
+            .attr('stroke-width', (d) => {
+                const target = d.target;
+                if (!target.data._collapse) {
+                    return 3;
+                }
+                if (target.data._collapse < 5) {
+                    return 5;
+                }
+                return 10;
+            })
+            .text("test")
             .attr('stroke', (dagLink) => {
                 const source = dagLink.source;
                 const target = dagLink.target;
@@ -519,15 +531,18 @@ class Dag {
             .attr('alignment-baseline', 'middle')
             .attr('fill', 'white')
             .attr('opacity', 0.7)
-            .attr('stroke', 'white')
-            .attr('stroke-width', 4);
+            .attr('stroke', 'white');
     
         nodes.append('text')
             .text((d) => {
                 const id = d.data._event_id.substr(0, 5);
-                const evType = d.data.type;
-                const collapse = d.data._collapse ? ("+" + d.data._collapse + " more") : "";
-                return `${id} ${evType} ${collapse}`;
+                const evType = d.data.state_key ? d.data.type : "";
+                const depth = d.data.depth ? d.data.depth : "";
+                let collapse = d.data._collapse ? ("+" + d.data._collapse + " more") : "";
+                if (collapse === "") {
+                    collapse = d.data.origin; // TODO: nonstandard field?
+                }
+                return `${id} (${depth}) ${evType} ${collapse}`;
             })
             .attr('cursor', 'pointer')
             .on("click", async (d) => {
