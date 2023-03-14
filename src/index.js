@@ -536,13 +536,16 @@ class Dag {
         nodes.append('text')
             .text((d) => {
                 const id = d.data._event_id.substr(0, 5);
-                const evType = d.data.state_key ? d.data.type : "";
+                const evType = d.data.type;
+                const evStateKey = d.data.state_key ? "(" + d.data.state_key + ")" : "";
                 const depth = d.data.depth ? d.data.depth : "";
                 let collapse = d.data._collapse ? ("+" + d.data._collapse + " more") : "";
                 if (collapse === "") {
-                    collapse = d.data.origin; // TODO: nonstandard field?
+                    if (d.data.origin !== undefined) {
+                        collapse = d.data.origin; // TODO: nonstandard field?
+                    }
                 }
-                return `${id} (${depth}) ${evType} ${collapse}`;
+                return `${id} (${depth}) ${evType} ${evStateKey} ${collapse}`;
             })
             .attr('cursor', 'pointer')
             .on("click", async (d) => {
