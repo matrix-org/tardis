@@ -8,12 +8,13 @@ class Dag {
         this.latestEvents = {};
         this.earliestEvents = [];
         this.createEventId = null;
-        this.stepInterval = 5;
-        this.totalHopsBack = 5;
+        this.stepInterval = 1;
+        this.totalHopsBack = 1;
         this.showAuthChain = false;
         this.showPrevEvents = true;
         this.showOutliers = false;
         this.collapse = false;
+        this.startEventId = "";
     }
     async load(file) {
         const events = await new Promise((resolve, reject) => {
@@ -75,6 +76,15 @@ class Dag {
     setCollapse(col) {
         this.collapse = col;
     }
+    setStartEventId(eventId) {
+        this.startEventId = eventId;
+        if (this.cache[eventId]) {
+            console.log("start event found");
+            this.latestEvents = {
+                eventId: this.cache[eventId],
+            };
+        }
+    }
     async refresh() {
         let renderEvents = await this.recalculate();
         if (this.collapse) {
@@ -85,6 +95,11 @@ class Dag {
     // returns the set of events to render
     async recalculate() {
         const renderEvents = Object.create(null);
+        // always render the latest events
+        for (let fwdExtremityId in this.latestEvents) {
+            renderEvents[fwdExtremityId] = this.latestEvents[fwdExtremityId];
+        }
+
         if (this.showPrevEvents) {
             const prevEvents = await this.loadEarlierEvents(this.latestEvents, "prev_events", this.totalHopsBack);
             for (const id in prevEvents.events) {
@@ -217,6 +232,16 @@ class Dag {
     // pointed at exist.
     findForwardExtremities(events) {
         const s = new Set();
+        if (this.startEventId) {
+            for (const id in events) {
+                if (id === this.startEventId) {
+                    s.add(id);
+                    console.log("returning start event " + id);
+                    return s;
+                }
+            }
+        }
+        
         for (const id in events) {
             s.add(id);
         }
@@ -606,6 +631,10 @@ window.onload = async (event) => {
     document.getElementById("collapse").checked = dag.collapse;
     document.getElementById("step").addEventListener("change", (ev) => {
         dag.setStepInterval(Number(ev.target.value));
+    });
+    document.getElementById("start").addEventListener("change", (ev) => {
+        dag.setStartEventId(ev.target.value);
+        dag.refresh();
     });
 
     document.getElementById("go").addEventListener("click", async (ev) => {
