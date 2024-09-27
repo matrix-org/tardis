@@ -22,15 +22,28 @@ class Dag {
                 resolve(data.target.result.split("\n").filter((line => {
                     return line.trim().length > 0;
                 })).map((line) => {
-                    return JSON.parse(line);
+                    const j = JSON.parse(line);
+                    if (j.event_id) {
+                        j._event_id = j.event_id;
+                    }
+                    return j;
                 }));
             };
             reader.readAsText(file);
         });
         let maxDepth = 0;
         events.forEach((ev) => {
-            if (!ev || !ev._event_id || !ev.type || !ev.depth) {
-                throw new Error("event is missing a required field, got ", ev);
+            if (!ev) {
+                throw new Error("missing event");
+            }
+            if (!ev._event_id) {
+                throw new Error(`event is missing '_event_id', got ${JSON.stringify(ev)}`); 
+            }
+            if (!ev.type) {
+                throw new Error(`event is missing 'type' field, got ${JSON.stringify(ev)}`);
+            }
+            if (!ev.depth) {
+                throw new Error(`event is missing 'depth' field, got ${JSON.stringify(ev)}`);
             }
             this.cache[ev._event_id] = ev;
             if (ev.type === "m.room.create" && ev.state_key === "") {
@@ -282,6 +295,9 @@ class Dag {
             // slower O(n) loop
             for (let interestingId of interestingEvents) {
                 const interestingEvent = events[interestingId];
+                if (!interestingEvent) {
+                    continue;
+                }
                 let added = false;
                 for (let pe of interestingEvent.prev_events) {
                     if (pe === evId) {
