@@ -15,6 +15,7 @@ class Dag {
         this.showOutliers = false;
         this.collapse = false;
         this.startEventId = "";
+        this.filterLabel = "";
     }
     async load(file) {
         const events = await new Promise((resolve, reject) => {
@@ -84,6 +85,9 @@ class Dag {
                 eventId: this.cache[eventId],
             };
         }
+    }
+    setFilterLabel(filterLabel) {
+        this.filterLabel = filterLabel;
     }
     async refresh() {
         let renderEvents = await this.recalculate();
@@ -567,29 +571,41 @@ class Dag {
         */
 
         // Add text to nodes with border
+        const getLabel = (d) => {
+            const id = d.data._event_id.substr(0, 5);
+            const evType = d.data.type;
+            const evStateKey = d.data.state_key ? "(" + d.data.state_key + ")" : "";
+            const depth = d.data.depth ? d.data.depth : "";
+            let collapse = d.data._collapse ? ("+" + d.data._collapse + " more") : "";
+            if (collapse === "") {
+                if (d.data.origin !== undefined) {
+                    collapse = d.data.origin; // TODO: nonstandard field?
+                }
+            }
+            const text = `${id} (${depth}) ${evType} ${evStateKey} ${collapse}`;
+            if (this.filterLabel && !text.includes(this.filterLabel)) {
+                if (d.data._backwards_extremity_key) {
+                    return "load more";
+                }
+                return '';
+            }
+            return text;
+        }
         nodes.append('text')
-            .text((d) => d.data._event_id.substr(0, 5) + " " + d.data.type)
+            .text((d) => {
+                return getLabel(d);
+            })
             .attr('transform', `translate(${nodeRadius + 10}, 0)`)
             .attr('font-family', 'sans-serif')
             .attr('text-anchor', 'left')
             .attr('alignment-baseline', 'middle')
             .attr('fill', 'white')
-            .attr('opacity', 0.7)
+            .attr('opacity', 0.8)
             .attr('stroke', 'white');
 
         nodes.append('text')
             .text((d) => {
-                const id = d.data._event_id.substr(0, 5);
-                const evType = d.data.type;
-                const evStateKey = d.data.state_key ? "(" + d.data.state_key + ")" : "";
-                const depth = d.data.depth ? d.data.depth : "";
-                let collapse = d.data._collapse ? ("+" + d.data._collapse + " more") : "";
-                if (collapse === "") {
-                    if (d.data.origin !== undefined) {
-                        collapse = d.data.origin; // TODO: nonstandard field?
-                    }
-                }
-                return `${id} (${depth}) ${evType} ${evStateKey} ${collapse}`;
+                return getLabel(d);
             })
             .attr('cursor', 'pointer')
             .on("click", async (d) => {
@@ -606,7 +622,15 @@ class Dag {
             .attr('font-family', 'sans-serif')
             .attr('text-anchor', 'left')
             .attr('alignment-baseline', 'middle')
-            .attr('fill', (d) => d.data.forward_extremity ? 'red' : 'black');
+            .attr('fill', (d) => {
+                if (d.data.forward_extremity) {
+                    return "red";
+                }
+                if (this.filterLabel && getLabel(d) != '') {
+                    return "red";
+                }
+                return 'black';
+        });
 
         d3.select('#svgcontainer').append(() => svgNode);
     }
@@ -634,6 +658,10 @@ window.onload = async (event) => {
     });
     document.getElementById("start").addEventListener("change", (ev) => {
         dag.setStartEventId(ev.target.value);
+        dag.refresh();
+    });
+    document.getElementById("filterlabel").addEventListener("change", (ev) => {
+        dag.setFilterLabel(ev.target.value);
         dag.refresh();
     });
 
