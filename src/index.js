@@ -313,6 +313,7 @@ class Dag {
         }
 
         const queue = [];
+        const seenQueue = new Set();
         latestEvents.forEach((id) => {
             queue.push({
                 id: id,
@@ -324,7 +325,10 @@ class Dag {
             const data = queue.pop();
             const id = data.id;
             const ev = events[id];
-            console.log(data.id, "prevs:", ev ? ev.prev_events : "null");
+            if (seenQueue.has(id)) {
+                continue; // don't infinite loop
+            }
+            seenQueue.add(id);
             if (!ev) {
                 console.log("  no event");
                 continue;
@@ -338,7 +342,6 @@ class Dag {
             });
 
             if (keepList.has(id)) {
-                console.log("  KEEP");
                 continue;
             }
 
@@ -357,7 +360,6 @@ class Dag {
             child._collapse = child._collapse || 0;
             child._collapse += 1;
             events[data.from] = child;
-            console.log("  REMOVE: pointing " + data.from + " to " + ev.prev_events);
             // anything in the queue referencing this id needs to be repointed to reference the child
             queue.forEach((q) => {
                 if (q.from === id) {
@@ -365,6 +367,7 @@ class Dag {
                 }
             });
         }
+        console.log("collapsifier complete");
         return events;
     }
 
