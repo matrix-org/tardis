@@ -210,7 +210,7 @@ class Dag {
             for (const key of keys) {
                 for (const id of ev[key]) {
                     if (events[id]) {
-                        return; // already linked to a renderable part of the dag, ignore.
+                        continue; // already linked to a renderable part of the dag, ignore.
                     }
                     if (this.cache[id]) {
                         events[id] = {
@@ -662,41 +662,39 @@ class Dag {
     }
 }
 
-window.onload = async (event) => {
-    const dag = new Dag();
-    document.getElementById("showauthevents").addEventListener("change", (ev) => {
-        dag.setShowAuthChain(ev.target.checked);
-        dag.refresh();
-    });
-    document.getElementById("showauthevents").checked = dag.showAuthChain;
-    document.getElementById("showoutliers").addEventListener("change", (ev) => {
-        dag.setShowOutliers(ev.target.checked);
-        dag.refresh();
-    });
-    document.getElementById("showoutliers").checked = dag.showOutliers;
-    document.getElementById("collapse").addEventListener("change", (ev) => {
-        dag.setCollapse(ev.target.checked);
-        dag.refresh();
-    });
-    document.getElementById("collapse").checked = dag.collapse;
-    document.getElementById("step").addEventListener("change", (ev) => {
-        dag.setStepInterval(Number(ev.target.value));
-    });
-    document.getElementById("start").addEventListener("change", (ev) => {
-        dag.setStartEventId(ev.target.value);
-        dag.refresh();
-    });
-    document.getElementById("filterlabel").addEventListener("change", (ev) => {
-        dag.setFilterLabel(ev.target.value);
-        dag.refresh();
-    });
+const dag = new Dag();
+document.getElementById("showauthevents").addEventListener("change", (ev) => {
+    dag.setShowAuthChain(ev.target.checked);
+    dag.refresh();
+});
+document.getElementById("showauthevents").checked = dag.showAuthChain;
+document.getElementById("showoutliers").addEventListener("change", (ev) => {
+    dag.setShowOutliers(ev.target.checked);
+    dag.refresh();
+});
+document.getElementById("showoutliers").checked = dag.showOutliers;
+document.getElementById("collapse").addEventListener("change", (ev) => {
+    dag.setCollapse(ev.target.checked);
+    dag.refresh();
+});
+document.getElementById("collapse").checked = dag.collapse;
+document.getElementById("step").addEventListener("change", (ev) => {
+    dag.setStepInterval(Number(ev.target.value));
+});
+document.getElementById("start").addEventListener("change", (ev) => {
+    dag.setStartEventId(ev.target.value);
+    dag.refresh();
+});
+document.getElementById("filterlabel").addEventListener("change", (ev) => {
+    dag.setFilterLabel(ev.target.value);
+    dag.refresh();
+});
 
-    document.getElementById("go").addEventListener("click", async (ev) => {
-        await dag.load(document.getElementById("jsonfile").files[0]);
-        dag.refresh();
-    });
-    document.getElementById("closeinfocontainer").addEventListener("click", (ev) => {
-        document.getElementById("infocontainer").style = "display: none;";
-    });
+document.getElementById("go").addEventListener("click", async (ev) => {
+    await dag.load(document.getElementById("jsonfile").files[0]);
+    dag.refresh();
+});
+document.getElementById("closeinfocontainer").addEventListener("click", (ev) => {
     document.getElementById("infocontainer").style = "display: none;";
-};
+});
+document.getElementById("infocontainer").style = "display: none;";
