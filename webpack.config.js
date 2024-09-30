@@ -1,17 +1,17 @@
-const path = require('path');
+const path = require("node:path");
 
 module.exports = {
-    mode: 'development',
+    mode: "development",
     entry: {
-        app: './src/index.js',
+        app: "./src/index.js",
     },
-    devtool: 'inline-source-map',
+    devtool: "inline-source-map",
     devServer: {
-        static: './dist',
+        static: "./dist",
         liveReload: false,
     },
     output: {
-        filename: 'bundle.js',
-        path: path.resolve(__dirname, 'dist'),
+        filename: "bundle.js",
+        path: path.resolve(__dirname, "dist"),
     },
 };

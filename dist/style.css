@@ -1,22 +1,21 @@
-
-#header{
- top: 0;
- left: 0;
- padding: 8px;
- background-color: white;
+#header {
+    top: 0;
+    left: 0;
+    padding: 8px;
+    background-color: white;
 }
 
-#flexcontainer{
+#flexcontainer {
     display: flex;
 }
 
-#svgcontainer{
+#svgcontainer {
     overflow: scroll;
     flex-basis: 75%;
     flex-grow: 3; /* when the infocontainer is closed, let svgcontainer take all the space */
 }
 
-#infocontainer{
+#infocontainer {
     overflow: scroll;
     flex-basis: 25%;
 }
