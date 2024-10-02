@@ -1,5 +1,5 @@
-import * as d3 from 'd3';
-import * as d3dag from 'd3-dag';
+import * as d3 from "d3";
+import * as d3dag from "d3-dag";
 
 class Dag {
     constructor() {
@@ -21,25 +21,30 @@ class Dag {
         const events = await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = (data) => {
-                resolve(data.target.result.split("\n").filter((line => {
-                    return line.trim().length > 0;
-                })).map((line) => {
-                    const j = JSON.parse(line);
-                    if (j.event_id) {
-                        j._event_id = j.event_id;
-                    }
-                    return j;
-                }));
+                resolve(
+                    data.target.result
+                        .split("\n")
+                        .filter((line) => {
+                            return line.trim().length > 0;
+                        })
+                        .map((line) => {
+                            const j = JSON.parse(line);
+                            if (j.event_id) {
+                                j._event_id = j.event_id;
+                            }
+                            return j;
+                        }),
+                );
             };
             reader.readAsText(file);
         });
         let maxDepth = 0;
-        events.forEach((ev) => {
+        for (const ev of events) {
             if (!ev) {
                 throw new Error("missing event");
             }
             if (!ev._event_id) {
-                throw new Error(`event is missing '_event_id', got ${JSON.stringify(ev)}`); 
+                throw new Error(`event is missing '_event_id', got ${JSON.stringify(ev)}`);
             }
             if (!ev.type) {
                 throw new Error(`event is missing 'type' field, got ${JSON.stringify(ev)}`);
@@ -59,7 +64,7 @@ class Dag {
             } else if (ev.depth === maxDepth) {
                 this.latestEvents[ev._event_id] = ev;
             }
-        });
+        }
         this.maxDepth = maxDepth;
     }
     setStepInterval(num) {
@@ -100,7 +105,7 @@ class Dag {
     async recalculate() {
         const renderEvents = Object.create(null);
         // always render the latest events
-        for (let fwdExtremityId in this.latestEvents) {
+        for (const fwdExtremityId in this.latestEvents) {
             renderEvents[fwdExtremityId] = this.latestEvents[fwdExtremityId];
         }
 
@@ -118,7 +123,7 @@ class Dag {
                 const authEvent = authEvents.events[id];
                 authEvent.prev_events = authEvent.prev_events.filter((pid) => {
                     return renderEvents[pid];
-                })
+                });
                 // We also don't care about the link to the create event as all events have this so it's just noise,
                 // so snip it, but only if there are other refs (it's useful to see the chain at the beginning of the room)
                 if (authEvent.auth_events.length > 1) {
@@ -127,7 +132,7 @@ class Dag {
                             return false;
                         }
                         return true;
-                    })
+                    });
                 } else if (authEvent.auth_events.length === 1 && authEvent.auth_events[0] === this.createEventId) {
                     createEventInChain = true;
                 }
@@ -151,7 +156,7 @@ class Dag {
     // }
     async loadEarlierEvents(frontierEvents, lookupKey, hopsBack) {
         console.log("loadEarlierEvents", frontierEvents);
-        let result = {}; // event_id -> Event JSON
+        const result = {}; // event_id -> Event JSON
         for (let i = 0; i < hopsBack; i++) {
             // walk the DAG backwards starting at the frontier entries.
             // look at either prev_events or auth_events (the lookup key)
@@ -169,11 +174,11 @@ class Dag {
             }
             // fetch the events from the in-memory cache which is the file
             const fetchedEventsById = Object.create(null);
-            missingEventIds.forEach((id) => {
+            for (const id of missingEventIds) {
                 if (this.cache[id]) {
                     fetchedEventsById[id] = this.cache[id];
                 }
-            });
+            }
 
             const fetchedEvents = Object.values(fetchedEventsById);
             if (fetchedEvents.length > 0) {
@@ -199,13 +204,13 @@ class Dag {
     // - check prev/auth events and if they are missing in the dag but not the cache add a "..." event.
     // Both these events have no prev/auth events so it forms a complete DAG with no missing nodes.
     eventsToCompleteDag(events) {
-        for (let id in events) {
+        for (const id in events) {
             const ev = events[id];
             const keys = ["auth_events", "prev_events"];
-            keys.forEach((key) => {
-                ev[key].forEach((id) => {
+            for (const key of keys) {
+                for (const id of ev[key]) {
                     if (events[id]) {
-                        return; // already linked to a renderable part of the dag, ignore.
+                        continue; // already linked to a renderable part of the dag, ignore.
                     }
                     if (this.cache[id]) {
                         events[id] = {
@@ -214,19 +219,19 @@ class Dag {
                             prev_events: [],
                             auth_events: [],
                             state_key: "...",
-                            type: '...',
-                        }
+                            type: "...",
+                        };
                     } else {
                         events[id] = {
                             _event_id: id,
                             prev_events: [],
                             auth_events: [],
                             state_key: "missing",
-                            type: 'missing',
-                        }
+                            type: "missing",
+                        };
                     }
-                });
-            });
+                }
+            }
         }
         return events;
     }
@@ -240,32 +245,32 @@ class Dag {
             for (const id in events) {
                 if (id === this.startEventId) {
                     s.add(id);
-                    console.log("returning start event " + id);
+                    console.log(`returning start event ${id}`);
                     return s;
                 }
             }
         }
-        
+
         for (const id in events) {
             s.add(id);
         }
         for (const id in events) {
             const ev = events[id];
-            ev.prev_events.forEach((k) => {
+            for (const k of ev.prev_events) {
                 s.delete(k);
-            });
-            ev.auth_events.forEach((k) => {
+            }
+            for (const k of ev.auth_events) {
                 s.delete(k);
-            });
+            }
         }
         return s;
     }
 
     // Removes events from this map for long linear sequences, instead replacing with a placeholder
     // "... N more ..." event. Forks are never replaced.
-    collapsifier(events) {
+    collapsifier(eventsOrig) {
         // take a copy of the events as we will be directly altering prev_events
-        events = JSON.parse(JSON.stringify(events));
+        const events = JSON.parse(JSON.stringify(eventsOrig));
         const latestEvents = this.findForwardExtremities(events);
 
         // this algorithm works in two phases:
@@ -285,22 +290,21 @@ class Dag {
         // - is a forward extremity
         // - is pointed to by >1 event (i.e "next_events")
         const interestingEvents = new Set();
-        latestEvents.forEach((id) => {
+        for (const id of latestEvents) {
             interestingEvents.add(id); // is a forward extremity
-        });
+        }
         const pointCount = Object.create(null); // event ID -> num events pointing to it
-        for (let evId in events) {
+        for (const evId in events) {
             const ev = events[evId];
-            ev.prev_events.forEach((pe) => {
-                let val = pointCount[pe] || 0;
-                val += 1;
-                pointCount[pe] = val;
-            });
+            for (const pe of ev.prev_events) {
+                const val = pointCount[pe] || 0;
+                pointCount[pe] = val + 1;
+            }
             if (ev.prev_events.length !== 1) {
                 interestingEvents.add(ev._event_id); // Has 0 or 2+ prev_events (i.e not linear or is create/missing event)
             }
         }
-        for (let id in pointCount) {
+        for (const id in pointCount) {
             if (pointCount[id] > 1) {
                 interestingEvents.add(id); // is pointed to by >1 event (i.e "next_events")
             }
@@ -308,7 +312,7 @@ class Dag {
 
         // make the keep list
         const keepList = new Set();
-        for (let evId in events) {
+        for (const evId in events) {
             if (interestingEvents.has(evId)) {
                 keepList.add(evId);
                 continue;
@@ -322,13 +326,13 @@ class Dag {
                 continue;
             }
             // slower O(n) loop
-            for (let interestingId of interestingEvents) {
+            for (const interestingId of interestingEvents) {
                 const interestingEvent = events[interestingId];
                 if (!interestingEvent) {
                     continue;
                 }
                 let added = false;
-                for (let pe of interestingEvent.prev_events) {
+                for (const pe of interestingEvent.prev_events) {
                     if (pe === evId) {
                         keepList.add(evId);
                         added = true;
@@ -343,12 +347,12 @@ class Dag {
 
         const queue = [];
         const seenQueue = new Set();
-        latestEvents.forEach((id) => {
+        for (const id of latestEvents) {
             queue.push({
                 id: id,
                 from: id,
             });
-        });
+        }
 
         while (queue.length > 0) {
             const data = queue.pop();
@@ -363,12 +367,12 @@ class Dag {
                 continue;
             }
             // continue walking..
-            ev.prev_events.forEach((k) => {
+            for (const k of ev.prev_events) {
                 queue.push({
                     id: k,
                     from: data.id,
                 });
-            });
+            }
 
             if (keepList.has(id)) {
                 continue;
@@ -380,7 +384,7 @@ class Dag {
             // console.log("Delete ", id, "new: ", child.prev_events, " -> ", ev.prev_events);
             const newPrevEvents = [ev.prev_events[0]];
             // the child may have interesting prev events, keep the ones in the keep list
-            for (let pe in child.prev_events) {
+            for (const pe in child.prev_events) {
                 if (keepList.has(pe)) {
                     newPrevEvents.push(pe);
                 }
@@ -390,11 +394,11 @@ class Dag {
             child._collapse += 1;
             events[data.from] = child;
             // anything in the queue referencing this id needs to be repointed to reference the child
-            queue.forEach((q) => {
+            for (const q of queue) {
                 if (q.from === id) {
                     q.from = child._event_id;
                 }
-            });
+            }
         }
         console.log("collapsifier complete");
         return events;
@@ -430,15 +434,17 @@ class Dag {
 
         // stratify the events into a DAG
         console.log(eventsToRender);
-        const dag = d3dag.dagStratify()
+        const dag = d3dag
+            .dagStratify()
             .id((event) => event._event_id)
-            .linkData((target, source) => { return { auth: source.auth_events.includes(target._event_id) } })
+            .linkData((target, source) => {
+                return { auth: source.auth_events.includes(target._event_id) };
+            })
             .parentIds((event) => {
                 if (this.showAuthChain) {
-                    return event.prev_events.concat(event.auth_events.filter(id => id !== this.createEventId));
-                } else {
-                    return event.prev_events;
+                    return event.prev_events.concat(event.auth_events.filter((id) => id !== this.createEventId));
                 }
+                return event.prev_events;
             })(Object.values(eventsToRender));
 
         console.log(dag);
@@ -446,7 +452,7 @@ class Dag {
         if (hideOrphans) {
             if (dag.id === undefined) {
                 // our root is an undefined placeholder, which means we have orphans
-                dag.children = dag.children.filter(node => (node.children.length > 0));
+                dag.children = dag.children.filter((node) => node.children.length > 0);
             }
         }
 
@@ -458,15 +464,13 @@ class Dag {
         svgNode.setAttribute("viewBox", `${-margin} ${-margin} ${width + 10 * margin} ${height + 2 * margin}`);
 
         const svgSelection = d3.select(svgNode);
-        const defs = svgSelection.append('defs');
+        const defs = svgSelection.append("defs");
 
         // below is derived from
         // https://observablehq.com/@erikbrinkman/d3-dag-sugiyama-with-arrows
 
         // d3dag.zherebko()
-        d3dag.sugiyama()
-            .layering(d3dag.layeringCoffmanGraham().width(2))
-            .size([width, height])(dag);
+        d3dag.sugiyama().layering(d3dag.layeringCoffmanGraham().width(2)).size([width, height])(dag);
 
         const steps = dag.size();
         const interp = d3.interpolateRainbow;
@@ -476,21 +480,23 @@ class Dag {
         });
 
         // How to draw edges
-        const line = d3.line()
+        const line = d3
+            .line()
             .curve(d3.curveCatmullRom)
             .x((d) => d.x)
             .y((d) => d.y);
 
         // Plot edges
-        svgSelection.append('g')
-            .selectAll('path')
+        const edges = svgSelection
+            .append("g")
+            .selectAll("path")
             .data(dag.links())
             .enter()
             //.filter(({data})=>!data.auth)
-            .append('path')
-            .attr('d', ({ data }) => line(data.points))
-            .attr('fill', 'none')
-            .attr('stroke-width', (d) => {
+            .append("path")
+            .attr("d", ({ data }) => line(data.points))
+            .attr("fill", "none")
+            .attr("stroke-width", (d) => {
                 const target = d.target;
                 if (!target.data._collapse) {
                     return 3;
@@ -501,43 +507,48 @@ class Dag {
                 return 10;
             })
             .text("test")
-            .attr('stroke', (dagLink) => {
+            .attr("stroke", (dagLink) => {
                 const source = dagLink.source;
                 const target = dagLink.target;
 
                 const gradId = `${source.id}-${target.id}`;
-                const grad = defs.append('linearGradient')
-                    .attr('id', gradId)
-                    .attr('gradientUnits', 'userSpaceOnUse')
-                    .attr('x1', source.x)
-                    .attr('x2', target.x)
-                    .attr('y1', source.y)
-                    .attr('y2', target.y);
+                const grad = defs
+                    .append("linearGradient")
+                    .attr("id", gradId)
+                    .attr("gradientUnits", "userSpaceOnUse")
+                    .attr("x1", source.x)
+                    .attr("x2", target.x)
+                    .attr("y1", source.y)
+                    .attr("y2", target.y);
 
                 /*
                 grad.append('stop')
                     .attr('offset', '0%').attr('stop-color', colorMap[source.id]);
                 grad.append('stop')
                     .attr('offset', '100%').attr('stop-color', colorMap[target.id]); */
-                grad.append('stop')
-                    .attr('offset', '0%').attr('stop-color', dagLink.data.auth ? colorMap[source.id] : '#000');
-                grad.append('stop')
-                    .attr('offset', '100%').attr('stop-color', dagLink.data.auth ? colorMap[target.id] : '#000');
+                grad.append("stop")
+                    .attr("offset", "0%")
+                    .attr("stop-color", dagLink.data.auth ? colorMap[source.id] : "#000");
+                grad.append("stop")
+                    .attr("offset", "100%")
+                    .attr("stop-color", dagLink.data.auth ? colorMap[target.id] : "#000");
                 return `url(#${gradId})`;
             });
 
         // Select nodes
-        const nodes = svgSelection.append('g')
-            .selectAll('g')
+        const nodes = svgSelection
+            .append("g")
+            .selectAll("g")
             .data(dag.descendants())
             .enter()
-            .append('g')
-            .attr('transform', ({ x, y }) => `translate(${x}, ${y})`);
+            .append("g")
+            .attr("transform", ({ x, y }) => `translate(${x}, ${y})`);
 
         // Plot node circles
-        nodes.append('circle')
-            .attr('r', nodeRadius)
-            .attr('fill', (n) => colorMap[n.id]);
+        nodes
+            .append("circle")
+            .attr("r", nodeRadius)
+            .attr("fill", (n) => colorMap[n.id]);
 
         /*
             const arrow = d3.symbol().type(d3.symbolTriangle).size(nodeRadius * nodeRadius / 5.0);
@@ -574,9 +585,9 @@ class Dag {
         const getLabel = (d) => {
             const id = d.data._event_id.substr(0, 5);
             const evType = d.data.type;
-            const evStateKey = d.data.state_key ? "(" + d.data.state_key + ")" : "";
+            const evStateKey = d.data.state_key ? `(${d.data.state_key})` : "";
             const depth = d.data.depth ? d.data.depth : "";
-            let collapse = d.data._collapse ? ("+" + d.data._collapse + " more") : "";
+            let collapse = d.data._collapse ? `+${d.data._collapse} more` : "";
             if (collapse === "") {
                 if (d.data.origin !== undefined) {
                     collapse = d.data.origin; // TODO: nonstandard field?
@@ -587,28 +598,30 @@ class Dag {
                 if (d.data._backwards_extremity_key) {
                     return "load more";
                 }
-                return '';
+                return "";
             }
             return text;
-        }
-        nodes.append('text')
+        };
+        nodes
+            .append("text")
             .text((d) => {
                 return getLabel(d);
             })
-            .attr('transform', `translate(${nodeRadius + 10}, 0)`)
-            .attr('font-family', 'sans-serif')
-            .attr('text-anchor', 'left')
-            .attr('alignment-baseline', 'middle')
-            .attr('fill', 'white')
-            .attr('opacity', 0.8)
-            .attr('stroke', 'white');
+            .attr("transform", `translate(${nodeRadius + 10}, 0)`)
+            .attr("font-family", "sans-serif")
+            .attr("text-anchor", "left")
+            .attr("alignment-baseline", "middle")
+            .attr("fill", "white")
+            .attr("opacity", 0.8)
+            .attr("stroke", "white");
 
-        nodes.append('text')
+        nodes
+            .append("text")
             .text((d) => {
                 return getLabel(d);
             })
-            .attr('cursor', 'pointer')
-            .on("click", async (d) => {
+            .attr("cursor", "pointer")
+            .on("click", async (event, d) => {
                 if (d.data._backwards_extremity_key) {
                     // load more events
                     this.totalHopsBack += this.stepInterval;
@@ -616,61 +629,72 @@ class Dag {
                     return;
                 }
                 document.getElementById("eventdetails").textContent = JSON.stringify(d.data, null, 2);
-                document.getElementById("infocontainer").style = "display: block;"
+                document.getElementById("infocontainer").style = "display: block;";
             })
-            .attr('transform', `translate(${nodeRadius + 10}, 0)`)
-            .attr('font-family', 'sans-serif')
-            .attr('text-anchor', 'left')
-            .attr('alignment-baseline', 'middle')
-            .attr('fill', (d) => {
+            .attr("transform", `translate(${nodeRadius + 10}, 0)`)
+            .attr("font-family", "sans-serif")
+            .attr("text-anchor", "left")
+            .attr("alignment-baseline", "middle")
+            .attr("fill", (d) => {
                 if (d.data.forward_extremity) {
                     return "red";
                 }
-                if (this.filterLabel && getLabel(d) != '') {
+                if (this.filterLabel && getLabel(d) !== "") {
                     return "red";
                 }
-                return 'black';
-        });
+                return "black";
+            });
 
-        d3.select('#svgcontainer').append(() => svgNode);
+        function zoomed({ transform }) {
+            nodes.attr("transform", (d) => {
+                return `translate(${transform.applyX(d.x)}, ${transform.applyY(d.y)})`;
+            });
+
+            edges.attr("d", ({ data }) =>
+                line(data.points.map((d) => ({ x: transform.applyX(d.x), y: transform.applyY(d.y) }))),
+            );
+        }
+
+        const zoom = d3.zoom().scaleExtent([0.1, 10]).on("zoom", zoomed);
+
+        svgSelection.call(zoom).call(zoom.transform, d3.zoomIdentity);
+        d3.select("#svgcontainer").append(() => svgNode);
     }
-};
-
-window.onload = async (event) => {
-    const dag = new Dag();
-    document.getElementById("showauthevents").addEventListener("change", (ev) => {
-        dag.setShowAuthChain(ev.target.checked);
-        dag.refresh();
-    });
-    document.getElementById("showauthevents").checked = dag.showAuthChain;
-    document.getElementById("showoutliers").addEventListener("change", (ev) => {
-        dag.setShowOutliers(ev.target.checked);
-        dag.refresh();
-    });
-    document.getElementById("showoutliers").checked = dag.showOutliers;
-    document.getElementById("collapse").addEventListener("change", (ev) => {
-        dag.setCollapse(ev.target.checked);
-        dag.refresh();
-    });
-    document.getElementById("collapse").checked = dag.collapse;
-    document.getElementById("step").addEventListener("change", (ev) => {
-        dag.setStepInterval(Number(ev.target.value));
-    });
-    document.getElementById("start").addEventListener("change", (ev) => {
-        dag.setStartEventId(ev.target.value);
-        dag.refresh();
-    });
-    document.getElementById("filterlabel").addEventListener("change", (ev) => {
-        dag.setFilterLabel(ev.target.value);
-        dag.refresh();
-    });
-
-    document.getElementById("go").addEventListener("click", async (ev) => {
-        await dag.load(document.getElementById("jsonfile").files[0]);
-        dag.refresh();
-    });
-    document.getElementById("closeinfocontainer").addEventListener("click", (ev) => {
-        document.getElementById("infocontainer").style = "display: none;";
-    })
-    document.getElementById("infocontainer").style = "display: none;";
 }
+
+const dag = new Dag();
+document.getElementById("showauthevents").addEventListener("change", (ev) => {
+    dag.setShowAuthChain(ev.target.checked);
+    dag.refresh();
+});
+document.getElementById("showauthevents").checked = dag.showAuthChain;
+document.getElementById("showoutliers").addEventListener("change", (ev) => {
+    dag.setShowOutliers(ev.target.checked);
+    dag.refresh();
+});
+document.getElementById("showoutliers").checked = dag.showOutliers;
+document.getElementById("collapse").addEventListener("change", (ev) => {
+    dag.setCollapse(ev.target.checked);
+    dag.refresh();
+});
+document.getElementById("collapse").checked = dag.collapse;
+document.getElementById("step").addEventListener("change", (ev) => {
+    dag.setStepInterval(Number(ev.target.value));
+});
+document.getElementById("start").addEventListener("change", (ev) => {
+    dag.setStartEventId(ev.target.value);
+    dag.refresh();
+});
+document.getElementById("filterlabel").addEventListener("change", (ev) => {
+    dag.setFilterLabel(ev.target.value);
+    dag.refresh();
+});
+
+document.getElementById("go").addEventListener("click", async (ev) => {
+    await dag.load(document.getElementById("jsonfile").files[0]);
+    dag.refresh();
+});
+document.getElementById("closeinfocontainer").addEventListener("click", (ev) => {
+    document.getElementById("infocontainer").style = "display: none;";
+});
+document.getElementById("infocontainer").style = "display: none;";
