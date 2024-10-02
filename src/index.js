@@ -29,9 +29,6 @@ class Dag {
                         })
                         .map((line) => {
                             const j = JSON.parse(line);
-                            if (j.event_id) {
-                                j._event_id = j.event_id;
-                            }
                             return j;
                         }),
                 );
@@ -43,8 +40,8 @@ class Dag {
             if (!ev) {
                 throw new Error("missing event");
             }
-            if (!ev._event_id) {
-                throw new Error(`event is missing '_event_id', got ${JSON.stringify(ev)}`);
+            if (!ev.event_id) {
+                throw new Error(`event is missing 'event_id', got ${JSON.stringify(ev)}`);
             }
             if (!ev.type) {
                 throw new Error(`event is missing 'type' field, got ${JSON.stringify(ev)}`);
@@ -52,17 +49,17 @@ class Dag {
             if (!ev.depth) {
                 throw new Error(`event is missing 'depth' field, got ${JSON.stringify(ev)}`);
             }
-            this.cache[ev._event_id] = ev;
+            this.cache[ev.event_id] = ev;
             if (ev.type === "m.room.create" && ev.state_key === "") {
-                this.createEventId = ev._event_id;
+                this.createEventId = ev.event_id;
                 return;
             }
             if (ev.depth > maxDepth) {
                 maxDepth = ev.depth;
                 this.latestEvents = {}; // reset as we have an event with a deeper depth i.e newer
-                this.latestEvents[ev._event_id] = ev;
+                this.latestEvents[ev.event_id] = ev;
             } else if (ev.depth === maxDepth) {
-                this.latestEvents[ev._event_id] = ev;
+                this.latestEvents[ev.event_id] = ev;
             }
         }
         this.maxDepth = maxDepth;
@@ -185,10 +182,10 @@ class Dag {
                 // all frontier events get wiped so we can make forward progress and set new frontier events
                 frontierEvents = {};
                 for (const event of fetchedEvents) {
-                    result[event._event_id] = event; // include this event
-                    missingEventIds.delete(event._event_id);
+                    result[event.event_id] = event; // include this event
+                    missingEventIds.delete(event.event_id);
                     // these events now become frontiers themselves
-                    frontierEvents[event._event_id] = event;
+                    frontierEvents[event.event_id] = event;
                 }
             }
         }
@@ -214,7 +211,7 @@ class Dag {
                     }
                     if (this.cache[id]) {
                         events[id] = {
-                            _event_id: id,
+                            event_id: id,
                             _backwards_extremity_key: key,
                             prev_events: [],
                             auth_events: [],
@@ -223,7 +220,7 @@ class Dag {
                         };
                     } else {
                         events[id] = {
-                            _event_id: id,
+                            event_id: id,
                             prev_events: [],
                             auth_events: [],
                             state_key: "missing",
@@ -301,7 +298,7 @@ class Dag {
                 pointCount[pe] = val + 1;
             }
             if (ev.prev_events.length !== 1) {
-                interestingEvents.add(ev._event_id); // Has 0 or 2+ prev_events (i.e not linear or is create/missing event)
+                interestingEvents.add(ev.event_id); // Has 0 or 2+ prev_events (i.e not linear or is create/missing event)
             }
         }
         for (const id in pointCount) {
@@ -396,7 +393,7 @@ class Dag {
             // anything in the queue referencing this id needs to be repointed to reference the child
             for (const q of queue) {
                 if (q.from === id) {
-                    q.from = child._event_id;
+                    q.from = child.event_id;
                 }
             }
         }
@@ -420,7 +417,7 @@ class Dag {
             for (const parentId of prevIds) {
                 if (!events[parentId]) {
                     events[parentId] = {
-                        _event_id: parentId,
+                        event_id: parentId,
                         prev_events: [],
                         auth_events: [],
                         refs: 1,
@@ -436,9 +433,9 @@ class Dag {
         console.log(eventsToRender);
         const dag = d3dag
             .dagStratify()
-            .id((event) => event._event_id)
+            .id((event) => event.event_id)
             .linkData((target, source) => {
-                return { auth: source.auth_events.includes(target._event_id) };
+                return { auth: source.auth_events.includes(target.event_id) };
             })
             .parentIds((event) => {
                 if (this.showAuthChain) {
@@ -583,7 +580,7 @@ class Dag {
 
         // Add text to nodes with border
         const getLabel = (d) => {
-            const id = d.data._event_id.substr(0, 5);
+            const id = d.data.event_id.substr(0, 5);
             const evType = d.data.type;
             const evStateKey = d.data.state_key ? `(${d.data.state_key})` : "";
             const depth = d.data.depth ? d.data.depth : "";
