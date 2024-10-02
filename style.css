@@ -5,19 +5,11 @@
     background-color: white;
 }
 
-#flexcontainer {
-    display: flex;
-}
-
-#svgcontainer {
-    overflow: scroll;
-    flex-basis: 75%;
-    flex-grow: 3; /* when the infocontainer is closed, let svgcontainer take all the space */
-}
-
 #infocontainer {
+    position: absolute;
+    background-color: #eee;
+    width: 50%; /* don't let the popup occlude the entire graph */
     overflow: scroll;
-    flex-basis: 25%;
 }
 
 #closeinfocontainer {
