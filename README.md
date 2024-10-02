@@ -15,9 +15,7 @@ Currently very experimental and PoC.
 
 ## Generates stuff like this:
 
-![](img/sugiyama.png)
-
-![](img/zherebko.png)
+![](img/anim.gif)
 
 ### To use:
 
