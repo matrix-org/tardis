@@ -25,3 +25,19 @@ yarn run start
 ```
 
 Then provide a new-line delimited JSON file which contains events to render in the full federation format (with `prev_events`, etc).
+To get such a file _for Synapse installations on Postgres_, run the following (assuming `matrix` is the name of your DB):
+```
+$ psql matrix
+matrix=> \t
+Tuples only is on.
+matrix=> \o the-file.ndjson
+matrix=> select jsonb_insert(json::JSONB, '{event_id}', ('"' || event_id || '"')::JSONB) from event_json where event_id in 
+    (select event_id from events where
+        room_id='!THE_ROOM_ID' and
+        stream_ordering < (select stream_ordering from events where event_id='$LATEST_EVENT_ID') and 
+        stream_ordering > (select stream_ordering from events where event_id='$EARLIEST_EVENT_ID')
+        order by stream_ordering asc
+    );
+```
+You can drop the `stream_ordering` clauses if the room is small and you want to see the entire thing. The file created by these
+commands can be dropped **as-is** into TARDIS.
