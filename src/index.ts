@@ -33,7 +33,6 @@ class Dag {
     showOutliers: boolean;
     collapse: boolean;
     startEventId: string;
-    filterLabel: string;
 
     constructor() {
         this.cache = Object.create(null);
@@ -47,7 +46,6 @@ class Dag {
         this.showOutliers = false;
         this.collapse = false;
         this.startEventId = "";
-        this.filterLabel = "";
     }
     async load(file: File) {
         const events = await new Promise((resolve: (value: Array<Event>) => void, reject) => {
@@ -121,9 +119,6 @@ class Dag {
                 eventId: this.cache[eventId],
             };
         }
-    }
-    setFilterLabel(filterLabel: string) {
-        this.filterLabel = filterLabel;
     }
     async refresh() {
         let renderEvents = await this.recalculate();
@@ -599,37 +594,6 @@ class Dag {
             .attr("r", nodeRadius)
             .attr("fill", (n) => colorMap[n.id]);
 
-        /*
-            const arrow = d3.symbol().type(d3.symbolTriangle).size(nodeRadius * nodeRadius / 5.0);
-            svgSelection.append('g')
-                .selectAll('path')
-                .data(dag.links())
-                .enter()
-                .append('path')
-                .attr('d', arrow)
-                .attr('transform', ({
-                    source,
-                    target,
-                    data,
-                }) => {
-                    const [end, start] = data.points.reverse();
-                    // This sets the arrows the node radius (20) + a little bit (3)
-                    // away from the node center, on the last line segment of the edge.
-                    // This means that edges that only span ine level will work perfectly,
-                    // but if the edge bends, this will be a little off.
-                    const dx = start.x - end.x;
-                    const dy = start.y - end.y;
-                    const scale = nodeRadius * 1.15 / Math.sqrt(dx * dx + dy * dy);
-                    // This is the angle of the last line segment
-                    const angle = Math.atan2(-dy, -dx) * 180 / Math.PI + 90;
-                    // console.log(angle, dx, dy);
-                    return `translate(${end.x + dx * scale}, ${end.y + dy * scale}) rotate(${angle})`;
-                })
-                .attr('fill', ({target}) => colorMap[target.id])
-                .attr('stroke', 'white')
-                .attr('stroke-width', 1.5);
-        */
-
         // Add text to nodes with border
         const getLabel = (d) => {
             const id = d.data.event_id.substr(0, 5);
@@ -643,11 +607,8 @@ class Dag {
                 }
             }
             const text = `${id} (${depth}) ${evType} ${evStateKey} ${collapse}`;
-            if (this.filterLabel && !text.includes(this.filterLabel)) {
-                if (d.data._backwards_extremity_key) {
-                    return "load more";
-                }
-                return "";
+            if (d.data._backwards_extremity_key) {
+                return "load more";
             }
             return text;
         };
@@ -685,10 +646,7 @@ class Dag {
             .attr("text-anchor", "left")
             .attr("alignment-baseline", "middle")
             .attr("fill", (d) => {
-                if (d.data.forward_extremity) {
-                    return "red";
-                }
-                if (this.filterLabel && getLabel(d) !== "") {
+                if (d.data._backwards_extremity_key) {
                     return "red";
                 }
                 return "black";
@@ -732,10 +690,6 @@ document.getElementById("step")!.addEventListener("change", (ev) => {
 });
 document.getElementById("start")!.addEventListener("change", (ev) => {
     dag.setStartEventId((<HTMLInputElement>ev.target)!.value);
-    dag.refresh();
-});
-document.getElementById("filterlabel")!.addEventListener("change", (ev) => {
-    dag.setFilterLabel((<HTMLInputElement>ev.target)!.value);
     dag.refresh();
 });
 
