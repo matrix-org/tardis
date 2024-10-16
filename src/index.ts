@@ -1,5 +1,5 @@
 import * as d3 from "d3";
-import * as d3dag from "d3-dag/src/index";
+import * as d3dag from "d3-dag";
 
 interface Event {
     event_id: string;
