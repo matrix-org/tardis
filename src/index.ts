@@ -10,9 +10,15 @@ interface Event {
     sender: string;
     depth: number;
     prev_events: Array<string>;
+    auth_events: Array<string>;
 
     // TODO: fix metadata fields
     _collapse?: number;
+    _backwards_extremity_key?: string;
+}
+
+interface Link {
+    auth: boolean;
 }
 
 class Dag {
@@ -43,7 +49,7 @@ class Dag {
         this.startEventId = "";
         this.filterLabel = "";
     }
-    async load(file) {
+    async load(file: File) {
         const events = await new Promise((resolve: (value: Array<Event>) => void, reject) => {
             const reader = new FileReader();
             reader.onload = (data) => {
@@ -111,7 +117,6 @@ class Dag {
     setStartEventId(eventId: string) {
         this.startEventId = eventId;
         if (this.cache[eventId]) {
-            console.log("start event found");
             this.latestEvents = {
                 eventId: this.cache[eventId],
             };
@@ -146,7 +151,8 @@ class Dag {
             const authEvents = await this.loadEarlierEvents(this.latestEvents, "auth_events", this.totalHopsBack);
             for (const id in authEvents.events) {
                 // we don't care about prev_events for auth chain so snip them if they aren't included yet
-                const authEvent = authEvents.events[id];
+                // Deep copy to avoid polluting the actual event.
+                const authEvent = JSON.parse(JSON.stringify(authEvents.events[id]));
                 authEvent.prev_events = authEvent.prev_events.filter((pid) => {
                     return renderEvents[pid];
                 });
@@ -230,7 +236,7 @@ class Dag {
     // - check prev/auth events and if they are missing in the dag AND the cache add a "missing" event
     // - check prev/auth events and if they are missing in the dag but not the cache add a "..." event.
     // Both these events have no prev/auth events so it forms a complete DAG with no missing nodes.
-    eventsToCompleteDag(events) {
+    eventsToCompleteDag(events: Record<string, Event>): Record<string, Event> {
         for (const id in events) {
             const ev = events[id];
             const keys = ["auth_events", "prev_events"];
@@ -247,6 +253,9 @@ class Dag {
                             auth_events: [],
                             state_key: "...",
                             type: "...",
+                            content: {},
+                            sender: "",
+                            depth: 0,
                         };
                     } else {
                         events[id] = {
@@ -255,6 +264,9 @@ class Dag {
                             auth_events: [],
                             state_key: "missing",
                             type: "missing",
+                            content: {},
+                            sender: "",
+                            depth: 0,
                         };
                     }
                 }
@@ -435,56 +447,59 @@ class Dag {
     }
 
     // render a set of events
-    async render(eventsToRender) {
+    async render(eventsToRender: Record<string, Event>) {
         const hideOrphans = !this.showOutliers;
         document.getElementById("svgcontainer")!.innerHTML = "";
         const width = window.innerWidth;
         const height = window.innerHeight;
-        /*
-        // tag events which receive multiple references
-        for (const event of earlierEvents) {
-            let prevIds = event.prev_events;
-            if (showAuthDag) {
-                prevIds = prevIds.concat(event.auth_events);
-            }
-            for (const parentId of prevIds) {
-                if (!events[parentId]) {
-                    events[parentId] = {
-                        event_id: parentId,
-                        prev_events: [],
-                        auth_events: [],
-                        refs: 1,
-                        type: '...',
-                    };
-                    continue;
-                }
-                events[parentId].refs = events[parentId].refs ? (events[parentId].refs + 1) : 1;
-            }
-        } */
 
         // stratify the events into a DAG
         console.log(eventsToRender);
-        const dag = d3dag
-            .dagStratify()
-            .id((event) => event.event_id)
-            .linkData((target, source) => {
-                return { auth: source.auth_events.includes(target.event_id) };
-            })
-            .parentIds((event) => {
+        let dag = d3dag
+            .dagStratify<Event>()
+            .id((event: Event) => event.event_id)
+            .parentIds((event: Event) => {
                 if (this.showAuthChain) {
                     return event.prev_events.concat(event.auth_events.filter((id) => id !== this.createEventId));
                 }
                 return event.prev_events;
+            })
+            .parentData((event: Event): Array<[string, Link]> => {
+                const parentData: Array<[string, Link]> = [];
+                const parentEvents = this.showAuthChain
+                    ? event.prev_events.concat(event.auth_events)
+                    : event.prev_events;
+                for (const parentEventId of new Set<string>(parentEvents)) {
+                    const parentEvent = eventsToRender[parentEventId];
+                    if (parentEvent) {
+                        parentData.push([
+                            parentEventId,
+                            {
+                                auth:
+                                    event.auth_events.includes(parentEventId) && // the parent is an auth event
+                                    !event.prev_events.includes(parentEventId), // the parent is not a prev_event (in which case prev_event wins in terms of colour)
+                            },
+                        ]);
+                    }
+                }
+                return parentData;
             })(Object.values(eventsToRender));
 
-        console.log(dag);
-
+        const rootNodes = dag.split();
         if (hideOrphans) {
-            if (dag.id === undefined) {
-                // our root is an undefined placeholder, which means we have orphans
-                dag.children = dag.children.filter((node) => node.children.length > 0);
+            // hide root nodes with no children
+            const connectedRoots = rootNodes.filter((dag) => {
+                return dag.descendants().length > 1;
+            });
+            if (connectedRoots.length > 1) {
+                console.error(
+                    `hideOrphans: ${connectedRoots.length} roots with children, this should not be possible unless there are 2 DAG chunks in this file`,
+                );
             }
+            dag = connectedRoots[0];
         }
+
+        console.log("dag:", dag);
 
         const nodeRadius = 10;
         const margin = nodeRadius * 4;
@@ -500,12 +515,16 @@ class Dag {
         // https://observablehq.com/@erikbrinkman/d3-dag-sugiyama-with-arrows
 
         // d3dag.zherebko()
-        d3dag.sugiyama().layering(d3dag.layeringCoffmanGraham().width(2)).size([width, height])(dag);
+        d3dag
+            .sugiyama()
+            .layering(d3dag.layeringCoffmanGraham().width(2))
+            .coord(d3dag.coordGreedy())
+            .size([width, height])(dag);
 
         const steps = dag.size();
         const interp = d3.interpolateRainbow;
         const colorMap = {};
-        dag.each((node, i) => {
+        dag.idescendants("after").forEach((node, i) => {
             colorMap[node.id] = interp(i / steps);
         });
 
@@ -524,7 +543,7 @@ class Dag {
             .enter()
             //.filter(({data})=>!data.auth)
             .append("path")
-            .attr("d", ({ data }) => line(data.points))
+            .attr("d", ({ points }) => line(points))
             .attr("fill", "none")
             .attr("stroke-width", (d) => {
                 const target = d.target;
@@ -680,8 +699,8 @@ class Dag {
                 return `translate(${transform.applyX(d.x)}, ${transform.applyY(d.y)})`;
             });
 
-            edges.attr("d", ({ data }) =>
-                line(data.points.map((d) => ({ x: transform.applyX(d.x), y: transform.applyY(d.y) }))),
+            edges.attr("d", ({ points }) =>
+                line(points.map((d) => ({ x: transform.applyX(d.x), y: transform.applyY(d.y) }))),
             );
         }
 

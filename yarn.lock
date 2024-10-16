@@ -476,17 +476,12 @@ commander@2:
   resolved "https://registry.npmjs.org/commander/-/commander-2.20.3.tgz"
   integrity sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==
 
-d3-array@2, d3-array@^2.3.0, d3-array@^2.5.0:
+d3-array@2, d3-array@^2.3.0, d3-array@^2.5.0, d3-array@^2.8.0:
   version "2.12.1"
   resolved "https://registry.npmjs.org/d3-array/-/d3-array-2.12.1.tgz"
   integrity sha512-B0ErZK/66mHtEsR1TkPEEkwdy+WDesimkM5gpZr5Dsg54BiTA5RXtYW5qTLIAcekaS9xfZrzBLF/OAkB3Qn1YQ==
   dependencies:
     internmap "^1.0.0"
-
-d3-array@^1.2.1:
-  version "1.2.4"
-  resolved "https://registry.npmjs.org/d3-array/-/d3-array-1.2.4.tgz"
-  integrity sha512-KHW6M86R+FUPYGb3R5XiYjXPq7VzwxZ22buHhAEVG5ztoEcZZMLov530mmccaqA1GghZArjQV46fuc8kUqhhHw==
 
 d3-axis@2:
   version "2.1.0"
@@ -523,15 +518,15 @@ d3-contour@2:
   dependencies:
     d3-array "2"
 
-d3-dag@^0.3.5:
-  version "0.3.5"
-  resolved "https://registry.npmjs.org/d3-dag/-/d3-dag-0.3.5.tgz"
-  integrity sha512-F6WIGLTWcHD7LTW+0MxnNlJxfhX1SMMVoZ/Evo3YboDnaqSkqgUYdwqFeJ8CqWmEG2lUaJZjl8LJJB0hUt19Fw==
+d3-dag@0.4.7:
+  version "0.4.7"
+  resolved "https://registry.yarnpkg.com/d3-dag/-/d3-dag-0.4.7.tgz#7057e16ce009e5d366490b1f20b8b6ed6fa1947f"
+  integrity sha512-/rEb4GV+tFgsHLJd6170/WxGrcQEesNlxA1t2a9Wj47Ob/FPzT+BFudtuvdlnEpGmnnrXBJOd/KsFaROuQ5R/w==
   dependencies:
-    d3-array "^1.2.1"
-    fastpriorityqueue "^0.5.0"
-    javascript-lp-solver "0.4.17"
-    quadprog-js "^0.1.3"
+    d3-array "^2.8.0"
+    fastpriorityqueue "^0.6.3"
+    javascript-lp-solver "0.4.24"
+    quadprog "^1.6.1"
 
 d3-delaunay@5:
   version "5.3.0"
@@ -769,10 +764,12 @@ esbuild@^0.21.3:
     "@esbuild/win32-ia32" "0.21.5"
     "@esbuild/win32-x64" "0.21.5"
 
-fastpriorityqueue@^0.5.0:
-  version "0.5.0"
-  resolved "https://registry.npmjs.org/fastpriorityqueue/-/fastpriorityqueue-0.5.0.tgz"
-  integrity sha512-a+2x8fbu1sfuvqlVYh28RxVTy7HFaMyI/hsZWup0CBnFL3E54h9Dz3vKBHMev1/c5BAQ26z6789ddwmu/GfFCQ==
+fastpriorityqueue@^0.6.3:
+  version "0.6.4"
+  resolved "https://registry.yarnpkg.com/fastpriorityqueue/-/fastpriorityqueue-0.6.4.tgz#7b9e315b47df6badcc2480e5a2d1c2f975971f80"
+  integrity sha512-kQRqFEv6UATZAH1LcNU8TJNRJs456TPohsvX6S0k5NuJKKBDfVN9UadxnHCv0KlykdYhW8xXyQmV9QejkWjluA==
+  dependencies:
+    minimist "^1.2.5"
 
 fsevents@~2.3.2, fsevents@~2.3.3:
   version "2.3.3"
@@ -791,10 +788,15 @@ internmap@^1.0.0:
   resolved "https://registry.npmjs.org/internmap/-/internmap-1.0.1.tgz"
   integrity sha512-lDB5YccMydFBtasVtxnZ3MRBHuaoE8GKsppq+EchKL2U4nK/DmEpPHNH8MZe5HkMtpSiTSOZwfN0tzYjO/lJEw==
 
-javascript-lp-solver@0.4.17:
-  version "0.4.17"
-  resolved "https://registry.npmjs.org/javascript-lp-solver/-/javascript-lp-solver-0.4.17.tgz"
-  integrity sha512-kJtkZ0RRaCUx7cKu/EDSvjftbZSaLMx3KQ1NL3YS7ZfXhC7bqLtjY1pkkn9cP3cii8HghD3VpyvBFILXyBP07A==
+javascript-lp-solver@0.4.24:
+  version "0.4.24"
+  resolved "https://registry.yarnpkg.com/javascript-lp-solver/-/javascript-lp-solver-0.4.24.tgz#3bb5f8aa051f0bf04747e39130133a0f738f635c"
+  integrity sha512-5edoDKnMrt/u3M6GnZKDDIPxOyFOg+WrwDv8mjNiMC2DePhy2H9/FFQgf4ggywaXT1utvkxusJcjQUER72cZmA==
+
+minimist@^1.2.5:
+  version "1.2.8"
+  resolved "https://registry.yarnpkg.com/minimist/-/minimist-1.2.8.tgz#c1a464e7693302e082a075cee0c057741ac4772c"
+  integrity sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==
 
 nanoid@^3.3.7:
   version "3.3.7"
@@ -815,10 +817,10 @@ postcss@^8.4.43:
     picocolors "^1.1.0"
     source-map-js "^1.2.1"
 
-quadprog-js@^0.1.3:
-  version "0.1.3"
-  resolved "https://registry.npmjs.org/quadprog-js/-/quadprog-js-0.1.3.tgz"
-  integrity sha512-515n4/g9cCDVHj+11rAhphUTNdgLFAENsU3MrnyoRd0tHSCMi8V4LecwliTu1zl0f81dlIFVgCWNgGUWkfHyxg==
+quadprog@^1.6.1:
+  version "1.6.1"
+  resolved "https://registry.yarnpkg.com/quadprog/-/quadprog-1.6.1.tgz#1cd3b13700de9553ef939a6fa73d0d55ddb2f082"
+  integrity sha512-fN5Jkcjlln/b3pJkseDKREf89JkKIyu6cKIVXisgL6ocKPQ0yTp9n6NZUAq3otEPPw78WZMG9K0o9WsfKyMWJw==
 
 rollup@^4.20.0:
   version "4.22.5"
