@@ -1,5 +1,5 @@
 import * as d3 from "d3";
-import * as d3dag from "d3-dag";
+import * as d3dag from "d3-dag/src/index";
 
 interface Event {
     event_id: string;
@@ -10,9 +10,11 @@ interface Event {
     sender: string;
     depth: number;
     prev_events: Array<string>;
+    auth_events: Array<string>;
 
     // TODO: fix metadata fields
     _collapse?: number;
+    _backwards_extremity_key?: string;
 }
 
 class Dag {
@@ -230,7 +232,7 @@ class Dag {
     // - check prev/auth events and if they are missing in the dag AND the cache add a "missing" event
     // - check prev/auth events and if they are missing in the dag but not the cache add a "..." event.
     // Both these events have no prev/auth events so it forms a complete DAG with no missing nodes.
-    eventsToCompleteDag(events) {
+    eventsToCompleteDag(events: Record<string, Event>): Record<string, Event> {
         for (const id in events) {
             const ev = events[id];
             const keys = ["auth_events", "prev_events"];
@@ -247,6 +249,9 @@ class Dag {
                             auth_events: [],
                             state_key: "...",
                             type: "...",
+                            content: {},
+                            sender: "",
+                            depth: 0,
                         };
                     } else {
                         events[id] = {
@@ -255,6 +260,9 @@ class Dag {
                             auth_events: [],
                             state_key: "missing",
                             type: "missing",
+                            content: {},
+                            sender: "",
+                            depth: 0,
                         };
                     }
                 }
@@ -435,7 +443,7 @@ class Dag {
     }
 
     // render a set of events
-    async render(eventsToRender) {
+    async render(eventsToRender: Record<string, Event>) {
         const hideOrphans = !this.showOutliers;
         document.getElementById("svgcontainer")!.innerHTML = "";
         const width = window.innerWidth;
@@ -462,14 +470,32 @@ class Dag {
             }
         } */
 
+        if (hideOrphans) {
+            // remove events which are not pointed at by anyone.
+            const eventsBeingPointedAt = new Set<string>();
+            for (const eventId in eventsToRender) {
+                const ev = eventsToRender[eventId];
+                for (const pe of ev.prev_events) {
+                    eventsBeingPointedAt.add(pe);
+                }
+                if (this.showAuthChain) {
+                    for (const pe of ev.auth_events) {
+                        eventsBeingPointedAt.add(pe);
+                    }
+                }
+            }
+            for (const eventId of Object.keys(eventsToRender)) {
+                if (!eventsBeingPointedAt.has(eventId)) {
+                    delete eventsToRender[eventId];
+                }
+            }
+        }
+
         // stratify the events into a DAG
         console.log(eventsToRender);
         const dag = d3dag
-            .dagStratify()
+            .dagStratify<Event>()
             .id((event) => event.event_id)
-            .linkData((target, source) => {
-                return { auth: source.auth_events.includes(target.event_id) };
-            })
             .parentIds((event) => {
                 if (this.showAuthChain) {
                     return event.prev_events.concat(event.auth_events.filter((id) => id !== this.createEventId));
@@ -477,14 +503,14 @@ class Dag {
                 return event.prev_events;
             })(Object.values(eventsToRender));
 
-        console.log(dag);
+        // TODO:
+        /*
+        .linkData((target, source) => {
+                return { auth: source.auth_events.includes(target.event_id) };
+            })
+        */
 
-        if (hideOrphans) {
-            if (dag.id === undefined) {
-                // our root is an undefined placeholder, which means we have orphans
-                dag.children = dag.children.filter((node) => node.children.length > 0);
-            }
-        }
+        console.log(dag);
 
         const nodeRadius = 10;
         const margin = nodeRadius * 4;
@@ -505,7 +531,7 @@ class Dag {
         const steps = dag.size();
         const interp = d3.interpolateRainbow;
         const colorMap = {};
-        dag.each((node, i) => {
+        dag.idescendants("after").forEach((node, i) => {
             colorMap[node.id] = interp(i / steps);
         });
 
@@ -524,7 +550,7 @@ class Dag {
             .enter()
             //.filter(({data})=>!data.auth)
             .append("path")
-            .attr("d", ({ data }) => line(data.points))
+            .attr("d", ({ points }) => line(points))
             .attr("fill", "none")
             .attr("stroke-width", (d) => {
                 const target = d.target;
@@ -538,6 +564,7 @@ class Dag {
             })
             .text("test")
             .attr("stroke", (dagLink) => {
+                console.log("dagLink.data", dagLink.data);
                 const source = dagLink.source;
                 const target = dagLink.target;
 

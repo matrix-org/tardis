@@ -171,6 +171,23 @@
   resolved "https://registry.yarnpkg.com/@esbuild/win32-x64/-/win32-x64-0.21.5.tgz#acad351d582d157bb145535db2a6ff53dd514b5c"
   integrity sha512-tQd/1efJuzPC6rCFwEvLtci/xNFcTZknmXs98FYDfGE4wP9ClFV98nyKrzJKVPMhdDnjzLhdUyMX4PsQAPjwIw==
 
+"@rollup/plugin-replace@^2.3.3":
+  version "2.4.2"
+  resolved "https://registry.yarnpkg.com/@rollup/plugin-replace/-/plugin-replace-2.4.2.tgz#a2d539314fbc77c244858faa523012825068510a"
+  integrity sha512-IGcu+cydlUMZ5En85jxHH4qj2hta/11BHq95iHEyb2sbgiN0eCdzvUcHw5gt9pBL5lTi4JDYJ1acCoMGpTvEZg==
+  dependencies:
+    "@rollup/pluginutils" "^3.1.0"
+    magic-string "^0.25.7"
+
+"@rollup/pluginutils@^3.1.0":
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/@rollup/pluginutils/-/pluginutils-3.1.0.tgz#706b4524ee6dc8b103b3c995533e5ad680c02b9b"
+  integrity sha512-GksZ6pr6TpIjHm8h9lSQ8pi8BE9VeubNT0OMJ3B5uZJ8pz73NPiqOtCog/x2/QzM1ENChPKxMDhiQuRHsqc+lg==
+  dependencies:
+    "@types/estree" "0.0.39"
+    estree-walker "^1.0.1"
+    picomatch "^2.2.2"
+
 "@rollup/rollup-android-arm-eabi@4.22.5":
   version "4.22.5"
   resolved "https://registry.yarnpkg.com/@rollup/rollup-android-arm-eabi/-/rollup-android-arm-eabi-4.22.5.tgz#e0f5350845090ca09690fe4a472717f3b8aae225"
@@ -255,6 +272,11 @@
   version "3.2.1"
   resolved "https://registry.yarnpkg.com/@types/d3-array/-/d3-array-3.2.1.tgz#1f6658e3d2006c4fceac53fde464166859f8b8c5"
   integrity sha512-Y2Jn2idRrLzUfAKV2LyRImR+y4oa2AntrgID95SHJxuMUrkNXmanDSed71sRNZysveJVt1hLLemQZIady0FpEg==
+
+"@types/d3-array@^2.0.0":
+  version "2.12.7"
+  resolved "https://registry.yarnpkg.com/@types/d3-array/-/d3-array-2.12.7.tgz#46ec31094a4727af09680dd7133a5bf1409ae104"
+  integrity sha512-SVvxzxRVnIgtJbNTj5ZVJ9CZkVOANCpW0nQbRi7EOU5Q9G+JQQjXD2SCpr1OYCX09b3Yr7o0+CBofZAgU42rbQ==
 
 "@types/d3-axis@*":
   version "3.0.6"
@@ -461,6 +483,11 @@
     "@types/d3-transition" "*"
     "@types/d3-zoom" "*"
 
+"@types/estree@0.0.39":
+  version "0.0.39"
+  resolved "https://registry.yarnpkg.com/@types/estree/-/estree-0.0.39.tgz#e177e699ee1b8c22d23174caaa7422644389509f"
+  integrity sha512-EYNwp3bU+98cpU4lAWYYL7Zz+2gryWH1qbdDTidVd6hkiR6weksdbMadyXKXNPEkQFhXM+hVO9ZygomHXp+AIw==
+
 "@types/estree@1.0.6":
   version "1.0.6"
   resolved "https://registry.npmjs.org/@types/estree/-/estree-1.0.6.tgz"
@@ -476,17 +503,12 @@ commander@2:
   resolved "https://registry.npmjs.org/commander/-/commander-2.20.3.tgz"
   integrity sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==
 
-d3-array@2, d3-array@^2.3.0, d3-array@^2.5.0:
+d3-array@2, d3-array@^2.3.0, d3-array@^2.5.0, d3-array@^2.7.1:
   version "2.12.1"
   resolved "https://registry.npmjs.org/d3-array/-/d3-array-2.12.1.tgz"
   integrity sha512-B0ErZK/66mHtEsR1TkPEEkwdy+WDesimkM5gpZr5Dsg54BiTA5RXtYW5qTLIAcekaS9xfZrzBLF/OAkB3Qn1YQ==
   dependencies:
     internmap "^1.0.0"
-
-d3-array@^1.2.1:
-  version "1.2.4"
-  resolved "https://registry.npmjs.org/d3-array/-/d3-array-1.2.4.tgz"
-  integrity sha512-KHW6M86R+FUPYGb3R5XiYjXPq7VzwxZ22buHhAEVG5ztoEcZZMLov530mmccaqA1GghZArjQV46fuc8kUqhhHw==
 
 d3-axis@2:
   version "2.1.0"
@@ -523,14 +545,17 @@ d3-contour@2:
   dependencies:
     d3-array "2"
 
-d3-dag@^0.3.5:
-  version "0.3.5"
-  resolved "https://registry.npmjs.org/d3-dag/-/d3-dag-0.3.5.tgz"
-  integrity sha512-F6WIGLTWcHD7LTW+0MxnNlJxfhX1SMMVoZ/Evo3YboDnaqSkqgUYdwqFeJ8CqWmEG2lUaJZjl8LJJB0hUt19Fw==
+d3-dag@0.4.3:
+  version "0.4.3"
+  resolved "https://registry.yarnpkg.com/d3-dag/-/d3-dag-0.4.3.tgz#1aea15ba0ffcd30e5ed756abf46b458fcd9d4225"
+  integrity sha512-IdJM6ZF4o08kFoR6c1IbBQNDC4GwAS1CBdBm1AZm5fM+d/QKLXvOpLS7jazP6KMVxnd7nKKkr3UyBlh+PFQQNg==
   dependencies:
-    d3-array "^1.2.1"
-    fastpriorityqueue "^0.5.0"
-    javascript-lp-solver "0.4.17"
+    "@rollup/plugin-replace" "^2.3.3"
+    "@types/d3-array" "^2.0.0"
+    d3-array "^2.7.1"
+    fastpriorityqueue "^0.6.3"
+    javascript-lp-solver "0.4.24"
+    quadprog "^1.6.1"
     quadprog-js "^0.1.3"
 
 d3-delaunay@5:
@@ -769,10 +794,17 @@ esbuild@^0.21.3:
     "@esbuild/win32-ia32" "0.21.5"
     "@esbuild/win32-x64" "0.21.5"
 
-fastpriorityqueue@^0.5.0:
-  version "0.5.0"
-  resolved "https://registry.npmjs.org/fastpriorityqueue/-/fastpriorityqueue-0.5.0.tgz"
-  integrity sha512-a+2x8fbu1sfuvqlVYh28RxVTy7HFaMyI/hsZWup0CBnFL3E54h9Dz3vKBHMev1/c5BAQ26z6789ddwmu/GfFCQ==
+estree-walker@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/estree-walker/-/estree-walker-1.0.1.tgz#31bc5d612c96b704106b477e6dd5d8aa138cb700"
+  integrity sha512-1fMXF3YP4pZZVozF8j/ZLfvnR8NSIljt56UhbZ5PeeDmmGHpgpdwQt7ITlGvYaQukCvuBRMLEiKiYC+oeIg4cg==
+
+fastpriorityqueue@^0.6.3:
+  version "0.6.4"
+  resolved "https://registry.yarnpkg.com/fastpriorityqueue/-/fastpriorityqueue-0.6.4.tgz#7b9e315b47df6badcc2480e5a2d1c2f975971f80"
+  integrity sha512-kQRqFEv6UATZAH1LcNU8TJNRJs456TPohsvX6S0k5NuJKKBDfVN9UadxnHCv0KlykdYhW8xXyQmV9QejkWjluA==
+  dependencies:
+    minimist "^1.2.5"
 
 fsevents@~2.3.2, fsevents@~2.3.3:
   version "2.3.3"
@@ -791,10 +823,22 @@ internmap@^1.0.0:
   resolved "https://registry.npmjs.org/internmap/-/internmap-1.0.1.tgz"
   integrity sha512-lDB5YccMydFBtasVtxnZ3MRBHuaoE8GKsppq+EchKL2U4nK/DmEpPHNH8MZe5HkMtpSiTSOZwfN0tzYjO/lJEw==
 
-javascript-lp-solver@0.4.17:
-  version "0.4.17"
-  resolved "https://registry.npmjs.org/javascript-lp-solver/-/javascript-lp-solver-0.4.17.tgz"
-  integrity sha512-kJtkZ0RRaCUx7cKu/EDSvjftbZSaLMx3KQ1NL3YS7ZfXhC7bqLtjY1pkkn9cP3cii8HghD3VpyvBFILXyBP07A==
+javascript-lp-solver@0.4.24:
+  version "0.4.24"
+  resolved "https://registry.yarnpkg.com/javascript-lp-solver/-/javascript-lp-solver-0.4.24.tgz#3bb5f8aa051f0bf04747e39130133a0f738f635c"
+  integrity sha512-5edoDKnMrt/u3M6GnZKDDIPxOyFOg+WrwDv8mjNiMC2DePhy2H9/FFQgf4ggywaXT1utvkxusJcjQUER72cZmA==
+
+magic-string@^0.25.7:
+  version "0.25.9"
+  resolved "https://registry.yarnpkg.com/magic-string/-/magic-string-0.25.9.tgz#de7f9faf91ef8a1c91d02c2e5314c8277dbcdd1c"
+  integrity sha512-RmF0AsMzgt25qzqqLc1+MbHmhdx0ojF2Fvs4XnOqz2ZOBXzzkEwc/dJQZCYHAn7v1jbVOjAZfK8msRn4BxO4VQ==
+  dependencies:
+    sourcemap-codec "^1.4.8"
+
+minimist@^1.2.5:
+  version "1.2.8"
+  resolved "https://registry.yarnpkg.com/minimist/-/minimist-1.2.8.tgz#c1a464e7693302e082a075cee0c057741ac4772c"
+  integrity sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==
 
 nanoid@^3.3.7:
   version "3.3.7"
@@ -805,6 +849,11 @@ picocolors@^1.1.0:
   version "1.1.0"
   resolved "https://registry.npmjs.org/picocolors/-/picocolors-1.1.0.tgz"
   integrity sha512-TQ92mBOW0l3LeMeyLV6mzy/kWr8lkd/hp3mTg7wYK7zJhuBStmGMBG0BdeDZS/dZx1IukaX6Bk11zcln25o1Aw==
+
+picomatch@^2.2.2:
+  version "2.3.1"
+  resolved "https://registry.yarnpkg.com/picomatch/-/picomatch-2.3.1.tgz#3ba3833733646d9d3e4995946c1365a67fb07a42"
+  integrity sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA==
 
 postcss@^8.4.43:
   version "8.4.47"
@@ -819,6 +868,11 @@ quadprog-js@^0.1.3:
   version "0.1.3"
   resolved "https://registry.npmjs.org/quadprog-js/-/quadprog-js-0.1.3.tgz"
   integrity sha512-515n4/g9cCDVHj+11rAhphUTNdgLFAENsU3MrnyoRd0tHSCMi8V4LecwliTu1zl0f81dlIFVgCWNgGUWkfHyxg==
+
+quadprog@^1.6.1:
+  version "1.6.1"
+  resolved "https://registry.yarnpkg.com/quadprog/-/quadprog-1.6.1.tgz#1cd3b13700de9553ef939a6fa73d0d55ddb2f082"
+  integrity sha512-fN5Jkcjlln/b3pJkseDKREf89JkKIyu6cKIVXisgL6ocKPQ0yTp9n6NZUAq3otEPPw78WZMG9K0o9WsfKyMWJw==
 
 rollup@^4.20.0:
   version "4.22.5"
@@ -859,6 +913,11 @@ source-map-js@^1.2.1:
   version "1.2.1"
   resolved "https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.1.tgz"
   integrity sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==
+
+sourcemap-codec@^1.4.8:
+  version "1.4.8"
+  resolved "https://registry.yarnpkg.com/sourcemap-codec/-/sourcemap-codec-1.4.8.tgz#ea804bd94857402e6992d05a38ef1ae35a9ab4c4"
+  integrity sha512-9NykojV5Uih4lgo5So5dtw+f0JgJX30KCNI8gwhz2J9A15wD0Ml6tjHKwf6fTSa6fAdVBdZeNOs9eJ71qCk8vA==
 
 typescript@^5.6.3:
   version "5.6.3"
