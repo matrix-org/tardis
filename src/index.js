@@ -16,6 +16,7 @@ class Dag {
         this.collapse = false;
         this.startEventId = "";
         this.filterLabel = "";
+        this.eventList = [];
     }
     async load(file) {
         const events = await new Promise((resolve, reject) => {
@@ -50,6 +51,7 @@ class Dag {
                 throw new Error(`event is missing 'depth' field, got ${JSON.stringify(ev)}`);
             }
             this.cache[ev.event_id] = ev;
+            this.eventList.push(ev);
             if (ev.type === "m.room.create" && ev.state_key === "") {
                 this.createEventId = ev.event_id;
                 return;
@@ -625,8 +627,6 @@ class Dag {
                     this.refresh();
                     return;
                 }
-                document.getElementById("eventdetails").textContent = JSON.stringify(d.data, null, 2);
-                document.getElementById("infocontainer").style = "display: block;";
             })
             .attr("transform", `translate(${nodeRadius + 10}, 0)`)
             .attr("font-family", "sans-serif")
@@ -659,7 +659,37 @@ class Dag {
     }
 }
 
+class Breakpoints {
+
+    constructor(tbodyId){
+        this.tbodyId = tbodyId;
+        this.eventList = [];
+    }
+
+    load(eventList) {
+        this.eventList = eventList;
+        this.render();
+    }
+
+    render() {
+        const tbody = document.getElementById(this.tbodyId);
+        tbody.innerHTML = '';
+        this.eventList.forEach((ev, i) => {
+            const tr = document.createElement('tr');
+            const th = document.createElement('th');
+            th.setAttribute("scope", "row");
+            th.textContent = ""+(i+1);
+            const td = document.createElement('td');
+            td.textContent = `${ev.type} (${ev.event_id})`;
+            tr.appendChild(th);
+            tr.appendChild(td);
+            tbody.appendChild(tr);
+        });
+    }
+}
+
 const dag = new Dag();
+const breakpoints = new Breakpoints("breakpoints-table");
 document.getElementById("showauthevents").addEventListener("change", (ev) => {
     dag.setShowAuthChain(ev.target.checked);
     dag.refresh();
@@ -690,8 +720,5 @@ document.getElementById("filterlabel").addEventListener("change", (ev) => {
 document.getElementById("go").addEventListener("click", async (ev) => {
     await dag.load(document.getElementById("jsonfile").files[0]);
     dag.refresh();
+    breakpoints.load(dag.eventList);
 });
-document.getElementById("closeinfocontainer").addEventListener("click", (ev) => {
-    document.getElementById("infocontainer").style = "display: none;";
-});
-document.getElementById("infocontainer").style = "display: none;";

@@ -2,16 +2,50 @@
     top: 0;
     left: 0;
     padding: 8px;
-    background-color: white;
-}
-
-#infocontainer {
-    position: absolute;
     background-color: #eee;
-    width: 50%; /* don't let the popup occlude the entire graph */
-    overflow: scroll;
+    border-bottom: 1px solid;
 }
 
-#closeinfocontainer {
-    cursor: pointer;
+#svgoptions {
+    position: absolute;
+    display: flex;
+    margin: 5px;
+    flex-direction: column;
+}
+
+#main {
+    display: flex;
+    flex-grow: 1;
+}
+
+#breakpoints {
+    border-right: 1px solid;
+    height: 100%;
+    width: 25%;
+}
+
+body {
+    margin: 0px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+table {
+    border-spacing: 0px;
+}
+
+thead {
+    background-color: #eee;
+}
+
+td {
+    overflow: scroll;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+th {
+    border-right: 1px solid;
+    padding: 5px;
 }
