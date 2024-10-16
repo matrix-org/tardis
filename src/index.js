@@ -660,8 +660,7 @@ class Dag {
 }
 
 class Breakpoints {
-
-    constructor(tbodyId){
+    constructor(tbodyId) {
         this.tbodyId = tbodyId;
         this.eventList = [];
     }
@@ -673,13 +672,13 @@ class Breakpoints {
 
     render() {
         const tbody = document.getElementById(this.tbodyId);
-        tbody.innerHTML = '';
+        tbody.innerHTML = "";
         this.eventList.forEach((ev, i) => {
-            const tr = document.createElement('tr');
-            const th = document.createElement('th');
+            const tr = document.createElement("tr");
+            const th = document.createElement("th");
             th.setAttribute("scope", "row");
-            th.textContent = ""+(i+1);
-            const td = document.createElement('td');
+            th.textContent = `${i + 1}`;
+            const td = document.createElement("td");
             td.textContent = `${ev.type} (${ev.event_id})`;
             tr.appendChild(th);
             tr.appendChild(td);
