@@ -17,8 +17,14 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "style": {
+        "noNonNullAssertion": "off"
+      }
     }
+  },
+  "files": {
+    "maxSize": 2097152
   },
   "json": {
     "formatter": {
