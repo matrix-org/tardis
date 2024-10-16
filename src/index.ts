@@ -543,7 +543,7 @@ class Dag {
             .enter()
             //.filter(({data})=>!data.auth)
             .append("path")
-            .attr("d", ({ points }) => line(points as any)) // TODO: why doesn't d3 like this?
+            .attr("d", ({ points }) => line(points))
             .attr("fill", "none")
             .attr("stroke-width", (d) => {
                 const target = d.target;
