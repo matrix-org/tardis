@@ -659,7 +659,7 @@ class Dag {
                     return;
                 }
                 document.getElementById("eventdetails")!.textContent = JSON.stringify(d.data, null, 2);
-                document.getElementById("infocontainer")!.style.display =  "block";
+                document.getElementById("infocontainer")!.style.display = "block";
             })
             .attr("transform", `translate(${nodeRadius + 10}, 0)`)
             .attr("font-family", "sans-serif")

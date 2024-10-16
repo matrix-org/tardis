@@ -27,5 +27,8 @@ jobs:
             - name: Build
               run: yarn build
 
+            - name: Lint
+              run: yarn lint ./src
+
             - name: Docker Build
               run: docker build -t tardis .
