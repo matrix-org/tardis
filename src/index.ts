@@ -17,6 +17,10 @@ interface Event {
     _backwards_extremity_key?: string;
 }
 
+interface Link {
+    auth: boolean;
+}
+
 class Dag {
     cache: Record<string, Event>;
     maxDepth: number;
@@ -45,7 +49,7 @@ class Dag {
         this.startEventId = "";
         this.filterLabel = "";
     }
-    async load(file) {
+    async load(file: File) {
         const events = await new Promise((resolve: (value: Array<Event>) => void, reject) => {
             const reader = new FileReader();
             reader.onload = (data) => {
@@ -113,7 +117,6 @@ class Dag {
     setStartEventId(eventId: string) {
         this.startEventId = eventId;
         if (this.cache[eventId]) {
-            console.log("start event found");
             this.latestEvents = {
                 eventId: this.cache[eventId],
             };
@@ -148,7 +151,8 @@ class Dag {
             const authEvents = await this.loadEarlierEvents(this.latestEvents, "auth_events", this.totalHopsBack);
             for (const id in authEvents.events) {
                 // we don't care about prev_events for auth chain so snip them if they aren't included yet
-                const authEvent = authEvents.events[id];
+                // Deep copy to avoid polluting the actual event.
+                const authEvent = JSON.parse(JSON.stringify(authEvents.events[id]));
                 authEvent.prev_events = authEvent.prev_events.filter((pid) => {
                     return renderEvents[pid];
                 });
@@ -448,69 +452,54 @@ class Dag {
         document.getElementById("svgcontainer")!.innerHTML = "";
         const width = window.innerWidth;
         const height = window.innerHeight;
-        /*
-        // tag events which receive multiple references
-        for (const event of earlierEvents) {
-            let prevIds = event.prev_events;
-            if (showAuthDag) {
-                prevIds = prevIds.concat(event.auth_events);
-            }
-            for (const parentId of prevIds) {
-                if (!events[parentId]) {
-                    events[parentId] = {
-                        event_id: parentId,
-                        prev_events: [],
-                        auth_events: [],
-                        refs: 1,
-                        type: '...',
-                    };
-                    continue;
-                }
-                events[parentId].refs = events[parentId].refs ? (events[parentId].refs + 1) : 1;
-            }
-        } */
-
-        if (hideOrphans) {
-            // remove events which are not pointed at by anyone.
-            const eventsBeingPointedAt = new Set<string>();
-            for (const eventId in eventsToRender) {
-                const ev = eventsToRender[eventId];
-                for (const pe of ev.prev_events) {
-                    eventsBeingPointedAt.add(pe);
-                }
-                if (this.showAuthChain) {
-                    for (const pe of ev.auth_events) {
-                        eventsBeingPointedAt.add(pe);
-                    }
-                }
-            }
-            for (const eventId of Object.keys(eventsToRender)) {
-                if (!eventsBeingPointedAt.has(eventId)) {
-                    delete eventsToRender[eventId];
-                }
-            }
-        }
 
         // stratify the events into a DAG
         console.log(eventsToRender);
-        const dag = d3dag
+        let dag = d3dag
             .dagStratify<Event>()
-            .id((event) => event.event_id)
-            .parentIds((event) => {
+            .id((event: Event) => event.event_id)
+            .parentIds((event: Event) => {
                 if (this.showAuthChain) {
                     return event.prev_events.concat(event.auth_events.filter((id) => id !== this.createEventId));
                 }
                 return event.prev_events;
+            })
+            .parentData((event: Event): Array<[string, Link]> => {
+                const parentData: Array<[string, Link]> = [];
+                const parentEvents = this.showAuthChain
+                    ? event.prev_events.concat(event.auth_events)
+                    : event.prev_events;
+                for (const parentEventId of new Set<string>(parentEvents)) {
+                    const parentEvent = eventsToRender[parentEventId];
+                    if (parentEvent) {
+                        parentData.push([
+                            parentEventId,
+                            {
+                                auth:
+                                    event.auth_events.includes(parentEventId) && // the parent is an auth event
+                                    !event.prev_events.includes(parentEventId), // the parent is not a prev_event (in which case prev_event wins in terms of colour)
+                            },
+                        ]);
+                    }
+                }
+                return parentData;
             })(Object.values(eventsToRender));
 
-        // TODO:
-        /*
-        .linkData((target, source) => {
-                return { auth: source.auth_events.includes(target.event_id) };
-            })
-        */
+        const rootNodes = dag.split();
+        if (hideOrphans) {
+            // hide root nodes with no children
+            const connectedRoots = rootNodes.filter((dag) => {
+                return dag.descendants().length > 1;
+            });
+            if (connectedRoots.length > 1) {
+                console.error(
+                    `hideOrphans: ${connectedRoots.length} roots with children, this should not be possible unless there are 2 DAG chunks in this file`,
+                );
+            }
+            dag = connectedRoots[0];
+        }
 
-        console.log(dag);
+        console.log("dag:", dag);
 
         const nodeRadius = 10;
         const margin = nodeRadius * 4;
@@ -526,7 +515,11 @@ class Dag {
         // https://observablehq.com/@erikbrinkman/d3-dag-sugiyama-with-arrows
 
         // d3dag.zherebko()
-        d3dag.sugiyama().layering(d3dag.layeringCoffmanGraham().width(2)).size([width, height])(dag);
+        d3dag
+            .sugiyama()
+            .layering(d3dag.layeringCoffmanGraham().width(2))
+            .coord(d3dag.coordGreedy())
+            .size([width, height])(dag);
 
         const steps = dag.size();
         const interp = d3.interpolateRainbow;
@@ -550,7 +543,7 @@ class Dag {
             .enter()
             //.filter(({data})=>!data.auth)
             .append("path")
-            .attr("d", ({ points }) => line(points))
+            .attr("d", ({ points }) => line(points as any)) // TODO: why doesn't d3 like this?
             .attr("fill", "none")
             .attr("stroke-width", (d) => {
                 const target = d.target;
@@ -564,7 +557,6 @@ class Dag {
             })
             .text("test")
             .attr("stroke", (dagLink) => {
-                console.log("dagLink.data", dagLink.data);
                 const source = dagLink.source;
                 const target = dagLink.target;
 
@@ -707,8 +699,8 @@ class Dag {
                 return `translate(${transform.applyX(d.x)}, ${transform.applyY(d.y)})`;
             });
 
-            edges.attr("d", ({ data }) =>
-                line(data.points.map((d) => ({ x: transform.applyX(d.x), y: transform.applyY(d.y) }))),
+            edges.attr("d", ({ points }) =>
+                line(points.map((d) => ({ x: transform.applyX(d.x), y: transform.applyY(d.y) }))),
             );
         }
 
