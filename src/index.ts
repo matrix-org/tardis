@@ -1,12 +1,38 @@
 import * as d3 from "d3";
 import * as d3dag from "d3-dag";
 
+interface Event {
+    event_id: string;
+    type: string;
+    state_key?: string;
+    // biome-ignore lint/suspicious/noExplicitAny: we don't know the values.
+    content: Record<string, any>;
+    sender: string;
+    depth: number;
+    prev_events: Array<string>;
+
+    // TODO: fix metadata fields
+    _collapse?: number;
+}
+
 class Dag {
+    cache: Record<string, Event>;
+    maxDepth: number;
+    latestEvents: Record<string, Event>;
+    createEventId: string | null;
+    stepInterval: number;
+    totalHopsBack: number;
+    showAuthChain: boolean;
+    showPrevEvents: boolean;
+    showOutliers: boolean;
+    collapse: boolean;
+    startEventId: string;
+    filterLabel: string;
+
     constructor() {
         this.cache = Object.create(null);
         this.maxDepth = 0;
         this.latestEvents = {};
-        this.earliestEvents = [];
         this.createEventId = null;
         this.stepInterval = 1;
         this.totalHopsBack = 1;
@@ -18,11 +44,14 @@ class Dag {
         this.filterLabel = "";
     }
     async load(file) {
-        const events = await new Promise((resolve, reject) => {
+        const events = await new Promise((resolve: (value: Array<Event>) => void, reject) => {
             const reader = new FileReader();
             reader.onload = (data) => {
+                if (!data.target || !data.target.result) {
+                    return;
+                }
                 resolve(
-                    data.target.result
+                    (data.target.result as string)
                         .split("\n")
                         .filter((line) => {
                             return line.trim().length > 0;
@@ -64,22 +93,22 @@ class Dag {
         }
         this.maxDepth = maxDepth;
     }
-    setStepInterval(num) {
+    setStepInterval(num: number) {
         this.stepInterval = num;
     }
-    setShowAuthChain(show) {
+    setShowAuthChain(show: boolean) {
         this.showAuthChain = show;
     }
-    setShowPrevEvents(show) {
+    setShowPrevEvents(show: boolean) {
         this.showPrevEvents = show;
     }
-    setShowOutliers(show) {
+    setShowOutliers(show: boolean) {
         this.showOutliers = show;
     }
-    setCollapse(col) {
+    setCollapse(col: boolean) {
         this.collapse = col;
     }
-    setStartEventId(eventId) {
+    setStartEventId(eventId: string) {
         this.startEventId = eventId;
         if (this.cache[eventId]) {
             console.log("start event found");
@@ -88,7 +117,7 @@ class Dag {
             };
         }
     }
-    setFilterLabel(filterLabel) {
+    setFilterLabel(filterLabel: string) {
         this.filterLabel = filterLabel;
     }
     async refresh() {
@@ -99,7 +128,7 @@ class Dag {
         await this.render(this.eventsToCompleteDag(renderEvents));
     }
     // returns the set of events to render
-    async recalculate() {
+    async recalculate(): Promise<Record<string, Event>> {
         const renderEvents = Object.create(null);
         // always render the latest events
         for (const fwdExtremityId in this.latestEvents) {
@@ -137,7 +166,7 @@ class Dag {
             }
             // we don't want the m.room.create event unless it is part of the dag, as it will be orphaned
             // due to not having auth events linking to it.
-            if (!createEventInChain) {
+            if (!createEventInChain && this.createEventId) {
                 delete renderEvents[this.createEventId];
             }
         }
@@ -151,14 +180,14 @@ class Dag {
     //   events: {...} a map of event ID to event.
     //   frontiers: {...} the new frontier events (a map of event ID to event)
     // }
-    async loadEarlierEvents(frontierEvents, lookupKey, hopsBack) {
+    async loadEarlierEvents(frontierEvents: Record<string, Event>, lookupKey: string, hopsBack: number) {
         console.log("loadEarlierEvents", frontierEvents);
         const result = {}; // event_id -> Event JSON
         for (let i = 0; i < hopsBack; i++) {
             // walk the DAG backwards starting at the frontier entries.
             // look at either prev_events or auth_events (the lookup key)
             // and add them to the set of event IDs to find.
-            const missingEventIds = new Set();
+            const missingEventIds = new Set<string>();
             for (const frontier of Object.values(frontierEvents)) {
                 for (const earlierEventId of frontier[lookupKey]) {
                     if (!(earlierEventId in result)) {
@@ -170,7 +199,7 @@ class Dag {
                 break;
             }
             // fetch the events from the in-memory cache which is the file
-            const fetchedEventsById = Object.create(null);
+            const fetchedEventsById = Object.create(null) as Record<string, Event>;
             for (const id of missingEventIds) {
                 if (this.cache[id]) {
                     fetchedEventsById[id] = this.cache[id];
@@ -180,7 +209,8 @@ class Dag {
             const fetchedEvents = Object.values(fetchedEventsById);
             if (fetchedEvents.length > 0) {
                 // all frontier events get wiped so we can make forward progress and set new frontier events
-                frontierEvents = {};
+                // biome-ignore lint/style/noParameterAssign:
+                frontierEvents = {} as Record<string, Event>;
                 for (const event of fetchedEvents) {
                     result[event.event_id] = event; // include this event
                     missingEventIds.delete(event.event_id);
@@ -236,8 +266,8 @@ class Dag {
     // forward extremity, we do this by playing a deathmatch - everyone is eligible at first and
     // then we loop all the prev/auth events and remove from the set until only the ones not being
     // pointed at exist.
-    findForwardExtremities(events) {
-        const s = new Set();
+    findForwardExtremities(events): Set<string> {
+        const s = new Set<string>();
         if (this.startEventId) {
             for (const id in events) {
                 if (id === this.startEventId) {
@@ -265,9 +295,9 @@ class Dag {
 
     // Removes events from this map for long linear sequences, instead replacing with a placeholder
     // "... N more ..." event. Forks are never replaced.
-    collapsifier(eventsOrig) {
+    collapsifier(eventsOrig: Record<string, Event>): Record<string, Event> {
         // take a copy of the events as we will be directly altering prev_events
-        const events = JSON.parse(JSON.stringify(eventsOrig));
+        const events = JSON.parse(JSON.stringify(eventsOrig)) as Record<string, Event>;
         const latestEvents = this.findForwardExtremities(events);
 
         // this algorithm works in two phases:
@@ -286,7 +316,7 @@ class Dag {
         // - Has 0 or 2+ prev_events (i.e not linear or is create/missing event)
         // - is a forward extremity
         // - is pointed to by >1 event (i.e "next_events")
-        const interestingEvents = new Set();
+        const interestingEvents = new Set<string>();
         for (const id of latestEvents) {
             interestingEvents.add(id); // is a forward extremity
         }
@@ -342,7 +372,7 @@ class Dag {
             }
         }
 
-        const queue = [];
+        const queue = [] as Array<{ id: string; from: string }>;
         const seenQueue = new Set();
         for (const id of latestEvents) {
             queue.push({
@@ -353,6 +383,9 @@ class Dag {
 
         while (queue.length > 0) {
             const data = queue.pop();
+            if (!data) {
+                break;
+            }
             const id = data.id;
             const ev = events[id];
             if (seenQueue.has(id)) {
@@ -404,7 +437,7 @@ class Dag {
     // render a set of events
     async render(eventsToRender) {
         const hideOrphans = !this.showOutliers;
-        document.getElementById("svgcontainer").innerHTML = "";
+        document.getElementById("svgcontainer")!.innerHTML = "";
         const width = window.innerWidth;
         const height = window.innerHeight;
         /*
@@ -456,8 +489,8 @@ class Dag {
         const nodeRadius = 10;
         const margin = nodeRadius * 4;
         const svgNode = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        svgNode.setAttribute("width", width);
-        svgNode.setAttribute("height", height);
+        svgNode.setAttribute("width", String(width));
+        svgNode.setAttribute("height", String(height));
         svgNode.setAttribute("viewBox", `${-margin} ${-margin} ${width + 10 * margin} ${height + 2 * margin}`);
 
         const svgSelection = d3.select(svgNode);
@@ -625,8 +658,8 @@ class Dag {
                     this.refresh();
                     return;
                 }
-                document.getElementById("eventdetails").textContent = JSON.stringify(d.data, null, 2);
-                document.getElementById("infocontainer").style = "display: block;";
+                document.getElementById("eventdetails")!.textContent = JSON.stringify(d.data, null, 2);
+                document.getElementById("infocontainer")!.style.display = "block";
             })
             .attr("transform", `translate(${nodeRadius + 10}, 0)`)
             .attr("font-family", "sans-serif")
@@ -660,38 +693,42 @@ class Dag {
 }
 
 const dag = new Dag();
-document.getElementById("showauthevents").addEventListener("change", (ev) => {
-    dag.setShowAuthChain(ev.target.checked);
+document.getElementById("showauthevents")!.addEventListener("change", (ev) => {
+    dag.setShowAuthChain((<HTMLInputElement>ev.target)!.checked);
     dag.refresh();
 });
-document.getElementById("showauthevents").checked = dag.showAuthChain;
-document.getElementById("showoutliers").addEventListener("change", (ev) => {
-    dag.setShowOutliers(ev.target.checked);
+(<HTMLInputElement>document.getElementById("showauthevents"))!.checked = dag.showAuthChain;
+document.getElementById("showoutliers")!.addEventListener("change", (ev) => {
+    dag.setShowOutliers((<HTMLInputElement>ev.target)!.checked);
     dag.refresh();
 });
-document.getElementById("showoutliers").checked = dag.showOutliers;
-document.getElementById("collapse").addEventListener("change", (ev) => {
-    dag.setCollapse(ev.target.checked);
+(<HTMLInputElement>document.getElementById("showoutliers"))!.checked = dag.showOutliers;
+document.getElementById("collapse")!.addEventListener("change", (ev) => {
+    dag.setCollapse((<HTMLInputElement>ev.target)!.checked);
     dag.refresh();
 });
-document.getElementById("collapse").checked = dag.collapse;
-document.getElementById("step").addEventListener("change", (ev) => {
-    dag.setStepInterval(Number(ev.target.value));
+(<HTMLInputElement>document.getElementById("collapse"))!.checked = dag.collapse;
+document.getElementById("step")!.addEventListener("change", (ev) => {
+    dag.setStepInterval(Number((<HTMLInputElement>ev.target)!.value));
 });
-document.getElementById("start").addEventListener("change", (ev) => {
-    dag.setStartEventId(ev.target.value);
+document.getElementById("start")!.addEventListener("change", (ev) => {
+    dag.setStartEventId((<HTMLInputElement>ev.target)!.value);
     dag.refresh();
 });
-document.getElementById("filterlabel").addEventListener("change", (ev) => {
-    dag.setFilterLabel(ev.target.value);
+document.getElementById("filterlabel")!.addEventListener("change", (ev) => {
+    dag.setFilterLabel((<HTMLInputElement>ev.target)!.value);
     dag.refresh();
 });
 
-document.getElementById("go").addEventListener("click", async (ev) => {
-    await dag.load(document.getElementById("jsonfile").files[0]);
+document.getElementById("go")!.addEventListener("click", async (ev) => {
+    const files = (<HTMLInputElement>document.getElementById("jsonfile"))!.files;
+    if (!files) {
+        return;
+    }
+    await dag.load(files[0]);
     dag.refresh();
 });
-document.getElementById("closeinfocontainer").addEventListener("click", (ev) => {
-    document.getElementById("infocontainer").style = "display: none;";
+document.getElementById("closeinfocontainer")!.addEventListener("click", (ev) => {
+    document.getElementById("infocontainer")!.style.display = "none";
 });
-document.getElementById("infocontainer").style = "display: none;";
+document.getElementById("infocontainer")!.style.display = "none";

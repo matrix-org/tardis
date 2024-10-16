@@ -23,7 +23,11 @@ Currently very experimental and PoC.
 yarn install
 yarn run start
 ```
-
+or:
+```
+docker build -t tardis .
+docker run --rm -p 5173:5173 tardis
+```
 Then provide a new-line delimited JSON file which contains events to render in the full federation format (with `prev_events`, etc).
 To get such a file _for Synapse installations on Postgres_, run the following (assuming `matrix` is the name of your DB):
 ```
