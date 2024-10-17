@@ -20,6 +20,9 @@ class Dag {
     startEventId: string;
     step: number;
     eventIdFileOrdering: string[];
+    eventIdWinners: Set<string>;
+    eventIdLosers: Set<string>;
+    renderEvents: Record<string, MatrixEvent>;
 
     constructor() {
         this.cache = Object.create(null);
@@ -35,6 +38,9 @@ class Dag {
         this.startEventId = "";
         this.step = 0;
         this.eventIdFileOrdering = [];
+        this.eventIdWinners = new Set();
+        this.eventIdLosers = new Set();
+        this.renderEvents = {};
     }
     async load(file: File) {
         const events = await new Promise((resolve: (value: Array<MatrixEvent>) => void, reject) => {
@@ -129,6 +135,7 @@ class Dag {
         if (this.collapse) {
             renderEvents = this.collapsifier(renderEvents);
         }
+        this.renderEvents = renderEvents;
         await this.render(this.eventsToCompleteDag(renderEvents));
     }
     // returns the set of events to render
@@ -188,7 +195,6 @@ class Dag {
     // return the first N events in file ordering
     async recalculateStep(): Promise<Record<string, MatrixEvent>> {
         const renderEvents = Object.create(null);
-        console.log("recalc step", this.eventIdFileOrdering, this.step, this.cache);
         for (let i = 0; i < this.step; i++) {
             const eventId = this.eventIdFileOrdering[i];
             if (!eventId) {
@@ -276,6 +282,7 @@ class Dag {
                             type: "...",
                             content: {},
                             sender: "",
+                            room_id: "!",
                             depth: 0,
                         };
                     } else {
@@ -287,6 +294,7 @@ class Dag {
                             type: "missing",
                             content: {},
                             sender: "",
+                            room_id: "!",
                             depth: 0,
                         };
                     }
@@ -618,7 +626,15 @@ class Dag {
         nodes
             .append("circle")
             .attr("r", nodeRadius)
-            .attr("fill", (n) => colorMap[n.id]);
+            .attr("fill", (n) => {
+                if (this.eventIdLosers.has(n.id)) {
+                    return "red";
+                }
+                if (this.eventIdWinners.has(n.id)) {
+                    return "green";
+                }
+                return "black";
+            });
 
         // Add text to nodes with border
         const getLabel = (d) => {
@@ -733,19 +749,6 @@ document.getElementById("start")!.addEventListener("change", (ev) => {
         }
         dag = new Dag();
         await dag.load(files[0]);
-
-        // TODO: remove, just for testing.
-        try {
-            await transport.connect(resolver);
-            const r = await resolver.resolveState(
-                Object.keys(dag.cache).map((eventId) => {
-                    return dag.cache[eventId];
-                }),
-            );
-            console.log("Resolved state:", r);
-        } catch (err) {
-            console.error("failed to setup WS connection:", err);
-        }
     },
     false,
 );
@@ -764,5 +767,27 @@ document.getElementById("stepfwd")!.addEventListener("click", async (ev) => {
 });
 document.getElementById("stepbwd")!.addEventListener("click", async (ev) => {
     dag.stepBackward();
+    dag.refresh();
+});
+document.getElementById("resolve")!.addEventListener("click", async (ev) => {
+    try {
+        await transport.connect(resolver);
+        const r = await resolver.resolveState(
+            Object.keys(dag.renderEvents)
+                .filter((eventId) => {
+                    return dag.cache[eventId].state_key != null;
+                })
+                .map((eventId) => {
+                    return dag.cache[eventId];
+                }),
+        );
+        console.log("Resolved state:", r);
+        dag.eventIdLosers = new Set(r.lostEventIds);
+        dag.eventIdWinners = new Set(r.wonEventIds);
+    } catch (err) {
+        console.error("failed to setup WS connection:", err);
+    } finally {
+        transport.close();
+    }
     dag.refresh();
 });
