@@ -33,6 +33,8 @@ class Dag {
     showOutliers: boolean;
     collapse: boolean;
     startEventId: string;
+    step: number;
+    eventIdFileOrdering: string[];
 
     constructor() {
         this.cache = Object.create(null);
@@ -46,6 +48,8 @@ class Dag {
         this.showOutliers = false;
         this.collapse = false;
         this.startEventId = "";
+        this.step = 0;
+        this.eventIdFileOrdering = [];
     }
     async load(file: File) {
         const events = await new Promise((resolve: (value: Array<Event>) => void, reject) => {
@@ -83,9 +87,10 @@ class Dag {
                 throw new Error(`event is missing 'depth' field, got ${JSON.stringify(ev)}`);
             }
             this.cache[ev.event_id] = ev;
+            this.eventIdFileOrdering.push(ev.event_id);
             if (ev.type === "m.room.create" && ev.state_key === "") {
                 this.createEventId = ev.event_id;
-                return;
+                continue;
             }
             if (ev.depth > maxDepth) {
                 maxDepth = ev.depth;
@@ -112,6 +117,20 @@ class Dag {
     setCollapse(col: boolean) {
         this.collapse = col;
     }
+    stepForward() {
+        this.step = this.step + 1;
+        if (this.step < 2) {
+            this.step = 2; // need at least two nodes for d3-dag to draw stuff.
+        }
+        if (this.step > this.eventIdFileOrdering.length) {
+            this.step = this.eventIdFileOrdering.length;
+        }
+    }
+    stepBackward() {
+        if (this.step > 0) {
+            this.step -= 1;
+        }
+    }
     setStartEventId(eventId: string) {
         this.startEventId = eventId;
         if (this.cache[eventId]) {
@@ -129,6 +148,13 @@ class Dag {
     }
     // returns the set of events to render
     async recalculate(): Promise<Record<string, Event>> {
+        if (this.step > 0) {
+            return this.recalculateStep();
+        }
+        return this.recalculateWalkBack();
+    }
+
+    async recalculateWalkBack(): Promise<Record<string, Event>> {
         const renderEvents = Object.create(null);
         // always render the latest events
         for (const fwdExtremityId in this.latestEvents) {
@@ -170,6 +196,21 @@ class Dag {
             if (!createEventInChain && this.createEventId) {
                 delete renderEvents[this.createEventId];
             }
+        }
+        return renderEvents;
+    }
+
+    // return the first N events in file ordering
+    async recalculateStep(): Promise<Record<string, Event>> {
+        const renderEvents = Object.create(null);
+        console.log("recalc step", this.eventIdFileOrdering, this.step, this.cache);
+        for (let i = 0; i < this.step; i++) {
+            const eventId = this.eventIdFileOrdering[i];
+            if (!eventId) {
+                // e.g out of bounds
+                continue;
+            }
+            renderEvents[eventId] = this.cache[eventId];
         }
         return renderEvents;
     }
@@ -669,7 +710,7 @@ class Dag {
     }
 }
 
-const dag = new Dag();
+let dag = new Dag();
 document.getElementById("showauthevents")!.addEventListener("change", (ev) => {
     dag.setShowAuthChain((<HTMLInputElement>ev.target)!.checked);
     dag.refresh();
@@ -693,15 +734,32 @@ document.getElementById("start")!.addEventListener("change", (ev) => {
     dag.refresh();
 });
 
+(<HTMLInputElement>document.getElementById("jsonfile")).addEventListener(
+    "change",
+    async (ev) => {
+        const files = (<HTMLInputElement>document.getElementById("jsonfile")).files;
+        if (!files) {
+            return;
+        }
+        dag = new Dag();
+        await dag.load(files[0]);
+    },
+    false,
+);
+
 document.getElementById("go")!.addEventListener("click", async (ev) => {
-    const files = (<HTMLInputElement>document.getElementById("jsonfile"))!.files;
-    if (!files) {
-        return;
-    }
-    await dag.load(files[0]);
     dag.refresh();
 });
 document.getElementById("closeinfocontainer")!.addEventListener("click", (ev) => {
     document.getElementById("infocontainer")!.style.display = "none";
 });
 document.getElementById("infocontainer")!.style.display = "none";
+
+document.getElementById("stepfwd")!.addEventListener("click", async (ev) => {
+    dag.stepForward();
+    dag.refresh();
+});
+document.getElementById("stepbwd")!.addEventListener("click", async (ev) => {
+    dag.stepBackward();
+    dag.refresh();
+});
