@@ -1,30 +1,15 @@
 import * as d3 from "d3";
 import * as d3dag from "d3-dag";
-
-interface Event {
-    event_id: string;
-    type: string;
-    state_key?: string;
-    // biome-ignore lint/suspicious/noExplicitAny: we don't know the values.
-    content: Record<string, any>;
-    sender: string;
-    depth: number;
-    prev_events: Array<string>;
-    auth_events: Array<string>;
-
-    // TODO: fix metadata fields
-    _collapse?: number;
-    _backwards_extremity_key?: string;
-}
+import { type DataGetEvent, type MatrixEvent, StateResolver, StateResolverTransport } from "./state_resolver";
 
 interface Link {
     auth: boolean;
 }
 
 class Dag {
-    cache: Record<string, Event>;
+    cache: Record<string, MatrixEvent>;
     maxDepth: number;
-    latestEvents: Record<string, Event>;
+    latestEvents: Record<string, MatrixEvent>;
     createEventId: string | null;
     stepInterval: number;
     totalHopsBack: number;
@@ -33,7 +18,8 @@ class Dag {
     showOutliers: boolean;
     collapse: boolean;
     startEventId: string;
-    filterLabel: string;
+    step: number;
+    eventIdFileOrdering: string[];
 
     constructor() {
         this.cache = Object.create(null);
@@ -47,10 +33,11 @@ class Dag {
         this.showOutliers = false;
         this.collapse = false;
         this.startEventId = "";
-        this.filterLabel = "";
+        this.step = 0;
+        this.eventIdFileOrdering = [];
     }
     async load(file: File) {
-        const events = await new Promise((resolve: (value: Array<Event>) => void, reject) => {
+        const events = await new Promise((resolve: (value: Array<MatrixEvent>) => void, reject) => {
             const reader = new FileReader();
             reader.onload = (data) => {
                 if (!data.target || !data.target.result) {
@@ -85,9 +72,10 @@ class Dag {
                 throw new Error(`event is missing 'depth' field, got ${JSON.stringify(ev)}`);
             }
             this.cache[ev.event_id] = ev;
+            this.eventIdFileOrdering.push(ev.event_id);
             if (ev.type === "m.room.create" && ev.state_key === "") {
                 this.createEventId = ev.event_id;
-                return;
+                continue;
             }
             if (ev.depth > maxDepth) {
                 maxDepth = ev.depth;
@@ -114,6 +102,20 @@ class Dag {
     setCollapse(col: boolean) {
         this.collapse = col;
     }
+    stepForward() {
+        this.step = this.step + 1;
+        if (this.step < 2) {
+            this.step = 2; // need at least two nodes for d3-dag to draw stuff.
+        }
+        if (this.step > this.eventIdFileOrdering.length) {
+            this.step = this.eventIdFileOrdering.length;
+        }
+    }
+    stepBackward() {
+        if (this.step > 0) {
+            this.step -= 1;
+        }
+    }
     setStartEventId(eventId: string) {
         this.startEventId = eventId;
         if (this.cache[eventId]) {
@@ -121,9 +123,6 @@ class Dag {
                 eventId: this.cache[eventId],
             };
         }
-    }
-    setFilterLabel(filterLabel: string) {
-        this.filterLabel = filterLabel;
     }
     async refresh() {
         let renderEvents = await this.recalculate();
@@ -133,7 +132,14 @@ class Dag {
         await this.render(this.eventsToCompleteDag(renderEvents));
     }
     // returns the set of events to render
-    async recalculate(): Promise<Record<string, Event>> {
+    async recalculate(): Promise<Record<string, MatrixEvent>> {
+        if (this.step > 0) {
+            return this.recalculateStep();
+        }
+        return this.recalculateWalkBack();
+    }
+
+    async recalculateWalkBack(): Promise<Record<string, MatrixEvent>> {
         const renderEvents = Object.create(null);
         // always render the latest events
         for (const fwdExtremityId in this.latestEvents) {
@@ -179,6 +185,21 @@ class Dag {
         return renderEvents;
     }
 
+    // return the first N events in file ordering
+    async recalculateStep(): Promise<Record<string, MatrixEvent>> {
+        const renderEvents = Object.create(null);
+        console.log("recalc step", this.eventIdFileOrdering, this.step, this.cache);
+        for (let i = 0; i < this.step; i++) {
+            const eventId = this.eventIdFileOrdering[i];
+            if (!eventId) {
+                // e.g out of bounds
+                continue;
+            }
+            renderEvents[eventId] = this.cache[eventId];
+        }
+        return renderEvents;
+    }
+
     // walk backwards from the `frontierEvents` (event_id -> Event JSON) given, using the `lookupKey` to find earlier events.
     // Stops when there is nowhere to go (create event) or when `hopsBack` has been reached.
     // Returns:
@@ -186,7 +207,7 @@ class Dag {
     //   events: {...} a map of event ID to event.
     //   frontiers: {...} the new frontier events (a map of event ID to event)
     // }
-    async loadEarlierEvents(frontierEvents: Record<string, Event>, lookupKey: string, hopsBack: number) {
+    async loadEarlierEvents(frontierEvents: Record<string, MatrixEvent>, lookupKey: string, hopsBack: number) {
         console.log("loadEarlierEvents", frontierEvents);
         const result = {}; // event_id -> Event JSON
         for (let i = 0; i < hopsBack; i++) {
@@ -205,7 +226,7 @@ class Dag {
                 break;
             }
             // fetch the events from the in-memory cache which is the file
-            const fetchedEventsById = Object.create(null) as Record<string, Event>;
+            const fetchedEventsById = Object.create(null) as Record<string, MatrixEvent>;
             for (const id of missingEventIds) {
                 if (this.cache[id]) {
                     fetchedEventsById[id] = this.cache[id];
@@ -216,7 +237,7 @@ class Dag {
             if (fetchedEvents.length > 0) {
                 // all frontier events get wiped so we can make forward progress and set new frontier events
                 // biome-ignore lint/style/noParameterAssign:
-                frontierEvents = {} as Record<string, Event>;
+                frontierEvents = {} as Record<string, MatrixEvent>;
                 for (const event of fetchedEvents) {
                     result[event.event_id] = event; // include this event
                     missingEventIds.delete(event.event_id);
@@ -236,7 +257,7 @@ class Dag {
     // - check prev/auth events and if they are missing in the dag AND the cache add a "missing" event
     // - check prev/auth events and if they are missing in the dag but not the cache add a "..." event.
     // Both these events have no prev/auth events so it forms a complete DAG with no missing nodes.
-    eventsToCompleteDag(events: Record<string, Event>): Record<string, Event> {
+    eventsToCompleteDag(events: Record<string, MatrixEvent>): Record<string, MatrixEvent> {
         for (const id in events) {
             const ev = events[id];
             const keys = ["auth_events", "prev_events"];
@@ -307,9 +328,9 @@ class Dag {
 
     // Removes events from this map for long linear sequences, instead replacing with a placeholder
     // "... N more ..." event. Forks are never replaced.
-    collapsifier(eventsOrig: Record<string, Event>): Record<string, Event> {
+    collapsifier(eventsOrig: Record<string, MatrixEvent>): Record<string, MatrixEvent> {
         // take a copy of the events as we will be directly altering prev_events
-        const events = JSON.parse(JSON.stringify(eventsOrig)) as Record<string, Event>;
+        const events = JSON.parse(JSON.stringify(eventsOrig)) as Record<string, MatrixEvent>;
         const latestEvents = this.findForwardExtremities(events);
 
         // this algorithm works in two phases:
@@ -447,7 +468,7 @@ class Dag {
     }
 
     // render a set of events
-    async render(eventsToRender: Record<string, Event>) {
+    async render(eventsToRender: Record<string, MatrixEvent>) {
         const hideOrphans = !this.showOutliers;
         document.getElementById("svgcontainer")!.innerHTML = "";
         const width = window.innerWidth;
@@ -456,15 +477,15 @@ class Dag {
         // stratify the events into a DAG
         console.log(eventsToRender);
         let dag = d3dag
-            .dagStratify<Event>()
-            .id((event: Event) => event.event_id)
-            .parentIds((event: Event) => {
+            .dagStratify<MatrixEvent>()
+            .id((event: MatrixEvent) => event.event_id)
+            .parentIds((event: MatrixEvent) => {
                 if (this.showAuthChain) {
                     return event.prev_events.concat(event.auth_events.filter((id) => id !== this.createEventId));
                 }
                 return event.prev_events;
             })
-            .parentData((event: Event): Array<[string, Link]> => {
+            .parentData((event: MatrixEvent): Array<[string, Link]> => {
                 const parentData: Array<[string, Link]> = [];
                 const parentEvents = this.showAuthChain
                     ? event.prev_events.concat(event.auth_events)
@@ -599,37 +620,6 @@ class Dag {
             .attr("r", nodeRadius)
             .attr("fill", (n) => colorMap[n.id]);
 
-        /*
-            const arrow = d3.symbol().type(d3.symbolTriangle).size(nodeRadius * nodeRadius / 5.0);
-            svgSelection.append('g')
-                .selectAll('path')
-                .data(dag.links())
-                .enter()
-                .append('path')
-                .attr('d', arrow)
-                .attr('transform', ({
-                    source,
-                    target,
-                    data,
-                }) => {
-                    const [end, start] = data.points.reverse();
-                    // This sets the arrows the node radius (20) + a little bit (3)
-                    // away from the node center, on the last line segment of the edge.
-                    // This means that edges that only span ine level will work perfectly,
-                    // but if the edge bends, this will be a little off.
-                    const dx = start.x - end.x;
-                    const dy = start.y - end.y;
-                    const scale = nodeRadius * 1.15 / Math.sqrt(dx * dx + dy * dy);
-                    // This is the angle of the last line segment
-                    const angle = Math.atan2(-dy, -dx) * 180 / Math.PI + 90;
-                    // console.log(angle, dx, dy);
-                    return `translate(${end.x + dx * scale}, ${end.y + dy * scale}) rotate(${angle})`;
-                })
-                .attr('fill', ({target}) => colorMap[target.id])
-                .attr('stroke', 'white')
-                .attr('stroke-width', 1.5);
-        */
-
         // Add text to nodes with border
         const getLabel = (d) => {
             const id = d.data.event_id.substr(0, 5);
@@ -643,11 +633,8 @@ class Dag {
                 }
             }
             const text = `${id} (${depth}) ${evType} ${evStateKey} ${collapse}`;
-            if (this.filterLabel && !text.includes(this.filterLabel)) {
-                if (d.data._backwards_extremity_key) {
-                    return "load more";
-                }
-                return "";
+            if (d.data._backwards_extremity_key) {
+                return "load more";
             }
             return text;
         };
@@ -685,10 +672,7 @@ class Dag {
             .attr("text-anchor", "left")
             .attr("alignment-baseline", "middle")
             .attr("fill", (d) => {
-                if (d.data.forward_extremity) {
-                    return "red";
-                }
-                if (this.filterLabel && getLabel(d) !== "") {
+                if (d.data._backwards_extremity_key) {
                     return "red";
                 }
                 return "black";
@@ -710,8 +694,18 @@ class Dag {
         d3.select("#svgcontainer").append(() => svgNode);
     }
 }
+let dag = new Dag();
 
-const dag = new Dag();
+const transport = new StateResolverTransport("http://localhost:1234");
+const resolver = new StateResolver(transport, (data: DataGetEvent): MatrixEvent => {
+    return dag.cache[data.event_id];
+});
+try {
+    transport.connect(resolver);
+} catch (err) {
+    console.error("failed to setup WS connection:", err);
+}
+
 document.getElementById("showauthevents")!.addEventListener("change", (ev) => {
     dag.setShowAuthChain((<HTMLInputElement>ev.target)!.checked);
     dag.refresh();
@@ -734,20 +728,33 @@ document.getElementById("start")!.addEventListener("change", (ev) => {
     dag.setStartEventId((<HTMLInputElement>ev.target)!.value);
     dag.refresh();
 });
-document.getElementById("filterlabel")!.addEventListener("change", (ev) => {
-    dag.setFilterLabel((<HTMLInputElement>ev.target)!.value);
-    dag.refresh();
-});
+
+(<HTMLInputElement>document.getElementById("jsonfile")).addEventListener(
+    "change",
+    async (ev) => {
+        const files = (<HTMLInputElement>document.getElementById("jsonfile")).files;
+        if (!files) {
+            return;
+        }
+        dag = new Dag();
+        await dag.load(files[0]);
+    },
+    false,
+);
 
 document.getElementById("go")!.addEventListener("click", async (ev) => {
-    const files = (<HTMLInputElement>document.getElementById("jsonfile"))!.files;
-    if (!files) {
-        return;
-    }
-    await dag.load(files[0]);
     dag.refresh();
 });
 document.getElementById("closeinfocontainer")!.addEventListener("click", (ev) => {
     document.getElementById("infocontainer")!.style.display = "none";
 });
 document.getElementById("infocontainer")!.style.display = "none";
+
+document.getElementById("stepfwd")!.addEventListener("click", async (ev) => {
+    dag.stepForward();
+    dag.refresh();
+});
+document.getElementById("stepbwd")!.addEventListener("click", async (ev) => {
+    dag.stepBackward();
+    dag.refresh();
+});
