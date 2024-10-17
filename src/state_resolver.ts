@@ -8,6 +8,7 @@ interface MatrixEvent {
     depth: number;
     prev_events: Array<string>;
     auth_events: Array<string>;
+    room_id: string;
 
     // TODO: fix metadata fields
     _collapse?: number;
@@ -30,6 +31,7 @@ type StateKeyTuple = string; // JSON encoded array of 2 string elements [type, s
 type EventID = string;
 
 interface DataResolveState {
+    room_id: string;
     state: Array<Record<StateKeyTuple, EventID>>;
     result?: Array<Record<StateKeyTuple, EventID>>;
 }
@@ -79,11 +81,13 @@ class StateResolver implements StateResolverReceiver {
         // convert events into a form suitable for sending over the wire
         const state: Array<Record<StateKeyTuple, EventID>> = [];
         const initialSetOfEventIds = new Set<string>();
+        let roomId = "";
         for (const ev of stateEvents) {
             state.push({
                 [`${JSON.stringify([ev.type, ev.state_key])}`]: ev.event_id,
             });
             initialSetOfEventIds.add(ev.event_id);
+            roomId = ev.room_id;
         }
         console.log("resolveState", state);
         // make an id so we can pair it up when we get the response
@@ -127,6 +131,7 @@ class StateResolver implements StateResolverReceiver {
             });
             this.sender.sendResolveState(id, {
                 state: state,
+                room_id: roomId,
             });
         });
 

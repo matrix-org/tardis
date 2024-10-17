@@ -276,6 +276,7 @@ class Dag {
                             type: "...",
                             content: {},
                             sender: "",
+                            room_id: "!",
                             depth: 0,
                         };
                     } else {
@@ -287,6 +288,7 @@ class Dag {
                             type: "missing",
                             content: {},
                             sender: "",
+                            room_id: "!",
                             depth: 0,
                         };
                     }

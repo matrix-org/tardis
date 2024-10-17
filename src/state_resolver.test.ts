@@ -13,6 +13,7 @@ describe("StateResolver", () => {
                 event_id: "$foo",
                 sender: "@alice",
                 depth: 0,
+                room_id: "!foo",
             },
             $foomember: {
                 type: "m.room.member",
@@ -23,6 +24,7 @@ describe("StateResolver", () => {
                 event_id: "$foomember",
                 sender: "@alice",
                 depth: 1,
+                room_id: "!foo",
             },
             $bar: {
                 type: "m.room.create",
@@ -33,6 +35,7 @@ describe("StateResolver", () => {
                 event_id: "$bar",
                 sender: "@alice",
                 depth: 0,
+                room_id: "!foo",
             },
         };
 
@@ -84,6 +87,7 @@ describe("StateResolver", () => {
                 state: [],
                 // biome-ignore lint/complexity/useLiteralKeys: it reads much nicer in IDEs to use this form
                 result: [{ [`["m.room.create",""]`]: "$bar" }],
+                room_id: "!foo",
             });
             const barResult = await promiseBar;
             expect(barResolved).toBe(true);
@@ -95,6 +99,7 @@ describe("StateResolver", () => {
                 state: [],
                 // biome-ignore lint/complexity/useLiteralKeys: it reads much nicer in IDEs to use this form
                 result: [{ [`["m.room.create",""]`]: "$foo" }],
+                room_id: "!foo",
             });
             const fooResult = await promiseFoo;
             expect(fooResolved).toBe(true);
