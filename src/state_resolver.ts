@@ -153,10 +153,15 @@ class StateResolverTransport implements StateResolverSender {
     async connect(receiver: StateResolverReceiver) {
         this.receiver = receiver;
         this.ws = new WebSocket(this.url);
-        this.ws.addEventListener("open", this.onWsOpen.bind(this));
-        this.ws.addEventListener("error", this.onWsError.bind(this));
-        this.ws.addEventListener("close", this.onWsClose.bind(this));
-        this.ws.addEventListener("message", this.onWsMessage.bind(this));
+        return new Promise<void>((resolve) => {
+            this.ws.addEventListener("open", () => {
+                console.log("WS open");
+                resolve();
+            });
+            this.ws.addEventListener("error", this.onWsError.bind(this));
+            this.ws.addEventListener("close", this.onWsClose.bind(this));
+            this.ws.addEventListener("message", this.onWsMessage.bind(this));
+        });
     }
 
     close() {
@@ -169,7 +174,6 @@ class StateResolverTransport implements StateResolverSender {
         this.ws.send(JSON.stringify(msg));
     }
 
-    onWsOpen(ev: Event) {}
     onWsClose(ev: CloseEvent) {}
     onWsError(ev: Event) {}
     onWsMessage(ev: MessageEvent) {

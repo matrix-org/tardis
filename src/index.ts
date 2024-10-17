@@ -700,11 +700,6 @@ const transport = new StateResolverTransport("http://localhost:1234");
 const resolver = new StateResolver(transport, (data: DataGetEvent): MatrixEvent => {
     return dag.cache[data.event_id];
 });
-try {
-    transport.connect(resolver);
-} catch (err) {
-    console.error("failed to setup WS connection:", err);
-}
 
 document.getElementById("showauthevents")!.addEventListener("change", (ev) => {
     dag.setShowAuthChain((<HTMLInputElement>ev.target)!.checked);
@@ -738,6 +733,19 @@ document.getElementById("start")!.addEventListener("change", (ev) => {
         }
         dag = new Dag();
         await dag.load(files[0]);
+
+        // TODO: remove, just for testing.
+        try {
+            await transport.connect(resolver);
+            const r = await resolver.resolveState(
+                Object.keys(dag.cache).map((eventId) => {
+                    return dag.cache[eventId];
+                }),
+            );
+            console.log("Resolved state:", r);
+        } catch (err) {
+            console.error("failed to setup WS connection:", err);
+        }
     },
     false,
 );
