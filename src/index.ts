@@ -1,6 +1,6 @@
 import * as d3 from "d3";
 import * as d3dag from "d3-dag";
-import { type MatrixEvent, StateResolver, type DataGetEvent, StateResolverTransport } from "./state_resolver";
+import { type DataGetEvent, type MatrixEvent, StateResolver, StateResolverTransport } from "./state_resolver";
 
 interface Link {
     auth: boolean;
