@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import asyncio
 import json
+import logging
 import uuid
 from typing import Collection, Dict, Iterable, List, Optional, Sequence, Set
 from pydantic import BaseModel
@@ -11,6 +12,8 @@ from twisted.internet import defer
 from synapse.api.room_versions import RoomVersions
 from synapse.state.v2 import resolve_events_with_store
 from synapse.events import EventBase, make_event_from_dict
+
+# logging.basicConfig(level=logging.DEBUG)
 
 class WebSocketMessage(BaseModel):
     type: str
@@ -31,14 +34,14 @@ class Connection:
     async def resolve_state(self, id: str, room_id: str, state):
         print(f"resolve_state: {id}")
         r = await resolve_events_with_store(FakeClock(),room_id, room_ver, state, event_map=None, state_res_store=self)
-        print(type(r))
-        print(r)
         print(f"resolve_state: {id} responding")
+        # convert tuple keys to strings
+        r = {json.dumps(k):v for k,v in r.items()}
         await self.ws.send(json.dumps({
             "id": id,
             "type": "resolve_state",
             "data": {
-                "result": state, # echo it back for now
+                "result": r,
             }
         }))
         return []
@@ -80,7 +83,7 @@ class Connection:
             print(f"  get_event {event_id} obtained. type={ev["type"]}")
             result[event_id] = ev
 
-        return defer.succeed(result)
+        return result
 
     async def _get_auth_chain(self, event_ids: Iterable[str]) -> List[str]:
         """Gets the full auth chain for a set of events (including rejected

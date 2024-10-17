@@ -33,7 +33,7 @@ type EventID = string;
 interface DataResolveState {
     room_id: string;
     state: Array<Record<StateKeyTuple, EventID>>;
-    result?: Array<Record<StateKeyTuple, EventID>>;
+    result?: Record<StateKeyTuple, EventID>;
 }
 interface DataGetEvent {
     event_id: string;
@@ -103,16 +103,9 @@ class StateResolver implements StateResolverReceiver {
                 }
                 // map the won event IDs
                 const wonEventIds = new Set(
-                    resolvedData.result
-                        .map((tupleToEventId: Record<string, string>) => {
-                            for (const tuple in tupleToEventId) {
-                                return tupleToEventId[tuple];
-                            }
-                            console.error(
-                                "resolveState response has malformed tuple-to-event-id dict:",
-                                tupleToEventId,
-                            );
-                            return "";
+                    Object.keys(resolvedData.result)
+                        .map((tuple: string): string => {
+                            return resolvedData.result![tuple] || "";
                         })
                         .values(),
                 );
