@@ -45,3 +45,13 @@ matrix=> select jsonb_insert(json::JSONB, '{event_id}', ('"' || event_id || '"')
 ```
 You can drop the `stream_ordering` clauses if the room is small and you want to see the entire thing. The file created by these
 commands can be dropped **as-is** into TARDIS.
+
+### Event ID generation
+
+Sometimes we want to create mock scenarios which don't exist in databases. We use placeholder event IDs in this case. However, state
+resolution demands that they are actual event IDs. Tardis uses the same code paths as Dendrite (via wasm) to generate the correct event IDs.
+To build the wasm, you need [tinygo](https://tinygo.org/) installed and then:
+```
+GOOS=js GOARCH=wasm tinygo build -o ./public/gmsl.wasm --no-debug ./cmd/wasm/main.go
+```
+A working version is already supplied with this repository.
