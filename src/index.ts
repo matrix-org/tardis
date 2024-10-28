@@ -1,6 +1,15 @@
 import * as d3 from "d3";
 import * as d3dag from "d3-dag";
+import JSON5 from "json5";
 import { type DataGetEvent, type MatrixEvent, StateResolver, StateResolverTransport } from "./state_resolver";
+
+interface ScenarioFile {
+    tardis_version: number;
+    room_version: string;
+    room_id: string; // if events are missing a room_id key, populate it from this field. For brevity.
+    calculate_event_ids: boolean;
+    events: Array<MatrixEvent>;
+}
 
 interface Link {
     auth: boolean;
@@ -42,15 +51,26 @@ class Dag {
         this.eventIdLosers = new Set();
         this.renderEvents = {};
     }
+
+    // Load a test file.
+    // Either this is:
+    //  - a new-line delimited JSON file of events to render in order OR,
+    //  - a single JSON object which has a test scenario.
+    // We use JSON5 to support writing test scenarios.
     async load(file: File) {
-        const events = await new Promise((resolve: (value: Array<MatrixEvent>) => void, reject) => {
-            const reader = new FileReader();
-            reader.onload = (data) => {
-                if (!data.target || !data.target.result) {
-                    return;
-                }
-                resolve(
-                    (data.target.result as string)
+        const eventsOrScenario = await new Promise(
+            (resolve: (value: Array<MatrixEvent> | ScenarioFile) => void, reject) => {
+                const reader = new FileReader();
+                reader.onload = (data) => {
+                    if (!data.target || !data.target.result) {
+                        return;
+                    }
+                    if (file.name.endsWith(".json5")) {
+                        // scenario file
+                        resolve(JSON5.parse(data.target.result as string) as ScenarioFile);
+                        return;
+                    }
+                    const contents = (data.target.result as string)
                         .split("\n")
                         .filter((line) => {
                             return line.trim().length > 0;
@@ -58,13 +78,27 @@ class Dag {
                         .map((line) => {
                             const j = JSON.parse(line);
                             return j;
-                        }),
-                );
+                        });
+                    resolve(contents as Array<MatrixEvent>);
+                };
+                reader.readAsText(file);
+            },
+        );
+        let scenario: ScenarioFile;
+        if (Array.isArray(eventsOrScenario)) {
+            scenario = {
+                tardis_version: 1,
+                room_version: "10",
+                calculate_event_ids: false,
+                events: eventsOrScenario,
             };
-            reader.readAsText(file);
-        });
+        } else {
+            // it's a test scenario
+            scenario = eventsOrScenario;
+        }
         let maxDepth = 0;
-        for (const ev of events) {
+        const fakeEventIdToRealEventId = new Map<string, string>();
+        for (const ev of scenario.events) {
             if (!ev) {
                 throw new Error("missing event");
             }
@@ -76,6 +110,27 @@ class Dag {
             }
             if (!ev.depth) {
                 throw new Error(`event is missing 'depth' field, got ${JSON.stringify(ev)}`);
+            }
+            if (!ev.room_id && scenario.room_id) {
+                ev.room_id = scenario.room_id;
+            }
+            if (scenario.calculate_event_ids) {
+                const realEventId = globalThis.gmslEventIDForEvent(JSON.stringify(ev), scenario.room_version);
+                fakeEventIdToRealEventId.set(ev.event_id, realEventId);
+                ev.event_id = realEventId;
+                // also replace any references in prev_events and auth_events
+                for (const key of ["prev_events", "auth_events"]) {
+                    const replacement: Array<string> = [];
+                    for (const fakeEventId of ev[key]) {
+                        const realEventId = fakeEventIdToRealEventId.get(fakeEventId);
+                        if (realEventId) {
+                            replacement.push(realEventId);
+                        } else {
+                            replacement.push(fakeEventId);
+                        }
+                    }
+                    ev[key] = replacement;
+                }
             }
             this.cache[ev.event_id] = ev;
             this.eventIdFileOrdering.push(ev.event_id);
@@ -640,7 +695,13 @@ class Dag {
         const getLabel = (d) => {
             const id = d.data.event_id.substr(0, 5);
             const evType = d.data.type;
-            const evStateKey = d.data.state_key ? `(${d.data.state_key})` : "";
+            let evStateKey = "";
+            if (d.data.state_key) {
+                evStateKey = `(${d.data.state_key})`;
+                if (evType === "m.room.member" && d.data.content.membership) {
+                    evStateKey = `(${d.data.state_key}=${d.data.content.membership})`;
+                }
+            }
             const depth = d.data.depth ? d.data.depth : "";
             let collapse = d.data._collapse ? `+${d.data._collapse} more` : "";
             if (collapse === "") {
