@@ -791,3 +791,10 @@ document.getElementById("resolve")!.addEventListener("click", async (ev) => {
     }
     dag.refresh();
 });
+
+// pull in GMSL bits
+const go = new Go(); // Defined in wasm_exec.js
+WebAssembly.instantiateStreaming(fetch("gmsl.wasm"), go.importObject).then((obj) => {
+    globalThis.wasm = obj.instance;
+    go.run(globalThis.wasm);
+});
