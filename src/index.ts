@@ -10,6 +10,7 @@ import {
     StateResolverTransport,
 } from "./state_resolver";
 import { loadScenarioFromFile, type Scenario } from "./scenario";
+import { Debugger } from "./debugger";
 
 interface Link {
     auth: boolean;
@@ -27,10 +28,7 @@ class Dag {
     collapse: boolean;
     startEventId: string;
 
-    // TODO: factor out - EventWalker (and bold higlight the current event so we know what the state refers to)
-    step: number;
-    eventIdFileOrdering: string[];
-    currentEventId: string;
+    debugger: Debugger;
 
     renderEvents: Record<string, MatrixEvent>;
     scenario?: Scenario;
@@ -47,8 +45,6 @@ class Dag {
         this.showOutliers = false;
         this.collapse = false;
         this.startEventId = "";
-        this.step = -1;
-        this.eventIdFileOrdering = [];
         this.renderEvents = {};
         this.stateAtEvent = stateAtEvent;
     }
@@ -58,7 +54,6 @@ class Dag {
         let maxDepth = 0;
         for (const ev of scenario.events) {
             this.cache[ev.event_id] = ev;
-            this.eventIdFileOrdering.push(ev.event_id);
             if (ev.type === "m.room.create" && ev.state_key === "") {
                 this.createEventId = ev.event_id;
                 continue;
@@ -72,6 +67,7 @@ class Dag {
             }
         }
         this.scenario = scenario;
+        this.debugger = new Debugger(scenario);
     }
     setStepInterval(num: number) {
         this.stepInterval = num;
@@ -87,22 +83,6 @@ class Dag {
     }
     setCollapse(col: boolean) {
         this.collapse = col;
-    }
-    stepForward() {
-        this.step = this.step + 1;
-        if (this.step < 0) {
-            this.step = 0;
-        }
-        if (this.step >= this.eventIdFileOrdering.length) {
-            this.step = this.eventIdFileOrdering.length - 1;
-        }
-        this.currentEventId = this.eventIdFileOrdering[this.step];
-    }
-    stepBackward() {
-        if (this.step > 0) {
-            this.step -= 1;
-        }
-        this.currentEventId = this.eventIdFileOrdering[this.step];
     }
     setStartEventId(eventId: string) {
         this.startEventId = eventId;
@@ -122,7 +102,7 @@ class Dag {
     }
     // returns the set of events to render
     async recalculate(): Promise<Record<string, MatrixEvent>> {
-        if (this.step >= 0) {
+        if (this.debugger.current()) {
             return this.recalculateStep();
         }
         return this.recalculateWalkBack();
@@ -177,12 +157,7 @@ class Dag {
     // return the first N events in file ordering
     async recalculateStep(): Promise<Record<string, MatrixEvent>> {
         const renderEvents = Object.create(null);
-        for (let i = 0; i <= this.step; i++) {
-            const eventId = this.eventIdFileOrdering[i];
-            if (!eventId) {
-                // e.g out of bounds
-                continue;
-            }
+        for (const eventId of this.debugger.eventsUpToCurrent()) {
             renderEvents[eventId] = this.cache[eventId];
         }
         return renderEvents;
@@ -465,7 +440,7 @@ class Dag {
         const height = window.innerHeight;
 
         // stratify the events into a DAG
-        console.log(this.step, eventsToRender);
+        console.log(eventsToRender);
         if (Object.keys(eventsToRender).length <= 1) {
             return; // we need at least 2 nodes for d3-dag to render things.
         }
@@ -608,12 +583,12 @@ class Dag {
             .attr("transform", ({ x, y }) => `translate(${x}, ${y})`);
 
         // Plot node circles
-        const stateEvents = this.stateAtEvent.getStateAsEventIds(this.currentEventId);
+        const stateEvents = this.stateAtEvent.getStateAsEventIds(this.debugger.current());
         nodes
             .append("circle")
             .attr("r", nodeRadius)
             .attr("fill", (n) => {
-                if (n.id === this.currentEventId) {
+                if (n.id === this.debugger.current()) {
                     return "blue";
                 }
                 if (stateEvents.has(n.id)) {
@@ -753,15 +728,15 @@ document.getElementById("closeinfocontainer")!.addEventListener("click", (ev) =>
 document.getElementById("infocontainer")!.style.display = "none";
 
 document.getElementById("stepfwd")!.addEventListener("click", async (ev) => {
-    dag.stepForward();
+    dag.debugger.next();
     dag.refresh();
 });
 document.getElementById("stepbwd")!.addEventListener("click", async (ev) => {
-    dag.stepBackward();
+    dag.debugger.previous();
     dag.refresh();
 });
 document.getElementById("resolve")!.addEventListener("click", async (ev) => {
-    const atEventId = dag.currentEventId;
+    const atEventId = dag.debugger.current();
     const atEvent = dag.cache[atEventId];
     let theState: Record<StateKeyTuple, EventID> = {};
     switch (atEvent.prev_events.length) {
