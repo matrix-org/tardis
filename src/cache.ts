@@ -1,4 +1,13 @@
-import type { EventID, StateKeyTuple } from "./state_resolver";
+import type { EventID, MatrixEvent, StateKeyTuple } from "./state_resolver";
+
+export class Cache {
+    stateAtEvent: StateAtEvent;
+    eventCache: EventCache;
+    constructor() {
+        this.stateAtEvent = new StateAtEvent();
+        this.eventCache = new EventCache();
+    }
+}
 
 export class StateAtEvent {
     // private as we may want to do funny shenanigans later one e.g cache the result in indexeddb
@@ -26,6 +35,18 @@ export class StateAtEvent {
         }
         return JSON.parse(JSON.stringify(this.state[eventId]));
     }
+}
 
-    // setResolver(func())
+export class EventCache {
+    cache: Map<string, MatrixEvent>;
+    constructor() {
+        // in-memory for now, but could be stored in idb or elsewhere.
+        this.cache = new Map<string, MatrixEvent>();
+    }
+    store(ev: MatrixEvent) {
+        this.cache.set(ev.event_id, ev);
+    }
+    get(eventId: string): MatrixEvent | undefined {
+        return this.cache.get(eventId);
+    }
 }

@@ -1,7 +1,8 @@
 import * as d3 from "d3";
 import * as d3dag from "d3-dag";
-import JSON5 from "json5";
-import { StateAtEvent } from "./state_at_event";
+import { Cache } from "./cache";
+import { Debugger } from "./debugger";
+import { type Scenario, loadScenarioFromFile } from "./scenario";
 import {
     type DataGetEvent,
     type EventID,
@@ -11,23 +12,12 @@ import {
     StateResolverTransport,
 } from "./state_resolver";
 
-const DEFAULT_ROOM_VERSION = "10";
-
-interface ScenarioFile {
-    tardis_version: number;
-    room_version: string;
-    room_id: string; // if events are missing a room_id key, populate it from this field. For brevity.
-    calculate_event_ids: boolean;
-    events: Array<MatrixEvent>;
-}
-
 interface Link {
     auth: boolean;
 }
 
 class Dag {
-    cache: Record<string, MatrixEvent>;
-    maxDepth: number;
+    cache: Cache;
     latestEvents: Record<string, MatrixEvent>;
     createEventId: string | null;
     stepInterval: number;
@@ -38,18 +28,13 @@ class Dag {
     collapse: boolean;
     startEventId: string;
 
-    // TODO: factor out - EventWalker (and bold higlight the current event so we know what the state refers to)
-    step: number;
-    eventIdFileOrdering: string[];
-    currentEventId: string;
+    debugger: Debugger;
 
     renderEvents: Record<string, MatrixEvent>;
-    scenario?: ScenarioFile;
-    stateAtEvent: StateAtEvent;
+    scenario?: Scenario;
 
-    constructor(stateAtEvent: StateAtEvent) {
-        this.cache = Object.create(null);
-        this.maxDepth = 0;
+    constructor(cache: Cache) {
+        this.cache = cache;
         this.latestEvents = {};
         this.createEventId = null;
         this.stepInterval = 1;
@@ -59,95 +44,14 @@ class Dag {
         this.showOutliers = false;
         this.collapse = false;
         this.startEventId = "";
-        this.step = -1;
-        this.eventIdFileOrdering = [];
         this.renderEvents = {};
-        this.stateAtEvent = stateAtEvent;
     }
 
-    // Load a test file.
-    // Either this is:
-    //  - a new-line delimited JSON file of events to render in order OR,
-    //  - a single JSON object which has a test scenario.
-    // We use JSON5 to support writing test scenarios.
     async load(file: File) {
-        const eventsOrScenario = await new Promise(
-            (resolve: (value: Array<MatrixEvent> | ScenarioFile) => void, reject) => {
-                const reader = new FileReader();
-                reader.onload = (data) => {
-                    if (!data.target || !data.target.result) {
-                        return;
-                    }
-                    if (file.name.endsWith(".json5")) {
-                        // scenario file
-                        resolve(JSON5.parse(data.target.result as string) as ScenarioFile);
-                        return;
-                    }
-                    const contents = (data.target.result as string)
-                        .split("\n")
-                        .filter((line) => {
-                            return line.trim().length > 0;
-                        })
-                        .map((line) => {
-                            const j = JSON.parse(line);
-                            return j;
-                        });
-                    resolve(contents as Array<MatrixEvent>);
-                };
-                reader.readAsText(file);
-            },
-        );
-        let scenario: ScenarioFile;
-        if (Array.isArray(eventsOrScenario)) {
-            scenario = {
-                tardis_version: 1,
-                room_version: DEFAULT_ROOM_VERSION,
-                room_id: eventsOrScenario[0].room_id,
-                calculate_event_ids: false,
-                events: eventsOrScenario,
-            };
-        } else {
-            // it's a test scenario
-            scenario = eventsOrScenario;
-        }
+        const scenario = await loadScenarioFromFile(file);
         let maxDepth = 0;
-        const fakeEventIdToRealEventId = new Map<string, string>();
         for (const ev of scenario.events) {
-            if (!ev) {
-                throw new Error("missing event");
-            }
-            if (!ev.event_id) {
-                throw new Error(`event is missing 'event_id', got ${JSON.stringify(ev)}`);
-            }
-            if (!ev.type) {
-                throw new Error(`event is missing 'type' field, got ${JSON.stringify(ev)}`);
-            }
-            if (!ev.depth) {
-                throw new Error(`event is missing 'depth' field, got ${JSON.stringify(ev)}`);
-            }
-            if (!ev.room_id && scenario.room_id) {
-                ev.room_id = scenario.room_id;
-            }
-            if (scenario.calculate_event_ids) {
-                const realEventId = globalThis.gmslEventIDForEvent(JSON.stringify(ev), scenario.room_version);
-                fakeEventIdToRealEventId.set(ev.event_id, realEventId);
-                ev.event_id = realEventId;
-                // also replace any references in prev_events and auth_events
-                for (const key of ["prev_events", "auth_events"]) {
-                    const replacement: Array<string> = [];
-                    for (const fakeEventId of ev[key]) {
-                        const realEventId = fakeEventIdToRealEventId.get(fakeEventId);
-                        if (realEventId) {
-                            replacement.push(realEventId);
-                        } else {
-                            replacement.push(fakeEventId);
-                        }
-                    }
-                    ev[key] = replacement;
-                }
-            }
-            this.cache[ev.event_id] = ev;
-            this.eventIdFileOrdering.push(ev.event_id);
+            this.cache.eventCache.store(ev);
             if (ev.type === "m.room.create" && ev.state_key === "") {
                 this.createEventId = ev.event_id;
                 continue;
@@ -160,8 +64,8 @@ class Dag {
                 this.latestEvents[ev.event_id] = ev;
             }
         }
-        this.maxDepth = maxDepth;
         this.scenario = scenario;
+        this.debugger = new Debugger(scenario);
     }
     setStepInterval(num: number) {
         this.stepInterval = num;
@@ -178,27 +82,12 @@ class Dag {
     setCollapse(col: boolean) {
         this.collapse = col;
     }
-    stepForward() {
-        this.step = this.step + 1;
-        if (this.step < 0) {
-            this.step = 0;
-        }
-        if (this.step >= this.eventIdFileOrdering.length) {
-            this.step = this.eventIdFileOrdering.length - 1;
-        }
-        this.currentEventId = this.eventIdFileOrdering[this.step];
-    }
-    stepBackward() {
-        if (this.step > 0) {
-            this.step -= 1;
-        }
-        this.currentEventId = this.eventIdFileOrdering[this.step];
-    }
     setStartEventId(eventId: string) {
         this.startEventId = eventId;
-        if (this.cache[eventId]) {
+        const ev = this.cache.eventCache.get(eventId);
+        if (ev) {
             this.latestEvents = {
-                eventId: this.cache[eventId],
+                eventId: ev,
             };
         }
     }
@@ -212,7 +101,7 @@ class Dag {
     }
     // returns the set of events to render
     async recalculate(): Promise<Record<string, MatrixEvent>> {
-        if (this.step >= 0) {
+        if (this.debugger.current()) {
             return this.recalculateStep();
         }
         return this.recalculateWalkBack();
@@ -267,13 +156,8 @@ class Dag {
     // return the first N events in file ordering
     async recalculateStep(): Promise<Record<string, MatrixEvent>> {
         const renderEvents = Object.create(null);
-        for (let i = 0; i <= this.step; i++) {
-            const eventId = this.eventIdFileOrdering[i];
-            if (!eventId) {
-                // e.g out of bounds
-                continue;
-            }
-            renderEvents[eventId] = this.cache[eventId];
+        for (const eventId of this.debugger.eventsUpToCurrent()) {
+            renderEvents[eventId] = this.cache.eventCache.get(eventId);
         }
         return renderEvents;
     }
@@ -306,8 +190,9 @@ class Dag {
             // fetch the events from the in-memory cache which is the file
             const fetchedEventsById = Object.create(null) as Record<string, MatrixEvent>;
             for (const id of missingEventIds) {
-                if (this.cache[id]) {
-                    fetchedEventsById[id] = this.cache[id];
+                const ev = this.cache.eventCache.get(id);
+                if (ev) {
+                    fetchedEventsById[id] = ev;
                 }
             }
 
@@ -344,7 +229,7 @@ class Dag {
                     if (events[id]) {
                         continue; // already linked to a renderable part of the dag, ignore.
                     }
-                    if (this.cache[id]) {
+                    if (this.cache.eventCache.get(id)) {
                         events[id] = {
                             event_id: id,
                             _backwards_extremity_key: key,
@@ -555,7 +440,7 @@ class Dag {
         const height = window.innerHeight;
 
         // stratify the events into a DAG
-        console.log(this.step, eventsToRender);
+        console.log(eventsToRender);
         if (Object.keys(eventsToRender).length <= 1) {
             return; // we need at least 2 nodes for d3-dag to render things.
         }
@@ -698,12 +583,12 @@ class Dag {
             .attr("transform", ({ x, y }) => `translate(${x}, ${y})`);
 
         // Plot node circles
-        const stateEvents = this.stateAtEvent.getStateAsEventIds(this.currentEventId);
+        const stateEvents = this.cache.stateAtEvent.getStateAsEventIds(this.debugger.current());
         nodes
             .append("circle")
             .attr("r", nodeRadius)
             .attr("fill", (n) => {
-                if (n.id === this.currentEventId) {
+                if (n.id === this.debugger.current()) {
                     return "blue";
                 }
                 if (stateEvents.has(n.id)) {
@@ -792,10 +677,10 @@ class Dag {
         d3.select("#svgcontainer").append(() => svgNode);
     }
 }
-let dag = new Dag(new StateAtEvent());
+let dag = new Dag(new Cache());
 const transport = new StateResolverTransport("http://localhost:1234");
 const resolver = new StateResolver(transport, (data: DataGetEvent): MatrixEvent => {
-    return dag.cache[data.event_id];
+    return dag.cache.eventCache.get(data.event_id)!;
 });
 
 document.getElementById("showauthevents")!.addEventListener("change", (ev) => {
@@ -828,7 +713,7 @@ document.getElementById("start")!.addEventListener("change", (ev) => {
         if (!files) {
             return;
         }
-        dag = new Dag(new StateAtEvent());
+        dag = new Dag(new Cache());
         await dag.load(files[0]);
     },
     false,
@@ -843,69 +728,33 @@ document.getElementById("closeinfocontainer")!.addEventListener("click", (ev) =>
 document.getElementById("infocontainer")!.style.display = "none";
 
 document.getElementById("stepfwd")!.addEventListener("click", async (ev) => {
-    dag.stepForward();
+    dag.debugger.next();
     dag.refresh();
 });
 document.getElementById("stepbwd")!.addEventListener("click", async (ev) => {
-    dag.stepBackward();
+    dag.debugger.previous();
     dag.refresh();
 });
 document.getElementById("resolve")!.addEventListener("click", async (ev) => {
-    const atEventId = dag.currentEventId;
-    const atEvent = dag.cache[atEventId];
-    let theState: Record<StateKeyTuple, EventID> = {};
-    switch (atEvent.prev_events.length) {
-        case 0: // e.g m.room.create
-            // do nothing, as we default to empty prev states.
-            // we'll add the create event now.
-            break;
-        case 1: {
-            // linear: the state is what came before plus this
-            const prevEventId = atEvent.prev_events[0];
-            const prevState = dag.stateAtEvent.getState(prevEventId);
-            if (Object.keys(prevState).length === 0) {
-                console.error(
-                    `WARN: we do not know the state at ${prevEventId} yet, so the state calculation for ${atEventId} may be wrong!`,
-                );
-            }
-            theState = prevState;
-            break;
-        }
-        default: {
-            // we need to do state resolution.
-            const states: Array<Record<StateKeyTuple, EventID>> = [];
-            for (const prevEventId of atEvent.prev_events) {
-                const prevState = dag.stateAtEvent.getState(prevEventId);
-                if (Object.keys(prevState).length === 0) {
-                    console.error(
-                        `WARN: we do not know the state at ${prevEventId} yet, so the state calculation for ${atEventId} may be wrong!`,
-                    );
-                }
-                states.push(prevState);
-            }
-            console.log("performing state resolution for prev_events:", atEvent.prev_events);
+    await dag.debugger.resolve(
+        dag.cache,
+        async (
+            roomId: string,
+            roomVer: string,
+            states: Array<Record<StateKeyTuple, EventID>>,
+        ): Promise<Record<StateKeyTuple, EventID>> => {
             try {
                 await transport.connect(resolver);
-                const r = await resolver.resolveState(
-                    atEvent.room_id,
-                    dag.scenario ? dag.scenario.room_version : DEFAULT_ROOM_VERSION,
-                    states,
-                );
-                theState = r.state;
+                const r = await resolver.resolveState(roomId, roomVer, states);
+                return r.state;
             } catch (err) {
                 console.error("failed to setup WS connection:", err);
             } finally {
                 transport.close();
             }
-        }
-    }
-    // include this state event
-    console.log("prev theState", JSON.stringify(theState), "atEvent", atEventId);
-    if (atEvent.state_key != null) {
-        theState[JSON.stringify([atEvent.type, atEvent.state_key])] = atEventId;
-    }
-
-    dag.stateAtEvent.setState(atEventId, theState);
+            return {};
+        },
+    );
     dag.refresh();
 });
 
