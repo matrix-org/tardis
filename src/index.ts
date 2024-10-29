@@ -3,6 +3,8 @@ import * as d3dag from "d3-dag";
 import JSON5 from "json5";
 import { type DataGetEvent, type MatrixEvent, StateResolver, StateResolverTransport } from "./state_resolver";
 
+const DEFAULT_ROOM_VERSION = "10";
+
 interface ScenarioFile {
     tardis_version: number;
     room_version: string;
@@ -32,6 +34,7 @@ class Dag {
     eventIdWinners: Set<string>;
     eventIdLosers: Set<string>;
     renderEvents: Record<string, MatrixEvent>;
+    scenario?: ScenarioFile;
 
     constructor() {
         this.cache = Object.create(null);
@@ -88,7 +91,8 @@ class Dag {
         if (Array.isArray(eventsOrScenario)) {
             scenario = {
                 tardis_version: 1,
-                room_version: "10",
+                room_version: DEFAULT_ROOM_VERSION,
+                room_id: eventsOrScenario[0].room_id,
                 calculate_event_ids: false,
                 events: eventsOrScenario,
             };
@@ -147,6 +151,7 @@ class Dag {
             }
         }
         this.maxDepth = maxDepth;
+        this.scenario = scenario;
     }
     setStepInterval(num: number) {
         this.stepInterval = num;
@@ -834,6 +839,7 @@ document.getElementById("resolve")!.addEventListener("click", async (ev) => {
     try {
         await transport.connect(resolver);
         const r = await resolver.resolveState(
+            dag.scenario ? dag.scenario.room_version : DEFAULT_ROOM_VERSION,
             Object.keys(dag.renderEvents)
                 .filter((eventId) => {
                     return dag.cache[eventId].state_key != null;

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
 import { type DataGetEvent, type DataResolveState, type MatrixEvent, StateResolver } from "./state_resolver";
 
+const roomVer = "custom";
+
 describe("StateResolver", () => {
     describe("resolveState", () => {
         const eventMap: Record<string, MatrixEvent> = {
@@ -54,12 +56,12 @@ describe("StateResolver", () => {
                     return eventMap[data.event_id];
                 },
             );
-            const promiseFoo = sr.resolveState([eventMap.$foo, eventMap.$foomember]);
+            const promiseFoo = sr.resolveState(roomVer, [eventMap.$foo, eventMap.$foomember]);
             let fooResolved = false;
             promiseFoo.then(() => {
                 fooResolved = true;
             });
-            const promiseBar = sr.resolveState([eventMap.$bar]);
+            const promiseBar = sr.resolveState(roomVer, [eventMap.$bar]);
             let barResolved = false;
             promiseBar.then(() => {
                 barResolved = true;
@@ -69,6 +71,7 @@ describe("StateResolver", () => {
             expect(fooRequest.id).toBeDefined();
             expect(fooRequest.data).toEqual({
                 room_id: "!foo",
+                room_version: roomVer,
                 // biome-ignore lint/complexity/useLiteralKeys: it reads much nicer in IDEs to use this form
                 state: [{ [`["m.room.create",""]`]: "$foo" }, { [`["m.room.member","@alice"]`]: "$foomember" }],
             });
@@ -76,6 +79,7 @@ describe("StateResolver", () => {
             expect(barRequest.id).toBeDefined();
             expect(barRequest.data).toEqual({
                 room_id: "!foo",
+                room_version: roomVer,
                 // biome-ignore lint/complexity/useLiteralKeys: it reads much nicer in IDEs to use this form
                 state: [{ [`["m.room.create",""]`]: "$bar" }],
             });
@@ -90,6 +94,7 @@ describe("StateResolver", () => {
                 // biome-ignore lint/complexity/useLiteralKeys: it reads much nicer in IDEs to use this form
                 result: { [`["m.room.create",""]`]: "$bar" },
                 room_id: "!foo",
+                room_version: roomVer,
             });
             const barResult = await promiseBar;
             expect(barResolved).toBe(true);
@@ -102,6 +107,7 @@ describe("StateResolver", () => {
                 // biome-ignore lint/complexity/useLiteralKeys: it reads much nicer in IDEs to use this form
                 result: { [`["m.room.create",""]`]: "$foo" },
                 room_id: "!foo",
+                room_version: roomVer,
             });
             const fooResult = await promiseFoo;
             expect(fooResolved).toBe(true);

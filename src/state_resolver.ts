@@ -32,6 +32,7 @@ type EventID = string;
 
 interface DataResolveState {
     room_id: string;
+    room_version: string;
     state: Array<Record<StateKeyTuple, EventID>>;
     result?: Record<StateKeyTuple, EventID>;
 }
@@ -77,7 +78,7 @@ class StateResolver implements StateResolverReceiver {
         this.inflightRequests.delete(id);
     }
 
-    async resolveState(stateEvents: Array<MatrixEvent>): Promise<ResolvedState> {
+    async resolveState(roomVersion: string, stateEvents: Array<MatrixEvent>): Promise<ResolvedState> {
         // convert events into a form suitable for sending over the wire
         const state: Array<Record<StateKeyTuple, EventID>> = [];
         const initialSetOfEventIds = new Set<string>();
@@ -125,6 +126,7 @@ class StateResolver implements StateResolverReceiver {
             this.sender.sendResolveState(id, {
                 state: state,
                 room_id: roomId,
+                room_version: roomVersion,
             });
         });
 
