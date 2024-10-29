@@ -1,6 +1,6 @@
 import * as d3 from "d3";
 import * as d3dag from "d3-dag";
-import { StateAtEvent } from "./state_at_event";
+import { Cache } from "./cache";
 import {
     type DataGetEvent,
     type EventID,
@@ -17,7 +17,7 @@ interface Link {
 }
 
 class Dag {
-    cache: Record<string, MatrixEvent>;
+    cache: Cache;
     latestEvents: Record<string, MatrixEvent>;
     createEventId: string | null;
     stepInterval: number;
@@ -32,10 +32,9 @@ class Dag {
 
     renderEvents: Record<string, MatrixEvent>;
     scenario?: Scenario;
-    stateAtEvent: StateAtEvent;
 
-    constructor(stateAtEvent: StateAtEvent) {
-        this.cache = Object.create(null);
+    constructor(cache: Cache) {
+        this.cache = cache;
         this.latestEvents = {};
         this.createEventId = null;
         this.stepInterval = 1;
@@ -46,14 +45,13 @@ class Dag {
         this.collapse = false;
         this.startEventId = "";
         this.renderEvents = {};
-        this.stateAtEvent = stateAtEvent;
     }
 
     async load(file: File) {
         const scenario = await loadScenarioFromFile(file);
         let maxDepth = 0;
         for (const ev of scenario.events) {
-            this.cache[ev.event_id] = ev;
+            this.cache.eventCache.store(ev);
             if (ev.type === "m.room.create" && ev.state_key === "") {
                 this.createEventId = ev.event_id;
                 continue;
@@ -86,9 +84,10 @@ class Dag {
     }
     setStartEventId(eventId: string) {
         this.startEventId = eventId;
-        if (this.cache[eventId]) {
+        const ev = this.cache.eventCache.get(eventId);
+        if (ev) {
             this.latestEvents = {
-                eventId: this.cache[eventId],
+                eventId: ev,
             };
         }
     }
@@ -158,7 +157,7 @@ class Dag {
     async recalculateStep(): Promise<Record<string, MatrixEvent>> {
         const renderEvents = Object.create(null);
         for (const eventId of this.debugger.eventsUpToCurrent()) {
-            renderEvents[eventId] = this.cache[eventId];
+            renderEvents[eventId] = this.cache.eventCache.get(eventId);
         }
         return renderEvents;
     }
@@ -191,8 +190,9 @@ class Dag {
             // fetch the events from the in-memory cache which is the file
             const fetchedEventsById = Object.create(null) as Record<string, MatrixEvent>;
             for (const id of missingEventIds) {
-                if (this.cache[id]) {
-                    fetchedEventsById[id] = this.cache[id];
+                const ev = this.cache.eventCache.get(id);
+                if (ev) {
+                    fetchedEventsById[id] = ev;
                 }
             }
 
@@ -229,7 +229,7 @@ class Dag {
                     if (events[id]) {
                         continue; // already linked to a renderable part of the dag, ignore.
                     }
-                    if (this.cache[id]) {
+                    if (this.cache.eventCache.get(id)) {
                         events[id] = {
                             event_id: id,
                             _backwards_extremity_key: key,
@@ -583,7 +583,7 @@ class Dag {
             .attr("transform", ({ x, y }) => `translate(${x}, ${y})`);
 
         // Plot node circles
-        const stateEvents = this.stateAtEvent.getStateAsEventIds(this.debugger.current());
+        const stateEvents = this.cache.stateAtEvent.getStateAsEventIds(this.debugger.current());
         nodes
             .append("circle")
             .attr("r", nodeRadius)
@@ -677,10 +677,10 @@ class Dag {
         d3.select("#svgcontainer").append(() => svgNode);
     }
 }
-let dag = new Dag(new StateAtEvent());
+let dag = new Dag(new Cache());
 const transport = new StateResolverTransport("http://localhost:1234");
 const resolver = new StateResolver(transport, (data: DataGetEvent): MatrixEvent => {
-    return dag.cache[data.event_id];
+    return dag.cache.eventCache.get(data.event_id)!;
 });
 
 document.getElementById("showauthevents")!.addEventListener("change", (ev) => {
@@ -713,7 +713,7 @@ document.getElementById("start")!.addEventListener("change", (ev) => {
         if (!files) {
             return;
         }
-        dag = new Dag(new StateAtEvent());
+        dag = new Dag(new Cache());
         await dag.load(files[0]);
     },
     false,
@@ -737,7 +737,7 @@ document.getElementById("stepbwd")!.addEventListener("click", async (ev) => {
 });
 document.getElementById("resolve")!.addEventListener("click", async (ev) => {
     const atEventId = dag.debugger.current();
-    const atEvent = dag.cache[atEventId];
+    const atEvent = dag.cache.eventCache.get(atEventId)!;
     let theState: Record<StateKeyTuple, EventID> = {};
     switch (atEvent.prev_events.length) {
         case 0: // e.g m.room.create
@@ -747,7 +747,7 @@ document.getElementById("resolve")!.addEventListener("click", async (ev) => {
         case 1: {
             // linear: the state is what came before plus this
             const prevEventId = atEvent.prev_events[0];
-            const prevState = dag.stateAtEvent.getState(prevEventId);
+            const prevState = dag.cache.stateAtEvent.getState(prevEventId);
             if (Object.keys(prevState).length === 0) {
                 console.error(
                     `WARN: we do not know the state at ${prevEventId} yet, so the state calculation for ${atEventId} may be wrong!`,
@@ -760,7 +760,7 @@ document.getElementById("resolve")!.addEventListener("click", async (ev) => {
             // we need to do state resolution.
             const states: Array<Record<StateKeyTuple, EventID>> = [];
             for (const prevEventId of atEvent.prev_events) {
-                const prevState = dag.stateAtEvent.getState(prevEventId);
+                const prevState = dag.cache.stateAtEvent.getState(prevEventId);
                 if (Object.keys(prevState).length === 0) {
                     console.error(
                         `WARN: we do not know the state at ${prevEventId} yet, so the state calculation for ${atEventId} may be wrong!`,
@@ -785,7 +785,7 @@ document.getElementById("resolve")!.addEventListener("click", async (ev) => {
         theState[JSON.stringify([atEvent.type, atEvent.state_key])] = atEventId;
     }
 
-    dag.stateAtEvent.setState(atEventId, theState);
+    dag.cache.stateAtEvent.setState(atEventId, theState);
     dag.refresh();
 });
 
