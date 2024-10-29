@@ -17,11 +17,20 @@
         <input id="stepfwd" type="button" value="->" />
         <input id="resolve" type="button" value="Resolve State" />
     </div>
-    <div>
-        <div id="infocontainer">
-            <pre id="closeinfocontainer">[ Close ]</pre>
-            <pre id="eventdetails" />
+    <div id="infocontainer">
+        <pre id="closeinfocontainer">[ Close ]</pre>
+        <pre id="eventdetails" />
+    </div>
+    <template id="eventlisttemplate">
+        <div class="eventlistrow">
+            <div class="eventlistrowprefix">
+                123
+            </div>
+            <div class="eventlistrowbody">Lorem Ipsum Dolor...</div>
         </div>
+    </template>
+    <div id="body">
+        <div id="eventlist"></div>
         <div id="svgcontainer" />
     </div>
 

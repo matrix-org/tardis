@@ -695,6 +695,17 @@ document.getElementById("step")!.addEventListener("change", (ev) => {
     false,
 );
 
+const temp = (index: number, ev: MatrixEvent) => {
+    const template = document.getElementById("eventlisttemplate")! as HTMLTemplateElement;
+    // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/template#avoiding_documentfragment_pitfall
+    const row = template.content.firstElementChild!.cloneNode(true);
+    row.setAttribute("id", ev.event_id);
+    row.getElementsByClassName("eventlistrowprefix")[0].textContent = index;
+    row.getElementsByClassName("eventlistrowbody")[0].textContent = JSON.stringify(ev);
+    const container = document.getElementById("eventlist");
+    container?.appendChild(row);
+};
+
 document.getElementById("go")!.addEventListener("click", async (ev) => {
     dag.refresh();
 });
@@ -703,9 +714,12 @@ document.getElementById("closeinfocontainer")!.addEventListener("click", (ev) =>
 });
 document.getElementById("infocontainer")!.style.display = "none";
 
+let i = 1;
 document.getElementById("stepfwd")!.addEventListener("click", async (ev) => {
     dag.debugger.next();
     dag.refresh();
+    //  temp(i, dag.cache.eventCache.get(dag.debugger.current())!);
+    i++;
 });
 document.getElementById("stepbwd")!.addEventListener("click", async (ev) => {
     dag.debugger.previous();
