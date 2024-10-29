@@ -38,6 +38,10 @@ export class Debugger {
         return eventIds;
     }
 
+    // Perform state resolution at the current step.
+    // Stores results in the cache via cache.stateAtEvent.setState
+    // Pulls events from the cache via cache.eventCache.get
+    // Calls the callback to perform state resolution on a set of states.
     async resolve(
         cache: Cache,
         resolveState: (
@@ -46,7 +50,26 @@ export class Debugger {
             states: Array<Record<StateKeyTuple, EventID>>,
         ) => Promise<Record<StateKeyTuple, EventID>>,
     ): Promise<void> {
-        const atEventId = this.current();
+        // we don't just resolve the current step, but resolve all steps up to and including the current
+        // step. If we've done it before then it will no-op. We need to do this as to work out the state
+        // at event N we need to know the state at event N-1.
+        for (const oldEventId of this.eventsUpToCurrent()) {
+            await this.resolveEvent(oldEventId, cache, resolveState);
+        }
+    }
+
+    private async resolveEvent(
+        atEventId: string,
+        cache: Cache,
+        resolveState: (
+            roomId: string,
+            roomVer: string,
+            states: Array<Record<StateKeyTuple, EventID>>,
+        ) => Promise<Record<StateKeyTuple, EventID>>,
+    ): Promise<void> {
+        if (cache.stateAtEvent.getStateAsEventIds(atEventId).size > 0) {
+            return; // we've already worked out the state at this event.
+        }
         const atEvent = cache.eventCache.get(atEventId)!;
         let theState: Record<StateKeyTuple, EventID> = {};
         switch (atEvent.prev_events.length) {
