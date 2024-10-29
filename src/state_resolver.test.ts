@@ -1,6 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
 import { type DataGetEvent, type DataResolveState, type MatrixEvent, StateResolver } from "./state_resolver";
 
+const roomVer = "custom";
+const roomId = "!foo";
+
 describe("StateResolver", () => {
     describe("resolveState", () => {
         const eventMap: Record<string, MatrixEvent> = {
@@ -54,12 +57,16 @@ describe("StateResolver", () => {
                     return eventMap[data.event_id];
                 },
             );
-            const promiseFoo = sr.resolveState([eventMap.$foo, eventMap.$foomember]);
+            // biome-ignore lint/complexity/useLiteralKeys: it reads much nicer in IDEs to use this form
+            const fooState = [{ [`["m.room.create",""]`]: "$foo", [`["m.room.member","@alice"]`]: "$foomember" }];
+            const promiseFoo = sr.resolveState(roomId, roomVer, fooState);
             let fooResolved = false;
             promiseFoo.then(() => {
                 fooResolved = true;
             });
-            const promiseBar = sr.resolveState([eventMap.$bar]);
+            // biome-ignore lint/complexity/useLiteralKeys: it reads much nicer in IDEs to use this form
+            const barState = [{ [`["m.room.create",""]`]: "$bar" }];
+            const promiseBar = sr.resolveState(roomId, roomVer, barState);
             let barResolved = false;
             promiseBar.then(() => {
                 barResolved = true;
@@ -69,15 +76,15 @@ describe("StateResolver", () => {
             expect(fooRequest.id).toBeDefined();
             expect(fooRequest.data).toEqual({
                 room_id: "!foo",
-                // biome-ignore lint/complexity/useLiteralKeys: it reads much nicer in IDEs to use this form
-                state: [{ [`["m.room.create",""]`]: "$foo" }, { [`["m.room.member","@alice"]`]: "$foomember" }],
+                room_version: roomVer,
+                state: fooState,
             });
             const barRequest = outstandingRequests[1];
             expect(barRequest.id).toBeDefined();
             expect(barRequest.data).toEqual({
                 room_id: "!foo",
-                // biome-ignore lint/complexity/useLiteralKeys: it reads much nicer in IDEs to use this form
-                state: [{ [`["m.room.create",""]`]: "$bar" }],
+                room_version: roomVer,
+                state: barState,
             });
 
             // neither promise should have resolved yet
@@ -90,23 +97,29 @@ describe("StateResolver", () => {
                 // biome-ignore lint/complexity/useLiteralKeys: it reads much nicer in IDEs to use this form
                 result: { [`["m.room.create",""]`]: "$bar" },
                 room_id: "!foo",
+                room_version: roomVer,
             });
             const barResult = await promiseBar;
             expect(barResolved).toBe(true);
             expect(fooResolved).toBe(false);
-            expect(barResult.wonEventIds).toEqual(["$bar"]);
+            expect(barResult.state).toEqual({
+                // biome-ignore lint/complexity/useLiteralKeys:
+                [`["m.room.create",""]`]: "$bar",
+            });
 
-            // drop the member event so it should be in the lost list.
             sr.onResolveStateResponse(fooRequest.id, {
                 state: [],
                 // biome-ignore lint/complexity/useLiteralKeys: it reads much nicer in IDEs to use this form
                 result: { [`["m.room.create",""]`]: "$foo" },
                 room_id: "!foo",
+                room_version: roomVer,
             });
             const fooResult = await promiseFoo;
             expect(fooResolved).toBe(true);
-            expect(fooResult.wonEventIds).toEqual(["$foo"]);
-            expect(fooResult.lostEventIds).toEqual(["$foomember"]);
+            expect(fooResult.state).toEqual({
+                // biome-ignore lint/complexity/useLiteralKeys:
+                [`["m.room.create",""]`]: "$foo",
+            });
         });
     });
 });

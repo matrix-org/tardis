@@ -7,11 +7,11 @@ from typing import Collection, Dict, Iterable, List, Optional, Sequence, Set
 from pydantic import BaseModel
 from websockets.asyncio.server import serve
 
-
 from twisted.internet import defer
-from synapse.api.room_versions import RoomVersions
+from synapse.api.room_versions import RoomVersions, KNOWN_ROOM_VERSIONS
 from synapse.state.v2 import resolve_events_with_store
 from synapse.events import EventBase, make_event_from_dict
+from synapse.types import StateMap
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -23,6 +23,10 @@ class WebSocketMessage(BaseModel):
 
 room_ver = RoomVersions.V10 # TODO: parameterise
 
+class FakeClock:
+    def sleep(self, msec: float) -> "defer.Deferred[None]":
+        return defer.succeed(None)
+
 class Connection:
     event_map: Dict[str, EventBase] = {}
 
@@ -31,9 +35,17 @@ class Connection:
         self.outstanding_requests = {}
 
 # Array<Record<StateKeyTuple, EventID>>
-    async def resolve_state(self, id: str, room_id: str, state):
-        print(f"resolve_state: {id}")
-        r = await resolve_events_with_store(FakeClock(),room_id, room_ver, state, event_map=None, state_res_store=self)
+    async def resolve_state(self, id: str, room_id: str, room_ver_str: str, state_sets_wire_format: Sequence[Dict[str,str]]):
+        print(f"resolve_state: {id} in {room_id} on version {room_ver_str}")
+        if KNOWN_ROOM_VERSIONS.get(room_ver_str) is None:
+            print(f"  resolve_state: {id} WARNING: unknown room version {room_ver_str}")
+
+        # map the wire format to a form synapse wants, notably this is converting the JSON stringified tuples
+        # back into real tuples
+        state_sets: Sequence[StateMap[str]] = [
+            { tuple(json.loads(k)): sswf[k] for k in sswf} for sswf in state_sets_wire_format
+        ]
+        r = await resolve_events_with_store(FakeClock(),room_id, KNOWN_ROOM_VERSIONS[room_ver_str], state_sets, event_map=None, state_res_store=self)
         print(f"resolve_state: {id} responding")
         # convert tuple keys to strings
         r = {json.dumps(k):v for k,v in r.items()}
@@ -66,7 +78,7 @@ class Connection:
 
     async def get_events(
         self, event_ids: Collection[str], allow_rejected: bool = False
-    ) -> "defer.Deferred[Dict[str, EventBase]]":
+    ) -> Dict[str, EventBase]:
         """Get events from the database
 
         Args:
@@ -124,7 +136,7 @@ class Connection:
 
     async def get_auth_chain_difference(
         self, room_id: str, auth_sets: List[Set[str]]
-    ) -> "defer.Deferred[Set[str]]":
+    ) -> Set[str]:
         chains = [frozenset(await self._get_auth_chain(a)) for a in auth_sets]
         common = set(chains[0]).intersection(*chains[1:])
         return set(chains[0]).union(*chains[1:]) - common
@@ -145,21 +157,11 @@ async def handler(websocket):
                 # call get_event which needs more WS messages, so we cannot block the processing
                 # of incoming WS messages. When resolve_state concludes, it will send the response,
                 # hence why we pass in the id here so it can pair it up.
-                asyncio.create_task(c.resolve_state(wsm.id, wsm.data["room_id"], wsm.data["state"]))
+                asyncio.create_task(c.resolve_state(wsm.id, wsm.data["room_id"], wsm.data["room_version"], wsm.data["state"]))
             else:
                 print(f"unknown type: {wsm.type}")
         except Exception as err:
             print(f"recv error {err}")
-
-# Synapse specifics below
-# -----------------------
-
-class FakeClock:
-    def sleep(self, msec: float) -> "defer.Deferred[None]":
-        return defer.succeed(None)
-
-
-
 
 async def main():
     print("Listening on 0.0.0.0:1234")

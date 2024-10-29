@@ -27,11 +27,12 @@ interface WebSocketMessage<T> {
     data: T;
 }
 
-type StateKeyTuple = string; // JSON encoded array of 2 string elements [type, state_key]
-type EventID = string;
+export type StateKeyTuple = string; // JSON encoded array of 2 string elements [type, state_key]
+export type EventID = string;
 
 interface DataResolveState {
     room_id: string;
+    room_version: string;
     state: Array<Record<StateKeyTuple, EventID>>;
     result?: Record<StateKeyTuple, EventID>;
 }
@@ -50,8 +51,7 @@ interface StateResolverSender {
 }
 
 interface ResolvedState {
-    wonEventIds: Array<string>;
-    lostEventIds: Array<string>;
+    state: Record<StateKeyTuple, EventID>;
 }
 
 class StateResolver implements StateResolverReceiver {
@@ -77,54 +77,28 @@ class StateResolver implements StateResolverReceiver {
         this.inflightRequests.delete(id);
     }
 
-    async resolveState(stateEvents: Array<MatrixEvent>): Promise<ResolvedState> {
-        // convert events into a form suitable for sending over the wire
-        const state: Array<Record<StateKeyTuple, EventID>> = [];
-        const initialSetOfEventIds = new Set<string>();
-        let roomId = "";
-        for (const ev of stateEvents) {
-            state.push({
-                [`${JSON.stringify([ev.type, ev.state_key])}`]: ev.event_id,
-            });
-            initialSetOfEventIds.add(ev.event_id);
-            roomId = ev.room_id;
-        }
-        console.log("resolveState", state);
+    async resolveState(
+        roomId: string,
+        roomVersion: string,
+        states: Array<Record<StateKeyTuple, EventID>>,
+    ): Promise<ResolvedState> {
+        console.log("resolveState", states);
         // make an id so we can pair it up when we get the response
         const id = globalThis.crypto.randomUUID();
         const promise = new Promise<ResolvedState>((resolve, reject) => {
             this.inflightRequests.set(id, (resolvedData: DataResolveState) => {
                 if (!resolvedData.result) {
-                    resolve({
-                        wonEventIds: [],
-                        lostEventIds: [],
-                    });
+                    resolve({ state: {} });
                     return;
                 }
-                // map the won event IDs
-                const wonEventIds = new Set(
-                    Object.keys(resolvedData.result)
-                        .map((tuple: string): string => {
-                            return resolvedData.result![tuple] || "";
-                        })
-                        .values(),
-                );
-                // lost event IDs are IDs that were in the original request but not in the won list.
-                const lostEventIds = new Set<string>();
-                for (const eventId of initialSetOfEventIds) {
-                    if (wonEventIds.has(eventId)) {
-                        continue;
-                    }
-                    lostEventIds.add(eventId);
-                }
                 resolve({
-                    wonEventIds: Array.from(wonEventIds),
-                    lostEventIds: Array.from(lostEventIds),
+                    state: resolvedData.result,
                 });
             });
             this.sender.sendResolveState(id, {
-                state: state,
+                state: states,
                 room_id: roomId,
+                room_version: roomVersion,
             });
         });
 

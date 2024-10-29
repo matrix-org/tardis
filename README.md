@@ -19,6 +19,7 @@ Currently very experimental and PoC.
 
 ### To use:
 
+Requires node 20+
 ```
 yarn install
 yarn run start
