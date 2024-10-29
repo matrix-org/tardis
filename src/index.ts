@@ -26,7 +26,6 @@ class Dag {
     showPrevEvents: boolean;
     showOutliers: boolean;
     collapse: boolean;
-    startEventId: string;
 
     debugger: Debugger;
 
@@ -43,7 +42,6 @@ class Dag {
         this.showPrevEvents = true;
         this.showOutliers = false;
         this.collapse = false;
-        this.startEventId = "";
         this.renderEvents = {};
     }
 
@@ -81,15 +79,6 @@ class Dag {
     }
     setCollapse(col: boolean) {
         this.collapse = col;
-    }
-    setStartEventId(eventId: string) {
-        this.startEventId = eventId;
-        const ev = this.cache.eventCache.get(eventId);
-        if (ev) {
-            this.latestEvents = {
-                eventId: ev,
-            };
-        }
     }
     async refresh() {
         let renderEvents = await this.recalculate();
@@ -266,15 +255,6 @@ class Dag {
     // pointed at exist.
     findForwardExtremities(events): Set<string> {
         const s = new Set<string>();
-        if (this.startEventId) {
-            for (const id in events) {
-                if (id === this.startEventId) {
-                    s.add(id);
-                    console.log(`returning start event ${id}`);
-                    return s;
-                }
-            }
-        }
 
         for (const id in events) {
             s.add(id);
@@ -700,10 +680,6 @@ document.getElementById("collapse")!.addEventListener("change", (ev) => {
 (<HTMLInputElement>document.getElementById("collapse"))!.checked = dag.collapse;
 document.getElementById("step")!.addEventListener("change", (ev) => {
     dag.setStepInterval(Number((<HTMLInputElement>ev.target)!.value));
-});
-document.getElementById("start")!.addEventListener("change", (ev) => {
-    dag.setStartEventId((<HTMLInputElement>ev.target)!.value);
-    dag.refresh();
 });
 
 (<HTMLInputElement>document.getElementById("jsonfile")).addEventListener(

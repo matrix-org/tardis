@@ -2,7 +2,9 @@
     top: 0;
     left: 0;
     padding: 8px;
-    background-color: white;
+    background-color: #a6b8c7;
+    border-color: #00060b;
+    border: 1px solid;
 }
 
 #infocontainer {
@@ -14,4 +16,11 @@
 
 #closeinfocontainer {
     cursor: pointer;
+}
+
+input {
+    font-family: Gill Sans,Gill Sans MT,Calibri,sans-serif;
+}
+div {
+    font-family: Gill Sans,Gill Sans MT,Calibri,sans-serif;
 }
