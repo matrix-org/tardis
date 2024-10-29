@@ -13,7 +13,7 @@ from synapse.api.room_versions import RoomVersions
 from synapse.state.v2 import resolve_events_with_store
 from synapse.events import EventBase, make_event_from_dict
 
-# logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
 
 class WebSocketMessage(BaseModel):
     type: str
