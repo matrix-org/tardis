@@ -1,6 +1,7 @@
 import * as d3 from "d3";
 import * as d3dag from "d3-dag";
 import JSON5 from "json5";
+import { StateAtEvent } from "./state_at_event";
 import {
     type DataGetEvent,
     type EventID,
@@ -9,7 +10,6 @@ import {
     StateResolver,
     StateResolverTransport,
 } from "./state_resolver";
-import { StateAtEvent } from "./state_at_event";
 
 const DEFAULT_ROOM_VERSION = "10";
 
