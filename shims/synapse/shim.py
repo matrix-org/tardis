@@ -11,6 +11,7 @@ from twisted.internet import defer
 from synapse.api.room_versions import RoomVersions, KNOWN_ROOM_VERSIONS
 from synapse.state.v2 import resolve_events_with_store
 from synapse.events import EventBase, make_event_from_dict
+from synapse.types import StateMap
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -34,11 +35,17 @@ class Connection:
         self.outstanding_requests = {}
 
 # Array<Record<StateKeyTuple, EventID>>
-    async def resolve_state(self, id: str, room_id: str, room_ver_str: str, state):
+    async def resolve_state(self, id: str, room_id: str, room_ver_str: str, state_sets_wire_format: Sequence[Dict[str,str]]):
         print(f"resolve_state: {id} in {room_id} on version {room_ver_str}")
         if KNOWN_ROOM_VERSIONS.get(room_ver_str) is None:
             print(f"  resolve_state: {id} WARNING: unknown room version {room_ver_str}")
-        r = await resolve_events_with_store(FakeClock(),room_id, KNOWN_ROOM_VERSIONS[room_ver_str], state, event_map=None, state_res_store=self)
+
+        # map the wire format to a form synapse wants, notably this is converting the JSON stringified tuples
+        # back into real tuples
+        state_sets: Sequence[StateMap[str]] = [
+            { tuple(json.loads(k)): sswf[k] for k in sswf} for sswf in state_sets_wire_format
+        ]
+        r = await resolve_events_with_store(FakeClock(),room_id, KNOWN_ROOM_VERSIONS[room_ver_str], state_sets, event_map=None, state_res_store=self)
         print(f"resolve_state: {id} responding")
         # convert tuple keys to strings
         r = {json.dumps(k):v for k,v in r.items()}
