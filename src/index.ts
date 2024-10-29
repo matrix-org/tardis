@@ -1,7 +1,15 @@
 import * as d3 from "d3";
 import * as d3dag from "d3-dag";
 import JSON5 from "json5";
-import { type DataGetEvent, type MatrixEvent, StateResolver, StateResolverTransport } from "./state_resolver";
+import {
+    type DataGetEvent,
+    type EventID,
+    type MatrixEvent,
+    type StateKeyTuple,
+    StateResolver,
+    StateResolverTransport,
+} from "./state_resolver";
+import { StateAtEvent } from "./state_at_event";
 
 const DEFAULT_ROOM_VERSION = "10";
 
@@ -29,13 +37,17 @@ class Dag {
     showOutliers: boolean;
     collapse: boolean;
     startEventId: string;
+
+    // TODO: factor out - EventWalker (and bold higlight the current event so we know what the state refers to)
     step: number;
     eventIdFileOrdering: string[];
-    eventIdPartOfState: Set<string>;
+    currentEventId: string;
+
     renderEvents: Record<string, MatrixEvent>;
     scenario?: ScenarioFile;
+    stateAtEvent: StateAtEvent;
 
-    constructor() {
+    constructor(stateAtEvent: StateAtEvent) {
         this.cache = Object.create(null);
         this.maxDepth = 0;
         this.latestEvents = {};
@@ -47,10 +59,10 @@ class Dag {
         this.showOutliers = false;
         this.collapse = false;
         this.startEventId = "";
-        this.step = 0;
+        this.step = -1;
         this.eventIdFileOrdering = [];
-        this.eventIdPartOfState = new Set();
         this.renderEvents = {};
+        this.stateAtEvent = stateAtEvent;
     }
 
     // Load a test file.
@@ -168,17 +180,19 @@ class Dag {
     }
     stepForward() {
         this.step = this.step + 1;
-        if (this.step < 2) {
-            this.step = 2; // need at least two nodes for d3-dag to draw stuff.
+        if (this.step < 0) {
+            this.step = 0;
         }
-        if (this.step > this.eventIdFileOrdering.length) {
-            this.step = this.eventIdFileOrdering.length;
+        if (this.step >= this.eventIdFileOrdering.length) {
+            this.step = this.eventIdFileOrdering.length - 1;
         }
+        this.currentEventId = this.eventIdFileOrdering[this.step];
     }
     stepBackward() {
         if (this.step > 0) {
             this.step -= 1;
         }
+        this.currentEventId = this.eventIdFileOrdering[this.step];
     }
     setStartEventId(eventId: string) {
         this.startEventId = eventId;
@@ -198,7 +212,7 @@ class Dag {
     }
     // returns the set of events to render
     async recalculate(): Promise<Record<string, MatrixEvent>> {
-        if (this.step > 0) {
+        if (this.step >= 0) {
             return this.recalculateStep();
         }
         return this.recalculateWalkBack();
@@ -253,7 +267,7 @@ class Dag {
     // return the first N events in file ordering
     async recalculateStep(): Promise<Record<string, MatrixEvent>> {
         const renderEvents = Object.create(null);
-        for (let i = 0; i < this.step; i++) {
+        for (let i = 0; i <= this.step; i++) {
             const eventId = this.eventIdFileOrdering[i];
             if (!eventId) {
                 // e.g out of bounds
@@ -541,7 +555,10 @@ class Dag {
         const height = window.innerHeight;
 
         // stratify the events into a DAG
-        console.log(eventsToRender);
+        console.log(this.step, eventsToRender);
+        if (Object.keys(eventsToRender).length <= 1) {
+            return; // we need at least 2 nodes for d3-dag to render things.
+        }
         let dag = d3dag
             .dagStratify<MatrixEvent>()
             .id((event: MatrixEvent) => event.event_id)
@@ -681,11 +698,15 @@ class Dag {
             .attr("transform", ({ x, y }) => `translate(${x}, ${y})`);
 
         // Plot node circles
+        const stateEvents = this.stateAtEvent.getStateAsEventIds(this.currentEventId);
         nodes
             .append("circle")
             .attr("r", nodeRadius)
             .attr("fill", (n) => {
-                if (this.eventIdPartOfState.has(n.id)) {
+                if (n.id === this.currentEventId) {
+                    return "blue";
+                }
+                if (stateEvents.has(n.id)) {
                     return "green";
                 }
                 return "black";
@@ -771,8 +792,7 @@ class Dag {
         d3.select("#svgcontainer").append(() => svgNode);
     }
 }
-let dag = new Dag();
-
+let dag = new Dag(new StateAtEvent());
 const transport = new StateResolverTransport("http://localhost:1234");
 const resolver = new StateResolver(transport, (data: DataGetEvent): MatrixEvent => {
     return dag.cache[data.event_id];
@@ -808,7 +828,7 @@ document.getElementById("start")!.addEventListener("change", (ev) => {
         if (!files) {
             return;
         }
-        dag = new Dag();
+        dag = new Dag(new StateAtEvent());
         await dag.load(files[0]);
     },
     false,
@@ -831,25 +851,61 @@ document.getElementById("stepbwd")!.addEventListener("click", async (ev) => {
     dag.refresh();
 });
 document.getElementById("resolve")!.addEventListener("click", async (ev) => {
-    try {
-        await transport.connect(resolver);
-        const r = await resolver.resolveState(
-            dag.scenario ? dag.scenario.room_version : DEFAULT_ROOM_VERSION,
-            Object.keys(dag.renderEvents)
-                .filter((eventId) => {
-                    return dag.cache[eventId].state_key != null;
-                })
-                .map((eventId) => {
-                    return dag.cache[eventId];
-                }),
-        );
-        console.log("Resolved state:", r);
-        dag.eventIdPartOfState = new Set(r.eventIds);
-    } catch (err) {
-        console.error("failed to setup WS connection:", err);
-    } finally {
-        transport.close();
+    const atEventId = dag.currentEventId;
+    const atEvent = dag.cache[atEventId];
+    let theState: Record<StateKeyTuple, EventID> = {};
+    switch (atEvent.prev_events.length) {
+        case 0: // e.g m.room.create
+            // do nothing, as we default to empty prev states.
+            // we'll add the create event now.
+            break;
+        case 1: {
+            // linear: the state is what came before plus this
+            const prevEventId = atEvent.prev_events[0];
+            const prevState = dag.stateAtEvent.getState(prevEventId);
+            if (Object.keys(prevState).length === 0) {
+                console.error(
+                    `WARN: we do not know the state at ${prevEventId} yet, so the state calculation for ${atEventId} may be wrong!`,
+                );
+            }
+            theState = prevState;
+            break;
+        }
+        default: {
+            // we need to do state resolution.
+            const states: Array<Record<StateKeyTuple, EventID>> = [];
+            for (const prevEventId of atEvent.prev_events) {
+                const prevState = dag.stateAtEvent.getState(prevEventId);
+                if (Object.keys(prevState).length === 0) {
+                    console.error(
+                        `WARN: we do not know the state at ${prevEventId} yet, so the state calculation for ${atEventId} may be wrong!`,
+                    );
+                }
+                states.push(prevState);
+            }
+            console.log("performing state resolution for prev_events:", atEvent.prev_events);
+            try {
+                await transport.connect(resolver);
+                const r = await resolver.resolveState(
+                    atEvent.room_id,
+                    dag.scenario ? dag.scenario.room_version : DEFAULT_ROOM_VERSION,
+                    states,
+                );
+                theState = r.state;
+            } catch (err) {
+                console.error("failed to setup WS connection:", err);
+            } finally {
+                transport.close();
+            }
+        }
     }
+    // include this state event
+    console.log("prev theState", JSON.stringify(theState), "atEvent", atEventId);
+    if (atEvent.state_key != null) {
+        theState[JSON.stringify([atEvent.type, atEvent.state_key])] = atEventId;
+    }
+
+    dag.stateAtEvent.setState(atEventId, theState);
     dag.refresh();
 });
 

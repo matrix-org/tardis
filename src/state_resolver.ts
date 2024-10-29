@@ -27,7 +27,7 @@ interface WebSocketMessage<T> {
     data: T;
 }
 
-type StateKeyTuple = string; // JSON encoded array of 2 string elements [type, state_key]
+export type StateKeyTuple = string; // JSON encoded array of 2 string elements [type, state_key]
 export type EventID = string;
 
 interface DataResolveState {
@@ -51,7 +51,7 @@ interface StateResolverSender {
 }
 
 interface ResolvedState {
-    eventIds: Array<string>;
+    state: Record<StateKeyTuple, EventID>;
 }
 
 class StateResolver implements StateResolverReceiver {
@@ -77,35 +77,26 @@ class StateResolver implements StateResolverReceiver {
         this.inflightRequests.delete(id);
     }
 
-    async resolveState(roomVersion: string, stateEvents: Array<MatrixEvent>): Promise<ResolvedState> {
-        // convert events into a form suitable for sending over the wire
-        const state: Array<Record<StateKeyTuple, EventID>> = [];
-        const initialSetOfEventIds = new Set<string>();
-        let roomId = "";
-        for (const ev of stateEvents) {
-            state.push({
-                [`${JSON.stringify([ev.type, ev.state_key])}`]: ev.event_id,
-            });
-            initialSetOfEventIds.add(ev.event_id);
-            roomId = ev.room_id;
-        }
-        console.log("resolveState", state);
+    async resolveState(
+        roomId: string,
+        roomVersion: string,
+        states: Array<Record<StateKeyTuple, EventID>>,
+    ): Promise<ResolvedState> {
+        console.log("resolveState", states);
         // make an id so we can pair it up when we get the response
         const id = globalThis.crypto.randomUUID();
         const promise = new Promise<ResolvedState>((resolve, reject) => {
             this.inflightRequests.set(id, (resolvedData: DataResolveState) => {
                 if (!resolvedData.result) {
-                    resolve({
-                        eventIds: [],
-                    });
+                    resolve({ state: {} });
                     return;
                 }
                 resolve({
-                    eventIds: Array.from(Object.values(resolvedData.result)),
+                    state: resolvedData.result,
                 });
             });
             this.sender.sendResolveState(id, {
-                state: state,
+                state: states,
                 room_id: roomId,
                 room_version: roomVersion,
             });
