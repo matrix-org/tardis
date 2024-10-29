@@ -487,7 +487,7 @@ class Dag {
         d3dag
             .sugiyama()
             .layering(d3dag.layeringCoffmanGraham().width(2))
-            .coord(d3dag.coordGreedy())
+            .coord(d3dag.coordCenter())
             .size([width, height])(dag);
 
         const steps = dag.size();
