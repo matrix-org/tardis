@@ -1,6 +1,8 @@
 import * as d3 from "d3";
 import * as d3dag from "d3-dag";
 import { Cache } from "./cache";
+import { Debugger } from "./debugger";
+import { type Scenario, loadScenarioFromFile } from "./scenario";
 import {
     type DataGetEvent,
     type EventID,
@@ -9,8 +11,6 @@ import {
     StateResolver,
     StateResolverTransport,
 } from "./state_resolver";
-import { loadScenarioFromFile, type Scenario } from "./scenario";
-import { Debugger } from "./debugger";
 
 interface Link {
     auth: boolean;

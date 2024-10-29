@@ -1,5 +1,5 @@
-import type { Scenario } from "./scenario";
 import type { Cache } from "./cache";
+import type { Scenario } from "./scenario";
 import type { EventID, StateKeyTuple } from "./state_resolver";
 
 // Debugger provides a mechanism for stepping through a scenario, exposing UI elements and calling out to resolve state.
