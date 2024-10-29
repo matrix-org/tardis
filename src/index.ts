@@ -1,6 +1,5 @@
 import * as d3 from "d3";
 import * as d3dag from "d3-dag";
-import JSON5 from "json5";
 import { StateAtEvent } from "./state_at_event";
 import {
     type DataGetEvent,
@@ -10,16 +9,7 @@ import {
     StateResolver,
     StateResolverTransport,
 } from "./state_resolver";
-
-const DEFAULT_ROOM_VERSION = "10";
-
-interface ScenarioFile {
-    tardis_version: number;
-    room_version: string;
-    room_id: string; // if events are missing a room_id key, populate it from this field. For brevity.
-    calculate_event_ids: boolean;
-    events: Array<MatrixEvent>;
-}
+import { loadScenarioFromFile, type Scenario } from "./scenario";
 
 interface Link {
     auth: boolean;
@@ -27,7 +17,6 @@ interface Link {
 
 class Dag {
     cache: Record<string, MatrixEvent>;
-    maxDepth: number;
     latestEvents: Record<string, MatrixEvent>;
     createEventId: string | null;
     stepInterval: number;
@@ -44,12 +33,11 @@ class Dag {
     currentEventId: string;
 
     renderEvents: Record<string, MatrixEvent>;
-    scenario?: ScenarioFile;
+    scenario?: Scenario;
     stateAtEvent: StateAtEvent;
 
     constructor(stateAtEvent: StateAtEvent) {
         this.cache = Object.create(null);
-        this.maxDepth = 0;
         this.latestEvents = {};
         this.createEventId = null;
         this.stepInterval = 1;
@@ -65,87 +53,10 @@ class Dag {
         this.stateAtEvent = stateAtEvent;
     }
 
-    // Load a test file.
-    // Either this is:
-    //  - a new-line delimited JSON file of events to render in order OR,
-    //  - a single JSON object which has a test scenario.
-    // We use JSON5 to support writing test scenarios.
     async load(file: File) {
-        const eventsOrScenario = await new Promise(
-            (resolve: (value: Array<MatrixEvent> | ScenarioFile) => void, reject) => {
-                const reader = new FileReader();
-                reader.onload = (data) => {
-                    if (!data.target || !data.target.result) {
-                        return;
-                    }
-                    if (file.name.endsWith(".json5")) {
-                        // scenario file
-                        resolve(JSON5.parse(data.target.result as string) as ScenarioFile);
-                        return;
-                    }
-                    const contents = (data.target.result as string)
-                        .split("\n")
-                        .filter((line) => {
-                            return line.trim().length > 0;
-                        })
-                        .map((line) => {
-                            const j = JSON.parse(line);
-                            return j;
-                        });
-                    resolve(contents as Array<MatrixEvent>);
-                };
-                reader.readAsText(file);
-            },
-        );
-        let scenario: ScenarioFile;
-        if (Array.isArray(eventsOrScenario)) {
-            scenario = {
-                tardis_version: 1,
-                room_version: DEFAULT_ROOM_VERSION,
-                room_id: eventsOrScenario[0].room_id,
-                calculate_event_ids: false,
-                events: eventsOrScenario,
-            };
-        } else {
-            // it's a test scenario
-            scenario = eventsOrScenario;
-        }
+        const scenario = await loadScenarioFromFile(file);
         let maxDepth = 0;
-        const fakeEventIdToRealEventId = new Map<string, string>();
         for (const ev of scenario.events) {
-            if (!ev) {
-                throw new Error("missing event");
-            }
-            if (!ev.event_id) {
-                throw new Error(`event is missing 'event_id', got ${JSON.stringify(ev)}`);
-            }
-            if (!ev.type) {
-                throw new Error(`event is missing 'type' field, got ${JSON.stringify(ev)}`);
-            }
-            if (!ev.depth) {
-                throw new Error(`event is missing 'depth' field, got ${JSON.stringify(ev)}`);
-            }
-            if (!ev.room_id && scenario.room_id) {
-                ev.room_id = scenario.room_id;
-            }
-            if (scenario.calculate_event_ids) {
-                const realEventId = globalThis.gmslEventIDForEvent(JSON.stringify(ev), scenario.room_version);
-                fakeEventIdToRealEventId.set(ev.event_id, realEventId);
-                ev.event_id = realEventId;
-                // also replace any references in prev_events and auth_events
-                for (const key of ["prev_events", "auth_events"]) {
-                    const replacement: Array<string> = [];
-                    for (const fakeEventId of ev[key]) {
-                        const realEventId = fakeEventIdToRealEventId.get(fakeEventId);
-                        if (realEventId) {
-                            replacement.push(realEventId);
-                        } else {
-                            replacement.push(fakeEventId);
-                        }
-                    }
-                    ev[key] = replacement;
-                }
-            }
             this.cache[ev.event_id] = ev;
             this.eventIdFileOrdering.push(ev.event_id);
             if (ev.type === "m.room.create" && ev.state_key === "") {
@@ -160,7 +71,6 @@ class Dag {
                 this.latestEvents[ev.event_id] = ev;
             }
         }
-        this.maxDepth = maxDepth;
         this.scenario = scenario;
     }
     setStepInterval(num: number) {
@@ -886,11 +796,7 @@ document.getElementById("resolve")!.addEventListener("click", async (ev) => {
             console.log("performing state resolution for prev_events:", atEvent.prev_events);
             try {
                 await transport.connect(resolver);
-                const r = await resolver.resolveState(
-                    atEvent.room_id,
-                    dag.scenario ? dag.scenario.room_version : DEFAULT_ROOM_VERSION,
-                    states,
-                );
+                const r = await resolver.resolveState(atEvent.room_id, dag.scenario!.roomVersion, states);
                 theState = r.state;
             } catch (err) {
                 console.error("failed to setup WS connection:", err);
@@ -900,7 +806,6 @@ document.getElementById("resolve")!.addEventListener("click", async (ev) => {
         }
     }
     // include this state event
-    console.log("prev theState", JSON.stringify(theState), "atEvent", atEventId);
     if (atEvent.state_key != null) {
         theState[JSON.stringify([atEvent.type, atEvent.state_key])] = atEventId;
     }
