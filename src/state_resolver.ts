@@ -28,7 +28,7 @@ interface WebSocketMessage<T> {
 }
 
 type StateKeyTuple = string; // JSON encoded array of 2 string elements [type, state_key]
-type EventID = string;
+export type EventID = string;
 
 interface DataResolveState {
     room_id: string;
@@ -51,8 +51,7 @@ interface StateResolverSender {
 }
 
 interface ResolvedState {
-    wonEventIds: Array<string>;
-    lostEventIds: Array<string>;
+    eventIds: Array<string>;
 }
 
 class StateResolver implements StateResolverReceiver {
@@ -97,30 +96,12 @@ class StateResolver implements StateResolverReceiver {
             this.inflightRequests.set(id, (resolvedData: DataResolveState) => {
                 if (!resolvedData.result) {
                     resolve({
-                        wonEventIds: [],
-                        lostEventIds: [],
+                        eventIds: [],
                     });
                     return;
                 }
-                // map the won event IDs
-                const wonEventIds = new Set(
-                    Object.keys(resolvedData.result)
-                        .map((tuple: string): string => {
-                            return resolvedData.result![tuple] || "";
-                        })
-                        .values(),
-                );
-                // lost event IDs are IDs that were in the original request but not in the won list.
-                const lostEventIds = new Set<string>();
-                for (const eventId of initialSetOfEventIds) {
-                    if (wonEventIds.has(eventId)) {
-                        continue;
-                    }
-                    lostEventIds.add(eventId);
-                }
                 resolve({
-                    wonEventIds: Array.from(wonEventIds),
-                    lostEventIds: Array.from(lostEventIds),
+                    eventIds: Array.from(Object.values(resolvedData.result)),
                 });
             });
             this.sender.sendResolveState(id, {

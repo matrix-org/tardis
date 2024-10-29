@@ -99,9 +99,8 @@ describe("StateResolver", () => {
             const barResult = await promiseBar;
             expect(barResolved).toBe(true);
             expect(fooResolved).toBe(false);
-            expect(barResult.wonEventIds).toEqual(["$bar"]);
+            expect(barResult.eventIds).toEqual(["$bar"]);
 
-            // drop the member event so it should be in the lost list.
             sr.onResolveStateResponse(fooRequest.id, {
                 state: [],
                 // biome-ignore lint/complexity/useLiteralKeys: it reads much nicer in IDEs to use this form
@@ -111,8 +110,7 @@ describe("StateResolver", () => {
             });
             const fooResult = await promiseFoo;
             expect(fooResolved).toBe(true);
-            expect(fooResult.wonEventIds).toEqual(["$foo"]);
-            expect(fooResult.lostEventIds).toEqual(["$foomember"]);
+            expect(fooResult.eventIds).toEqual(["$foo"]);
         });
     });
 });

@@ -31,8 +31,7 @@ class Dag {
     startEventId: string;
     step: number;
     eventIdFileOrdering: string[];
-    eventIdWinners: Set<string>;
-    eventIdLosers: Set<string>;
+    eventIdPartOfState: Set<string>;
     renderEvents: Record<string, MatrixEvent>;
     scenario?: ScenarioFile;
 
@@ -50,8 +49,7 @@ class Dag {
         this.startEventId = "";
         this.step = 0;
         this.eventIdFileOrdering = [];
-        this.eventIdWinners = new Set();
-        this.eventIdLosers = new Set();
+        this.eventIdPartOfState = new Set();
         this.renderEvents = {};
     }
 
@@ -687,10 +685,7 @@ class Dag {
             .append("circle")
             .attr("r", nodeRadius)
             .attr("fill", (n) => {
-                if (this.eventIdLosers.has(n.id)) {
-                    return "red";
-                }
-                if (this.eventIdWinners.has(n.id)) {
+                if (this.eventIdPartOfState.has(n.id)) {
                     return "green";
                 }
                 return "black";
@@ -849,8 +844,7 @@ document.getElementById("resolve")!.addEventListener("click", async (ev) => {
                 }),
         );
         console.log("Resolved state:", r);
-        dag.eventIdLosers = new Set(r.lostEventIds);
-        dag.eventIdWinners = new Set(r.wonEventIds);
+        dag.eventIdPartOfState = new Set(r.eventIds);
     } catch (err) {
         console.error("failed to setup WS connection:", err);
     } finally {
