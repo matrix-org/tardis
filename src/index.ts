@@ -29,6 +29,7 @@ class Dag {
     showPrevEvents: boolean;
     showOutliers: boolean;
     collapse: boolean;
+    shimUrl?: string;
 
     debugger: Debugger;
 
@@ -43,6 +44,11 @@ class Dag {
         this.showOutliers = false;
         this.collapse = false;
         this.renderEvents = {};
+    }
+
+    setShimUrl(u: string) {
+        this.shimUrl = u;
+        console.log("setShimUrl", u);
     }
 
     async load(file: File) {
@@ -570,7 +576,7 @@ class Dag {
     }
 }
 let dag = new Dag(new Cache());
-const transport = new StateResolverTransport("http://localhost:1234");
+const transport = new StateResolverTransport();
 const resolver = new StateResolver(transport, (data: DataGetEvent): MatrixEvent => {
     return dag.cache.eventCache.get(data.event_id)!;
 });
@@ -598,6 +604,8 @@ document.getElementById("collapse")!.addEventListener("change", (ev) => {
             return;
         }
         dag = new Dag(new Cache());
+        // set it initially from the input value else we might resolve without ever calling setShimUrl
+        dag.setShimUrl(document.getElementById("shimurl").value);
         await dag.load(files[0]);
     },
     false,
@@ -618,6 +626,19 @@ document.getElementById("stepbwd")!.addEventListener("click", async (ev) => {
     dag.refresh();
     eventList.highlight(dag.debugger.current());
 });
+
+document.getElementById("shimurl")!.addEventListener("change", (ev) => {
+    const newUrl = (<HTMLInputElement>ev.target)!.value;
+    dag.setShimUrl(newUrl);
+    globalThis.localStorage.setItem("shim_url", newUrl);
+});
+// set placeholder from local storage
+const existingShimUrl = globalThis.localStorage.getItem("shim_url");
+if (existingShimUrl) {
+    console.log("setting shim url from local storage");
+    document.getElementById("shimurl").value = existingShimUrl;
+}
+
 document.getElementById("resolve")!.addEventListener("click", async (ev) => {
     await dag.debugger.resolve(
         dag.cache,
@@ -626,8 +647,12 @@ document.getElementById("resolve")!.addEventListener("click", async (ev) => {
             roomVer: string,
             states: Array<Record<StateKeyTuple, EventID>>,
         ): Promise<Record<StateKeyTuple, EventID>> => {
+            if (!dag.shimUrl) {
+                console.error("you need to set a shim url to resolve state!");
+                return {};
+            }
             try {
-                await transport.connect(resolver);
+                await transport.connect(dag.shimUrl, resolver);
                 const r = await resolver.resolveState(roomId, roomVer, states);
                 return r.state;
             } catch (err) {
