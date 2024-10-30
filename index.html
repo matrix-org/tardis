@@ -6,21 +6,28 @@
 </head>
 
 <body>
-    <div id="header">
-        <input id="jsonfile" type="file" />
-        <input id="go" type="button" value="Load" />
-        <input id="step" type="text" placeholder="Step interval" value="1" />
-        <label>Auth Chain?<input id="showauthevents" type="checkbox" /></label>
-        <label>Outliers?<input id="showoutliers" type="checkbox" /></label>
-        <label>Collapse?<input id="collapse" type="checkbox" /></label>
-        <input id="stepbwd" type="button" value="<-" />
-        <input id="stepfwd" type="button" value="->" />
-        <input id="resolve" type="button" value="Resolve State" />
+    <div id="page">
+        <div id="header">
+            <input id="jsonfile" type="file" />
+            <input id="go" type="button" value="Load" />
+            <input id="step" type="text" placeholder="Step interval" value="1" />
+            <label>Auth Chain?<input id="showauthevents" type="checkbox" /></label>
+            <label>Outliers?<input id="showoutliers" type="checkbox" /></label>
+            <label>Collapse?<input id="collapse" type="checkbox" /></label>
+            <input id="stepbwd" type="button" value="<-" />
+            <input id="stepfwd" type="button" value="->" />
+            <input id="resolve" type="button" value="Resolve State" />
+        </div>
+        <div id="infocontainer">
+            <pre id="closeinfocontainer">[ Close ]</pre>
+            <pre id="eventdetails" />
+        </div>
+        <div id="contents">
+            <div id="eventlist"></div>
+            <div id="svgcontainer" />
+        </div>
     </div>
-    <div id="infocontainer">
-        <pre id="closeinfocontainer">[ Close ]</pre>
-        <pre id="eventdetails" />
-    </div>
+
     <template id="eventlisttemplate">
         <div class="eventlistrow">
             <div class="eventlistrowprefix">
@@ -29,10 +36,6 @@
             <div class="eventlistrowbody">Lorem Ipsum Dolor...</div>
         </div>
     </template>
-    <div id="contents">
-        <div id="eventlist"></div>
-        <div id="svgcontainer" />
-    </div>
 
     <script type="module" src="./src/index.ts"></script>
 </body>

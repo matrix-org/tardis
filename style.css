@@ -1,3 +1,12 @@
+body {
+    margin: 0px;
+}
+#page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
 #header {
     top: 0;
     left: 0;
@@ -5,6 +14,7 @@
     background-color: #a6b8c7;
     border-color: #00060b;
     border: 1px solid;
+    margin: 5px;
 }
 
 #infocontainer {
@@ -21,6 +31,8 @@
 #contents {
     display: flex;
     justify-content: space-around;
+    overflow: hidden;
+    flex-grow: 1;
 }
 
 #svgcontainer {
@@ -32,8 +44,7 @@
     max-width: 25%;
     border: 1px solid;
     border-color: #00060b;
-    margin-top: 5px;
-    margin-bottom: 5px;
+    margin: 5px;
     overflow-y: scroll;
 }
 
@@ -46,6 +57,11 @@
 .eventlistrowprefix {
     padding: 5px;
     cursor: pointer;
+}
+.eventlistrowprefix:hover {
+    background-color: #eee;
+    border: 1px solid;
+    padding: 4px;
 }
 
 .eventlistrowbody {
