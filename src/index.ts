@@ -11,28 +11,16 @@ import {
     StateResolver,
     StateResolverTransport,
 } from "./state_resolver";
+import { EventList } from "./event_list";
 
 interface Link {
     auth: boolean;
 }
 
-// TODO: factor out
-const clearEventList = () => {
-    const container = document.getElementById("eventlist");
-    container!.innerHTML = "";
-};
-
-// TODO: factor out
-const appendEventToEventList = (index: number, ev: MatrixEvent) => {
-    const template = document.getElementById("eventlisttemplate")! as HTMLTemplateElement;
-    // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/template#avoiding_documentfragment_pitfall
-    const row = template.content.firstElementChild!.cloneNode(true);
-    row.setAttribute("id", ev.event_id);
-    row.getElementsByClassName("eventlistrowprefix")[0].textContent = index;
-    row.getElementsByClassName("eventlistrowbody")[0].textContent = JSON.stringify(ev);
-    const container = document.getElementById("eventlist");
-    container?.appendChild(row);
-};
+const eventList = new EventList(
+    document.getElementById("eventlist")!,
+    document.getElementById("eventlisttemplate") as HTMLTemplateElement,
+);
 
 class Dag {
     cache: Cache;
@@ -82,10 +70,11 @@ class Dag {
         }
         this.scenario = scenario;
         this.debugger = new Debugger(scenario);
-        clearEventList();
+        eventList.clear();
         scenario.events.forEach((ev, i) => {
-            appendEventToEventList(i, ev);
+            eventList.appendEvent(i, ev);
         });
+        eventList.highlight(this.debugger.current());
         this.refresh();
     }
     setStepInterval(num: number) {
@@ -593,7 +582,7 @@ class Dag {
             .attr("r", nodeRadius)
             .attr("fill", (n) => {
                 if (n.id === this.debugger.current()) {
-                    return "blue";
+                    return "#6f8ea9";
                 }
                 if (stateEvents.has(n.id)) {
                     return "green";
@@ -731,11 +720,13 @@ let i = 1;
 document.getElementById("stepfwd")!.addEventListener("click", async (ev) => {
     dag.debugger.next();
     dag.refresh();
+    eventList.highlight(dag.debugger.current());
     i++;
 });
 document.getElementById("stepbwd")!.addEventListener("click", async (ev) => {
     dag.debugger.previous();
     dag.refresh();
+    eventList.highlight(dag.debugger.current());
 });
 document.getElementById("resolve")!.addEventListener("click", async (ev) => {
     await dag.debugger.resolve(
