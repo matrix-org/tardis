@@ -18,9 +18,46 @@
     cursor: pointer;
 }
 
+#body {
+    display: flex;
+    justify-content: space-around;
+}
+
+#svgcontainer {
+    flex-grow: 1;
+}
+
+#eventlist {
+    min-width: 25%;
+    max-width: 25%;
+    border: 1px solid;
+    border-color: #00060b;
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+.eventlistrow {
+    display: flex;
+    border-bottom: 1px solid;
+    border-color: #00060b;
+}
+
+.eventlistrowprefix {
+    padding: 5px;
+}
+
+.eventlistrowbody {
+    overflow: scroll;
+    white-space: nowrap;
+    padding: 5px;
+}
+
 input {
     font-family: Gill Sans,Gill Sans MT,Calibri,sans-serif;
 }
 div {
     font-family: Gill Sans,Gill Sans MT,Calibri,sans-serif;
+}
+body {
+    height: 100%;
 }

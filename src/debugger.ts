@@ -9,8 +9,9 @@ export class Debugger {
     private currentEventId: string;
 
     constructor(readonly scenario: Scenario) {
-        this.index = -1; // so when you hit next() we load to the first event.
+        this.index = scenario.events.length - 1; // last event
         this.eventIdOrdering = scenario.events.map((ev) => ev.event_id);
+        this.currentEventId = this.eventIdOrdering[this.index];
     }
 
     next() {

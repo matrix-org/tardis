@@ -16,6 +16,24 @@ interface Link {
     auth: boolean;
 }
 
+// TODO: factor out
+const clearEventList = () => {
+    const container = document.getElementById("eventlist");
+    container!.innerHTML = "";
+};
+
+// TODO: factor out
+const appendEventToEventList = (index: number, ev: MatrixEvent) => {
+    const template = document.getElementById("eventlisttemplate")! as HTMLTemplateElement;
+    // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/template#avoiding_documentfragment_pitfall
+    const row = template.content.firstElementChild!.cloneNode(true);
+    row.setAttribute("id", ev.event_id);
+    row.getElementsByClassName("eventlistrowprefix")[0].textContent = index;
+    row.getElementsByClassName("eventlistrowbody")[0].textContent = JSON.stringify(ev);
+    const container = document.getElementById("eventlist");
+    container?.appendChild(row);
+};
+
 class Dag {
     cache: Cache;
     latestEvents: Record<string, MatrixEvent>;
@@ -64,6 +82,11 @@ class Dag {
         }
         this.scenario = scenario;
         this.debugger = new Debugger(scenario);
+        clearEventList();
+        scenario.events.forEach((ev, i) => {
+            appendEventToEventList(i, ev);
+        });
+        this.refresh();
     }
     setStepInterval(num: number) {
         this.stepInterval = num;
@@ -415,8 +438,9 @@ class Dag {
     // render a set of events
     async render(eventsToRender: Record<string, MatrixEvent>) {
         const hideOrphans = !this.showOutliers;
-        document.getElementById("svgcontainer")!.innerHTML = "";
-        const width = window.innerWidth;
+        const svgContainer = document.getElementById("svgcontainer")!;
+        svgContainer.innerHTML = "";
+        const width = svgContainer.offsetWidth;
         const height = window.innerHeight;
 
         // stratify the events into a DAG
@@ -695,17 +719,6 @@ document.getElementById("step")!.addEventListener("change", (ev) => {
     false,
 );
 
-const temp = (index: number, ev: MatrixEvent) => {
-    const template = document.getElementById("eventlisttemplate")! as HTMLTemplateElement;
-    // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/template#avoiding_documentfragment_pitfall
-    const row = template.content.firstElementChild!.cloneNode(true);
-    row.setAttribute("id", ev.event_id);
-    row.getElementsByClassName("eventlistrowprefix")[0].textContent = index;
-    row.getElementsByClassName("eventlistrowbody")[0].textContent = JSON.stringify(ev);
-    const container = document.getElementById("eventlist");
-    container?.appendChild(row);
-};
-
 document.getElementById("go")!.addEventListener("click", async (ev) => {
     dag.refresh();
 });
@@ -718,7 +731,6 @@ let i = 1;
 document.getElementById("stepfwd")!.addEventListener("click", async (ev) => {
     dag.debugger.next();
     dag.refresh();
-    //  temp(i, dag.cache.eventCache.get(dag.debugger.current())!);
     i++;
 });
 document.getElementById("stepbwd")!.addEventListener("click", async (ev) => {
