@@ -49,6 +49,10 @@ export class EventList {
         const jsonButton = row.getElementsByClassName("eventlistrowjson")[0];
         jsonButton.addEventListener("click", this.onJsonClick.bind(this));
         row.getElementsByClassName("eventlistrowbody")[0].textContent = this.textRepresentation(ev);
+        row.getElementsByClassName("eventlistroweventid")[0].textContent = ev.event_id.substr(0, 5);
+        if (ev.state_key != null) {
+            row.style.fontWeight = "600";
+        }
         this.container.appendChild(row);
     }
 
@@ -98,11 +102,9 @@ export class EventList {
             const oldElement = document.getElementById(this.highlightedEventId);
             if (oldElement) {
                 oldElement.style.backgroundColor = "";
-                oldElement.style.fontWeight = "";
             }
         }
         document.getElementById(eventId)!.style.backgroundColor = "#6f8ea9";
-        document.getElementById(eventId)!.style.fontWeight = "600";
         this.highlightedEventId = eventId;
     }
 }

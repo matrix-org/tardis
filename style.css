@@ -68,6 +68,10 @@ body {
     border: 1px solid;
     padding: 4px;
 }
+.eventlistroweventid {
+    padding: 5px;
+    text-wrap: nowrap;
+}
 
 .eventlistrowbody {
     overflow: scroll;
@@ -83,4 +87,7 @@ div {
 }
 body {
     height: 100%;
+}
+.monospace {
+    font-family: "Lucida Console", Courier, monospace;
 }
