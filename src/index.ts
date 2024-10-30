@@ -2,6 +2,7 @@ import * as d3 from "d3";
 import * as d3dag from "d3-dag";
 import { Cache } from "./cache";
 import { Debugger } from "./debugger";
+import { EventList } from "./event_list";
 import { type Scenario, loadScenarioFromFile } from "./scenario";
 import {
     type DataGetEvent,
@@ -16,6 +17,11 @@ interface Link {
     auth: boolean;
 }
 
+const eventList = new EventList(
+    document.getElementById("eventlist")!,
+    document.getElementById("eventlisttemplate") as HTMLTemplateElement,
+);
+
 class Dag {
     cache: Cache;
     latestEvents: Record<string, MatrixEvent>;
@@ -26,7 +32,6 @@ class Dag {
     showPrevEvents: boolean;
     showOutliers: boolean;
     collapse: boolean;
-    startEventId: string;
 
     debugger: Debugger;
 
@@ -43,7 +48,6 @@ class Dag {
         this.showPrevEvents = true;
         this.showOutliers = false;
         this.collapse = false;
-        this.startEventId = "";
         this.renderEvents = {};
     }
 
@@ -66,6 +70,17 @@ class Dag {
         }
         this.scenario = scenario;
         this.debugger = new Debugger(scenario);
+        eventList.clear();
+        scenario.events.forEach((ev, i) => {
+            eventList.appendEvent(i, ev);
+        });
+        eventList.highlight(this.debugger.current());
+        eventList.onEventClick((eventId: string) => {
+            this.debugger.goTo(eventId);
+            this.refresh();
+            eventList.highlight(dag.debugger.current());
+        });
+        this.refresh();
     }
     setStepInterval(num: number) {
         this.stepInterval = num;
@@ -81,15 +96,6 @@ class Dag {
     }
     setCollapse(col: boolean) {
         this.collapse = col;
-    }
-    setStartEventId(eventId: string) {
-        this.startEventId = eventId;
-        const ev = this.cache.eventCache.get(eventId);
-        if (ev) {
-            this.latestEvents = {
-                eventId: ev,
-            };
-        }
     }
     async refresh() {
         let renderEvents = await this.recalculate();
@@ -266,15 +272,6 @@ class Dag {
     // pointed at exist.
     findForwardExtremities(events): Set<string> {
         const s = new Set<string>();
-        if (this.startEventId) {
-            for (const id in events) {
-                if (id === this.startEventId) {
-                    s.add(id);
-                    console.log(`returning start event ${id}`);
-                    return s;
-                }
-            }
-        }
 
         for (const id in events) {
             s.add(id);
@@ -391,7 +388,6 @@ class Dag {
             }
             seenQueue.add(id);
             if (!ev) {
-                console.log("  no event");
                 continue;
             }
             // continue walking..
@@ -435,8 +431,9 @@ class Dag {
     // render a set of events
     async render(eventsToRender: Record<string, MatrixEvent>) {
         const hideOrphans = !this.showOutliers;
-        document.getElementById("svgcontainer")!.innerHTML = "";
-        const width = window.innerWidth;
+        const svgContainer = document.getElementById("svgcontainer")!;
+        svgContainer.innerHTML = "";
+        const width = svgContainer.offsetWidth;
         const height = window.innerHeight;
 
         // stratify the events into a DAG
@@ -507,7 +504,7 @@ class Dag {
         d3dag
             .sugiyama()
             .layering(d3dag.layeringCoffmanGraham().width(2))
-            .coord(d3dag.coordGreedy())
+            .coord(d3dag.coordCenter())
             .size([width, height])(dag);
 
         const steps = dag.size();
@@ -589,7 +586,7 @@ class Dag {
             .attr("r", nodeRadius)
             .attr("fill", (n) => {
                 if (n.id === this.debugger.current()) {
-                    return "blue";
+                    return "#6f8ea9";
                 }
                 if (stateEvents.has(n.id)) {
                     return "green";
@@ -701,10 +698,6 @@ document.getElementById("collapse")!.addEventListener("change", (ev) => {
 document.getElementById("step")!.addEventListener("change", (ev) => {
     dag.setStepInterval(Number((<HTMLInputElement>ev.target)!.value));
 });
-document.getElementById("start")!.addEventListener("change", (ev) => {
-    dag.setStartEventId((<HTMLInputElement>ev.target)!.value);
-    dag.refresh();
-});
 
 (<HTMLInputElement>document.getElementById("jsonfile")).addEventListener(
     "change",
@@ -730,10 +723,12 @@ document.getElementById("infocontainer")!.style.display = "none";
 document.getElementById("stepfwd")!.addEventListener("click", async (ev) => {
     dag.debugger.next();
     dag.refresh();
+    eventList.highlight(dag.debugger.current());
 });
 document.getElementById("stepbwd")!.addEventListener("click", async (ev) => {
     dag.debugger.previous();
     dag.refresh();
+    eventList.highlight(dag.debugger.current());
 });
 document.getElementById("resolve")!.addEventListener("click", async (ev) => {
     await dag.debugger.resolve(

@@ -9,8 +9,9 @@ export class Debugger {
     private currentEventId: string;
 
     constructor(readonly scenario: Scenario) {
-        this.index = -1; // so when you hit next() we load to the first event.
+        this.index = scenario.events.length - 1; // last event
         this.eventIdOrdering = scenario.events.map((ev) => ev.event_id);
+        this.currentEventId = this.eventIdOrdering[this.index];
     }
 
     next() {
@@ -26,6 +27,15 @@ export class Debugger {
             this.index = 0;
         }
         this.currentEventId = this.eventIdOrdering[this.index];
+    }
+    goTo(eventId: string) {
+        for (let i = 0; i < this.eventIdOrdering.length; i++) {
+            if (this.eventIdOrdering[i] === eventId) {
+                this.index = i;
+                this.currentEventId = this.eventIdOrdering[this.index];
+                break;
+            }
+        }
     }
     current(): string {
         return this.currentEventId;
