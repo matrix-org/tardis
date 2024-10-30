@@ -125,7 +125,7 @@ export async function loadScenarioFromFile(f: File): Promise<Scenario> {
                 ev[key] = replacement;
             }
             // also replace any references in annotations
-            if (scenario.annotations.events[fakeEventId]) {
+            if (scenario.annotations?.events[fakeEventId]) {
                 scenario.annotations.events[realEventId] = scenario.annotations.events[fakeEventId];
             }
         }

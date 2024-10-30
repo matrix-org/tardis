@@ -508,7 +508,7 @@ class Dag {
             .attr("x", width / 2)
             .attr("y", 0)
             .style("font-size", "24px");
-        for (const titleLine of (this.scenario?.annotations.title || "").split("\n")) {
+        for (const titleLine of (this.scenario?.annotations?.title || "").split("\n")) {
             title
                 .append("tspan")
                 .attr("x", width / 2)
@@ -624,8 +624,8 @@ class Dag {
         const getLabel = (d) => {
             const eventId = d.data.event_id;
             const id = eventId.substr(0, 5);
-            if (this.scenario?.annotations.events[eventId]) {
-                return `${id} ${this.scenario?.annotations.events[eventId]}`;
+            if (this.scenario?.annotations?.events[eventId]) {
+                return `${id} ${this.scenario?.annotations?.events[eventId]}`;
             }
 
             const evType = d.data.type;
