@@ -2,7 +2,8 @@ import type { MatrixEvent } from "./state_resolver";
 
 export class EventList {
     private highlightedEventId: string;
-    private listener: (eventId: string) => void;
+    private positionListener: (eventId: string) => void;
+    private jsonListener: (eventId: string) => void;
     constructor(
         readonly container: HTMLElement,
         readonly template: HTMLTemplateElement,
@@ -13,17 +14,28 @@ export class EventList {
     }
 
     onEventClick(fn): void {
-        this.listener = fn;
+        this.positionListener = fn;
+    }
+    onEventJsonClick(fn): void {
+        this.jsonListener = fn;
     }
 
     private onCellClick(ev) {
+        this.onClick(ev, this.positionListener);
+    }
+
+    private onJsonClick(ev) {
+        this.onClick(ev, this.jsonListener);
+    }
+
+    private onClick(ev, fn) {
         const row = ev.target?.parentElement;
         if (!row) {
             return;
         }
         const eventId = row.getAttribute("id");
-        if (eventId && this.listener) {
-            this.listener(eventId);
+        if (eventId && fn) {
+            fn(eventId);
         }
     }
 
@@ -34,8 +46,51 @@ export class EventList {
         const prefix = row.getElementsByClassName("eventlistrowprefix")[0];
         prefix.textContent = String(index);
         prefix.addEventListener("click", this.onCellClick.bind(this));
-        row.getElementsByClassName("eventlistrowbody")[0].textContent = JSON.stringify(ev);
+        const jsonButton = row.getElementsByClassName("eventlistrowjson")[0];
+        jsonButton.addEventListener("click", this.onJsonClick.bind(this));
+        row.getElementsByClassName("eventlistrowbody")[0].textContent = this.textRepresentation(ev);
         this.container.appendChild(row);
+    }
+
+    private textRepresentation(ev: MatrixEvent): string {
+        let stateDescription = "";
+        let messageDescription = "";
+        if (ev.state_key != null) {
+            switch (ev.type) {
+                case "m.room.create":
+                    stateDescription = `by ${ev.content.creator}`;
+                    break;
+                case "m.room.member":
+                    stateDescription = `${ev.state_key}=${ev.content.membership}`;
+                    break;
+                case "m.room.join_rules":
+                    stateDescription = `(${ev.content.join_rule})`;
+                    break;
+                case "m.room.history_visibility":
+                    stateDescription = `(${ev.content.history_visibility})`;
+                    break;
+                case "m.room.name":
+                    stateDescription = `(${ev.content.name})`;
+                    break;
+                case "m.room.topic":
+                    stateDescription = `(${ev.content.topic})`;
+                    break;
+                default:
+                    if (ev.state_key !== "") {
+                        stateDescription = ev.state_key;
+                    }
+            }
+        } else {
+            switch (ev.type) {
+                case "m.reaction":
+                    messageDescription = ev.content["m.relates_to"]?.key;
+                    break;
+                case "m.room.message":
+                    messageDescription = ev.content.body;
+                    break;
+            }
+        }
+        return `${ev.type} ${stateDescription}${messageDescription}`;
     }
 
     highlight(eventId: string) {

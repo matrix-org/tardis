@@ -80,6 +80,14 @@ class Dag {
             this.refresh();
             eventList.highlight(dag.debugger.current());
         });
+        eventList.onEventJsonClick((eventId: string) => {
+            document.getElementById("eventdetails")!.textContent = JSON.stringify(
+                this.cache.eventCache.get(eventId),
+                null,
+                2,
+            );
+            document.getElementById("infocontainer")!.style.display = "block";
+        });
         this.refresh();
     }
     setStepInterval(num: number) {

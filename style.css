@@ -58,6 +58,11 @@ body {
     padding: 5px;
     cursor: pointer;
 }
+.eventlistrowjson {
+    padding: 5px;
+    cursor: pointer;
+    text-wrap: nowrap;
+}
 .eventlistrowprefix:hover {
     background-color: #eee;
     border: 1px solid;
