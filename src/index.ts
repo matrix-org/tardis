@@ -2,6 +2,7 @@ import * as d3 from "d3";
 import * as d3dag from "d3-dag";
 import { Cache } from "./cache";
 import { Debugger } from "./debugger";
+import { EventList } from "./event_list";
 import { type Scenario, loadScenarioFromFile } from "./scenario";
 import {
     type DataGetEvent,
@@ -11,7 +12,6 @@ import {
     StateResolver,
     StateResolverTransport,
 } from "./state_resolver";
-import { EventList } from "./event_list";
 
 interface Link {
     auth: boolean;
