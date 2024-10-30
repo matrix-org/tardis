@@ -591,7 +591,13 @@ class Dag {
         const stateEvents = this.cache.stateAtEvent.getStateAsEventIds(this.debugger.current());
         nodes
             .append("circle")
-            .attr("r", nodeRadius)
+            .attr("r", (n) => {
+                const ev = this.cache.eventCache.get(n.id);
+                if (ev && ev.state_key != null) {
+                    return nodeRadius * 1.5;
+                }
+                return nodeRadius;
+            })
             .attr("fill", (n) => {
                 if (n.id === this.debugger.current()) {
                     return "#6f8ea9";
