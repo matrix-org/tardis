@@ -15,6 +15,11 @@ export interface ScenarioFile {
     room_id: string;
     // Optional. If true, calculates the event_id field.
     calculate_event_ids: boolean;
+
+    annotations: {
+        title: string;
+        events: Record<string, string>;
+    };
 }
 
 // Scenario is a loaded scenario for use with tardis. ScenarioFiles end up being represented as Scenarios.
@@ -23,6 +28,11 @@ export interface Scenario {
     events: Array<MatrixEvent>;
     // The room version for these events
     roomVersion: string;
+    // Any annotations for the graph.
+    annotations: {
+        title: string;
+        events: Record<string, string>;
+    };
 }
 
 // loadScenarioFromFile loads a scenario file (.json5) or new-line delimited JSON, which represents the events in the scenario, in the order they should be processed.
@@ -64,6 +74,10 @@ export async function loadScenarioFromFile(f: File): Promise<Scenario> {
             room_id: eventsOrScenario[0].room_id,
             calculate_event_ids: false,
             events: eventsOrScenario,
+            annotations: {
+                title: "",
+                events: {},
+            },
         };
     } else {
         // it's a test scenario
@@ -72,6 +86,7 @@ export async function loadScenarioFromFile(f: File): Promise<Scenario> {
     const scenario: Scenario = {
         events: [],
         roomVersion: scenarioFile.room_version,
+        annotations: scenarioFile.annotations,
     };
     // validate and preprocess the scenario file into a valid scenario
     const fakeEventIdToRealEventId = new Map<string, string>();
@@ -92,21 +107,26 @@ export async function loadScenarioFromFile(f: File): Promise<Scenario> {
             ev.room_id = scenarioFile.room_id;
         }
         if (scenarioFile.calculate_event_ids) {
+            const fakeEventId = ev.event_id;
             const realEventId = globalThis.gmslEventIDForEvent(JSON.stringify(ev), scenarioFile.room_version);
-            fakeEventIdToRealEventId.set(ev.event_id, realEventId);
+            fakeEventIdToRealEventId.set(fakeEventId, realEventId);
             ev.event_id = realEventId;
             // also replace any references in prev_events and auth_events
             for (const key of ["prev_events", "auth_events"]) {
                 const replacement: Array<string> = [];
-                for (const fakeEventId of ev[key]) {
-                    const realEventId = fakeEventIdToRealEventId.get(fakeEventId);
+                for (const eventIdToReplace of ev[key]) {
+                    const realEventId = fakeEventIdToRealEventId.get(eventIdToReplace);
                     if (realEventId) {
                         replacement.push(realEventId);
                     } else {
-                        replacement.push(fakeEventId);
+                        replacement.push(eventIdToReplace);
                     }
                 }
                 ev[key] = replacement;
+            }
+            // also replace any references in annotations
+            if (scenario.annotations.events[fakeEventId]) {
+                scenario.annotations.events[realEventId] = scenario.annotations.events[fakeEventId];
             }
         }
         scenario.events.push(ev);

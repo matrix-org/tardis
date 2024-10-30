@@ -80,6 +80,14 @@ class Dag {
             this.refresh();
             eventList.highlight(dag.debugger.current());
         });
+        eventList.onEventJsonClick((eventId: string) => {
+            document.getElementById("eventdetails")!.textContent = JSON.stringify(
+                this.cache.eventCache.get(eventId),
+                null,
+                2,
+            );
+            document.getElementById("infocontainer")!.style.display = "block";
+        });
         this.refresh();
     }
     setStepInterval(num: number) {
@@ -495,6 +503,18 @@ class Dag {
         svgNode.setAttribute("viewBox", `${-margin} ${-margin} ${width + 10 * margin} ${height + 2 * margin}`);
 
         const svgSelection = d3.select(svgNode);
+        const title = svgSelection
+            .append("text")
+            .attr("x", width / 2)
+            .attr("y", 0)
+            .style("font-size", "24px");
+        for (const titleLine of (this.scenario?.annotations.title || "").split("\n")) {
+            title
+                .append("tspan")
+                .attr("x", width / 2)
+                .attr("dy", "1.2em")
+                .text(titleLine);
+        }
         const defs = svgSelection.append("defs");
 
         // below is derived from
@@ -583,7 +603,13 @@ class Dag {
         const stateEvents = this.cache.stateAtEvent.getStateAsEventIds(this.debugger.current());
         nodes
             .append("circle")
-            .attr("r", nodeRadius)
+            .attr("r", (n) => {
+                const ev = this.cache.eventCache.get(n.id);
+                if (ev && ev.state_key != null) {
+                    return nodeRadius * 1.5;
+                }
+                return nodeRadius;
+            })
             .attr("fill", (n) => {
                 if (n.id === this.debugger.current()) {
                     return "#6f8ea9";
@@ -596,7 +622,12 @@ class Dag {
 
         // Add text to nodes with border
         const getLabel = (d) => {
-            const id = d.data.event_id.substr(0, 5);
+            const eventId = d.data.event_id;
+            const id = eventId.substr(0, 5);
+            if (this.scenario?.annotations.events[eventId]) {
+                return `${id} ${this.scenario?.annotations.events[eventId]}`;
+            }
+
             const evType = d.data.type;
             let evStateKey = "";
             if (d.data.state_key) {
@@ -662,10 +693,12 @@ class Dag {
             nodes.attr("transform", (d) => {
                 return `translate(${transform.applyX(d.x)}, ${transform.applyY(d.y)})`;
             });
-
             edges.attr("d", ({ points }) =>
                 line(points.map((d) => ({ x: transform.applyX(d.x), y: transform.applyY(d.y) }))),
             );
+            title.attr("transform", () => {
+                return `translate(${transform.applyX(title.attr("x"))}, ${transform.applyY(title.attr("y"))})`;
+            });
         }
 
         const zoom = d3.zoom().scaleExtent([0.1, 10]).on("zoom", zoomed);

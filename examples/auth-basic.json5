@@ -3,6 +3,19 @@
     "calculate_event_ids": true,
     "room_version": "10",
     "room_id": "!basic-example:matrix.org",
+    "annotations": {
+        "title": " This is a basic example of a linear DAG, used to illustrate the main features of tardis.\n\
+        State events have larger nodes than messages.\n\
+        Use the arrow buttons or click on an event number to jump to that event as the 'current' event.\n\
+        \n\
+        Resolving State:\n\
+        Click the 'Resolve State' button to calculate what the state after the current event is. This requires a shim URL.\n\
+        The state events marked in green are part of the current state at that event.",
+        "events": {
+            "$BOB_JOIN": "Bob joins the room. He will leave later on.",
+            "$BOB_KICK": "Bob is kicked by Kegan."
+        }
+    },
     "events": [
         {
             "event_id": "$CREATE",
