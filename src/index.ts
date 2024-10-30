@@ -59,6 +59,22 @@ class Dag {
                 this.createEventId = ev.event_id;
             }
         }
+        if (scenario.precalculatedStateAfter) {
+            for (const preCalcEventId in scenario.precalculatedStateAfter) {
+                const stateMap: Record<StateKeyTuple, EventID> = {};
+                for (const stateEventId of scenario.precalculatedStateAfter[preCalcEventId]) {
+                    const stateEvent = this.cache.eventCache.get(stateEventId);
+                    if (!stateEvent || stateEvent.state_key == null) {
+                        console.log(
+                            `precalculated_state_after for ${preCalcEventId} includes ${stateEventId} but it isn't a state event we know about. Skipping.`,
+                        );
+                        continue;
+                    }
+                    stateMap[JSON.stringify([stateEvent.type, stateEvent.state_key])] = stateEvent.event_id;
+                }
+                this.cache.stateAtEvent.setState(preCalcEventId, stateMap);
+            }
+        }
         this.scenario = scenario;
         this.debugger = new Debugger(scenario);
         eventList.clear();

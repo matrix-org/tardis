@@ -1,5 +1,5 @@
 import JSON5 from "json5";
-import type { MatrixEvent } from "./state_resolver";
+import type { EventID, MatrixEvent } from "./state_resolver";
 
 export const DEFAULT_ROOM_VERSION = "10";
 
@@ -15,10 +15,13 @@ export interface ScenarioFile {
     room_id: string;
     // Optional. If true, calculates the event_id field.
     calculate_event_ids: boolean;
-
-    annotations: {
+    // Optional. Can force the "state after the event" to be these events. Useful for testing /state_ids responses.
+    precalculated_state_after?: Record<EventID, Array<EventID>>;
+    // Optional. Can set custom strings for nodes (events) or on the graph in general (title). Use '\n\' to get line breaks
+    // both in the file and rendered.
+    annotations?: {
         title: string;
-        events: Record<string, string>;
+        events: Record<EventID, string>;
     };
 }
 
@@ -28,8 +31,10 @@ export interface Scenario {
     events: Array<MatrixEvent>;
     // The room version for these events
     roomVersion: string;
+    // Pre-calculated state (useful for /state_ids responses, or for just demoing tardis without a shim!)
+    precalculatedStateAfter?: Record<EventID, Array<EventID>>;
     // Any annotations for the graph.
-    annotations: {
+    annotations?: {
         title: string;
         events: Record<string, string>;
     };
@@ -74,10 +79,6 @@ export async function loadScenarioFromFile(f: File): Promise<Scenario> {
             room_id: eventsOrScenario[0].room_id,
             calculate_event_ids: false,
             events: eventsOrScenario,
-            annotations: {
-                title: "",
-                events: {},
-            },
         };
     } else {
         // it's a test scenario
@@ -87,6 +88,7 @@ export async function loadScenarioFromFile(f: File): Promise<Scenario> {
         events: [],
         roomVersion: scenarioFile.room_version,
         annotations: scenarioFile.annotations,
+        precalculatedStateAfter: scenarioFile.precalculated_state_after,
     };
     // validate and preprocess the scenario file into a valid scenario
     const fakeEventIdToRealEventId = new Map<string, string>();
@@ -131,5 +133,31 @@ export async function loadScenarioFromFile(f: File): Promise<Scenario> {
         }
         scenario.events.push(ev);
     }
+    // also also replace any references in precalculatedStateAfter AFTER we've processed all events
+    if (scenario.precalculatedStateAfter) {
+        for (const fakeAtStateEventId in scenario.precalculatedStateAfter) {
+            const realAtStateEventId = fakeEventIdToRealEventId.get(fakeAtStateEventId);
+            if (!realAtStateEventId) {
+                console.error(
+                    `precalculated_state_after references ${fakeAtStateEventId} but this does not exist in the events array. Skipping.`,
+                );
+                continue;
+            }
+            const stateAtEvent: string[] = [];
+            for (const fakeStateEventId of scenario.precalculatedStateAfter[fakeAtStateEventId]) {
+                const e = fakeEventIdToRealEventId.get(fakeStateEventId);
+                if (e) {
+                    stateAtEvent.push(e);
+                } else {
+                    console.error(
+                        `precalculated_state_after for ${fakeAtStateEventId} references ${fakeStateEventId} but this does not exist in the events array. Skipping.`,
+                    );
+                }
+            }
+            scenario.precalculatedStateAfter[realAtStateEventId] = stateAtEvent;
+            delete scenario.precalculatedStateAfter[fakeAtStateEventId];
+        }
+    }
+    console.log(scenario);
     return scenario;
 }

@@ -16,6 +16,9 @@
             "$BOB_KICK": "Bob is kicked by Kegan."
         }
     },
+    "precalculated_state_after": {
+        "$BOB_JOIN": ["$CREATE", "$PL"]
+    },
     "events": [
         {
             "event_id": "$CREATE",
