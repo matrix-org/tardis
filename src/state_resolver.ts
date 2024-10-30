@@ -110,8 +110,6 @@ class StateResolverTransport implements StateResolverSender {
     ws: WebSocket;
     receiver: StateResolverReceiver;
 
-    constructor(readonly url: string) {}
-
     async sendResolveState(id: string, data: DataResolveState) {
         this.sendWs({
             id: id,
@@ -122,9 +120,9 @@ class StateResolverTransport implements StateResolverSender {
 
     // WebSocket functions below
 
-    async connect(receiver: StateResolverReceiver) {
+    async connect(url: string, receiver: StateResolverReceiver) {
         this.receiver = receiver;
-        this.ws = new WebSocket(this.url);
+        this.ws = new WebSocket(url);
         return new Promise<void>((resolve) => {
             this.ws.addEventListener("open", () => {
                 console.log("WS open");

@@ -24,14 +24,12 @@ const eventList = new EventList(
 
 class Dag {
     cache: Cache;
-    latestEvents: Record<string, MatrixEvent>;
     createEventId: string | null;
-    stepInterval: number;
-    totalHopsBack: number;
     showAuthChain: boolean;
     showPrevEvents: boolean;
     showOutliers: boolean;
     collapse: boolean;
+    shimUrl?: string;
 
     debugger: Debugger;
 
@@ -40,10 +38,7 @@ class Dag {
 
     constructor(cache: Cache) {
         this.cache = cache;
-        this.latestEvents = {};
         this.createEventId = null;
-        this.stepInterval = 1;
-        this.totalHopsBack = 1;
         this.showAuthChain = false;
         this.showPrevEvents = true;
         this.showOutliers = false;
@@ -51,21 +46,17 @@ class Dag {
         this.renderEvents = {};
     }
 
+    setShimUrl(u: string) {
+        this.shimUrl = u;
+        console.log("setShimUrl", u);
+    }
+
     async load(file: File) {
         const scenario = await loadScenarioFromFile(file);
-        let maxDepth = 0;
         for (const ev of scenario.events) {
             this.cache.eventCache.store(ev);
             if (ev.type === "m.room.create" && ev.state_key === "") {
                 this.createEventId = ev.event_id;
-                continue;
-            }
-            if (ev.depth > maxDepth) {
-                maxDepth = ev.depth;
-                this.latestEvents = {}; // reset as we have an event with a deeper depth i.e newer
-                this.latestEvents[ev.event_id] = ev;
-            } else if (ev.depth === maxDepth) {
-                this.latestEvents[ev.event_id] = ev;
             }
         }
         this.scenario = scenario;
@@ -90,9 +81,6 @@ class Dag {
         });
         this.refresh();
     }
-    setStepInterval(num: number) {
-        this.stepInterval = num;
-    }
     setShowAuthChain(show: boolean) {
         this.showAuthChain = show;
     }
@@ -115,118 +103,11 @@ class Dag {
     }
     // returns the set of events to render
     async recalculate(): Promise<Record<string, MatrixEvent>> {
-        if (this.debugger.current()) {
-            return this.recalculateStep();
-        }
-        return this.recalculateWalkBack();
-    }
-
-    async recalculateWalkBack(): Promise<Record<string, MatrixEvent>> {
-        const renderEvents = Object.create(null);
-        // always render the latest events
-        for (const fwdExtremityId in this.latestEvents) {
-            renderEvents[fwdExtremityId] = this.latestEvents[fwdExtremityId];
-        }
-
-        if (this.showPrevEvents) {
-            const prevEvents = await this.loadEarlierEvents(this.latestEvents, "prev_events", this.totalHopsBack);
-            for (const id in prevEvents.events) {
-                renderEvents[id] = prevEvents.events[id];
-            }
-        }
-        if (this.showAuthChain) {
-            let createEventInChain = false;
-            const authEvents = await this.loadEarlierEvents(this.latestEvents, "auth_events", this.totalHopsBack);
-            for (const id in authEvents.events) {
-                // we don't care about prev_events for auth chain so snip them if they aren't included yet
-                // Deep copy to avoid polluting the actual event.
-                const authEvent = JSON.parse(JSON.stringify(authEvents.events[id]));
-                authEvent.prev_events = authEvent.prev_events.filter((pid) => {
-                    return renderEvents[pid];
-                });
-                // We also don't care about the link to the create event as all events have this so it's just noise,
-                // so snip it, but only if there are other refs (it's useful to see the chain at the beginning of the room)
-                if (authEvent.auth_events.length > 1) {
-                    authEvent.auth_events = authEvent.auth_events.filter((aid) => {
-                        if (aid === this.createEventId) {
-                            return false;
-                        }
-                        return true;
-                    });
-                } else if (authEvent.auth_events.length === 1 && authEvent.auth_events[0] === this.createEventId) {
-                    createEventInChain = true;
-                }
-                renderEvents[id] = authEvent;
-            }
-            // we don't want the m.room.create event unless it is part of the dag, as it will be orphaned
-            // due to not having auth events linking to it.
-            if (!createEventInChain && this.createEventId) {
-                delete renderEvents[this.createEventId];
-            }
-        }
-        return renderEvents;
-    }
-
-    // return the first N events in file ordering
-    async recalculateStep(): Promise<Record<string, MatrixEvent>> {
         const renderEvents = Object.create(null);
         for (const eventId of this.debugger.eventsUpToCurrent()) {
             renderEvents[eventId] = this.cache.eventCache.get(eventId);
         }
         return renderEvents;
-    }
-
-    // walk backwards from the `frontierEvents` (event_id -> Event JSON) given, using the `lookupKey` to find earlier events.
-    // Stops when there is nowhere to go (create event) or when `hopsBack` has been reached.
-    // Returns:
-    // {
-    //   events: {...} a map of event ID to event.
-    //   frontiers: {...} the new frontier events (a map of event ID to event)
-    // }
-    async loadEarlierEvents(frontierEvents: Record<string, MatrixEvent>, lookupKey: string, hopsBack: number) {
-        console.log("loadEarlierEvents", frontierEvents);
-        const result = {}; // event_id -> Event JSON
-        for (let i = 0; i < hopsBack; i++) {
-            // walk the DAG backwards starting at the frontier entries.
-            // look at either prev_events or auth_events (the lookup key)
-            // and add them to the set of event IDs to find.
-            const missingEventIds = new Set<string>();
-            for (const frontier of Object.values(frontierEvents)) {
-                for (const earlierEventId of frontier[lookupKey]) {
-                    if (!(earlierEventId in result)) {
-                        missingEventIds.add(earlierEventId);
-                    }
-                }
-            }
-            if (missingEventIds.size === 0) {
-                break;
-            }
-            // fetch the events from the in-memory cache which is the file
-            const fetchedEventsById = Object.create(null) as Record<string, MatrixEvent>;
-            for (const id of missingEventIds) {
-                const ev = this.cache.eventCache.get(id);
-                if (ev) {
-                    fetchedEventsById[id] = ev;
-                }
-            }
-
-            const fetchedEvents = Object.values(fetchedEventsById);
-            if (fetchedEvents.length > 0) {
-                // all frontier events get wiped so we can make forward progress and set new frontier events
-                // biome-ignore lint/style/noParameterAssign:
-                frontierEvents = {} as Record<string, MatrixEvent>;
-                for (const event of fetchedEvents) {
-                    result[event.event_id] = event; // include this event
-                    missingEventIds.delete(event.event_id);
-                    // these events now become frontiers themselves
-                    frontierEvents[event.event_id] = event;
-                }
-            }
-        }
-        return {
-            events: result,
-            frontiers: frontierEvents,
-        };
     }
 
     // Converts a map of event ID to event into a complete DAG which d3dag will accept. This primarily
@@ -246,7 +127,6 @@ class Dag {
                     if (this.cache.eventCache.get(id)) {
                         events[id] = {
                             event_id: id,
-                            _backwards_extremity_key: key,
                             prev_events: [],
                             auth_events: [],
                             state_key: "...",
@@ -644,9 +524,6 @@ class Dag {
                 }
             }
             const text = `${id} (${depth}) ${evType} ${evStateKey} ${collapse}`;
-            if (d.data._backwards_extremity_key) {
-                return "load more";
-            }
             return text;
         };
         nodes
@@ -669,12 +546,6 @@ class Dag {
             })
             .attr("cursor", "pointer")
             .on("click", async (event, d) => {
-                if (d.data._backwards_extremity_key) {
-                    // load more events
-                    this.totalHopsBack += this.stepInterval;
-                    this.refresh();
-                    return;
-                }
                 document.getElementById("eventdetails")!.textContent = JSON.stringify(d.data, null, 2);
                 document.getElementById("infocontainer")!.style.display = "block";
             })
@@ -683,9 +554,6 @@ class Dag {
             .attr("text-anchor", "left")
             .attr("alignment-baseline", "middle")
             .attr("fill", (d) => {
-                if (d.data._backwards_extremity_key) {
-                    return "red";
-                }
                 return "black";
             });
 
@@ -708,7 +576,7 @@ class Dag {
     }
 }
 let dag = new Dag(new Cache());
-const transport = new StateResolverTransport("http://localhost:1234");
+const transport = new StateResolverTransport();
 const resolver = new StateResolver(transport, (data: DataGetEvent): MatrixEvent => {
     return dag.cache.eventCache.get(data.event_id)!;
 });
@@ -728,10 +596,6 @@ document.getElementById("collapse")!.addEventListener("change", (ev) => {
     dag.refresh();
 });
 (<HTMLInputElement>document.getElementById("collapse"))!.checked = dag.collapse;
-document.getElementById("step")!.addEventListener("change", (ev) => {
-    dag.setStepInterval(Number((<HTMLInputElement>ev.target)!.value));
-});
-
 (<HTMLInputElement>document.getElementById("jsonfile")).addEventListener(
     "change",
     async (ev) => {
@@ -740,14 +604,13 @@ document.getElementById("step")!.addEventListener("change", (ev) => {
             return;
         }
         dag = new Dag(new Cache());
+        // set it initially from the input value else we might resolve without ever calling setShimUrl
+        dag.setShimUrl(document.getElementById("shimurl").value);
         await dag.load(files[0]);
     },
     false,
 );
 
-document.getElementById("go")!.addEventListener("click", async (ev) => {
-    dag.refresh();
-});
 document.getElementById("closeinfocontainer")!.addEventListener("click", (ev) => {
     document.getElementById("infocontainer")!.style.display = "none";
 });
@@ -763,6 +626,19 @@ document.getElementById("stepbwd")!.addEventListener("click", async (ev) => {
     dag.refresh();
     eventList.highlight(dag.debugger.current());
 });
+
+document.getElementById("shimurl")!.addEventListener("change", (ev) => {
+    const newUrl = (<HTMLInputElement>ev.target)!.value;
+    dag.setShimUrl(newUrl);
+    globalThis.localStorage.setItem("shim_url", newUrl);
+});
+// set placeholder from local storage
+const existingShimUrl = globalThis.localStorage.getItem("shim_url");
+if (existingShimUrl) {
+    console.log("setting shim url from local storage");
+    document.getElementById("shimurl").value = existingShimUrl;
+}
+
 document.getElementById("resolve")!.addEventListener("click", async (ev) => {
     await dag.debugger.resolve(
         dag.cache,
@@ -771,8 +647,12 @@ document.getElementById("resolve")!.addEventListener("click", async (ev) => {
             roomVer: string,
             states: Array<Record<StateKeyTuple, EventID>>,
         ): Promise<Record<StateKeyTuple, EventID>> => {
+            if (!dag.shimUrl) {
+                console.error("you need to set a shim url to resolve state!");
+                return {};
+            }
             try {
-                await transport.connect(resolver);
+                await transport.connect(dag.shimUrl, resolver);
                 const r = await resolver.resolveState(roomId, roomVer, states);
                 return r.state;
             } catch (err) {
