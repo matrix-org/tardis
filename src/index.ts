@@ -75,6 +75,11 @@ class Dag {
             eventList.appendEvent(i, ev);
         });
         eventList.highlight(this.debugger.current());
+        eventList.onEventClick((eventId: string) => {
+            this.debugger.goTo(eventId);
+            this.refresh();
+            eventList.highlight(dag.debugger.current());
+        });
         this.refresh();
     }
     setStepInterval(num: number) {
@@ -383,7 +388,6 @@ class Dag {
             }
             seenQueue.add(id);
             if (!ev) {
-                console.log("  no event");
                 continue;
             }
             // continue walking..
@@ -716,12 +720,10 @@ document.getElementById("closeinfocontainer")!.addEventListener("click", (ev) =>
 });
 document.getElementById("infocontainer")!.style.display = "none";
 
-let i = 1;
 document.getElementById("stepfwd")!.addEventListener("click", async (ev) => {
     dag.debugger.next();
     dag.refresh();
     eventList.highlight(dag.debugger.current());
-    i++;
 });
 document.getElementById("stepbwd")!.addEventListener("click", async (ev) => {
     dag.debugger.previous();

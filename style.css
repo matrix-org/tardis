@@ -18,7 +18,7 @@
     cursor: pointer;
 }
 
-#body {
+#contents {
     display: flex;
     justify-content: space-around;
 }
@@ -34,6 +34,7 @@
     border-color: #00060b;
     margin-top: 5px;
     margin-bottom: 5px;
+    overflow-y: scroll;
 }
 
 .eventlistrow {
@@ -44,6 +45,7 @@
 
 .eventlistrowprefix {
     padding: 5px;
+    cursor: pointer;
 }
 
 .eventlistrowbody {

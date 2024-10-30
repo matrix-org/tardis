@@ -28,6 +28,15 @@ export class Debugger {
         }
         this.currentEventId = this.eventIdOrdering[this.index];
     }
+    goTo(eventId: string) {
+        for (let i = 0; i < this.eventIdOrdering.length; i++) {
+            if (this.eventIdOrdering[i] === eventId) {
+                this.index = i;
+                this.currentEventId = this.eventIdOrdering[this.index];
+                break;
+            }
+        }
+    }
     current(): string {
         return this.currentEventId;
     }
