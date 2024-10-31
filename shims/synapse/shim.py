@@ -21,8 +21,6 @@ class WebSocketMessage(BaseModel):
     error: Optional[str] = None
     data: dict
 
-room_ver = RoomVersions.V10 # TODO: parameterise
-
 class FakeClock:
     def sleep(self, msec: float) -> "defer.Deferred[None]":
         return defer.succeed(None)
@@ -33,6 +31,7 @@ class Connection:
     def __init__(self, ws):
         self.ws = ws
         self.outstanding_requests = {}
+        self.room_ver = RoomVersions.V10
 
 # Array<Record<StateKeyTuple, EventID>>
     async def resolve_state(self, id: str, room_id: str, room_ver_str: str, state_sets_wire_format: Sequence[Dict[str,str]]):
@@ -40,12 +39,14 @@ class Connection:
         if KNOWN_ROOM_VERSIONS.get(room_ver_str) is None:
             print(f"  resolve_state: {id} WARNING: unknown room version {room_ver_str}")
 
+        self.room_ver = KNOWN_ROOM_VERSIONS[room_ver_str]
+
         # map the wire format to a form synapse wants, notably this is converting the JSON stringified tuples
         # back into real tuples
         state_sets: Sequence[StateMap[str]] = [
             { tuple(json.loads(k)): sswf[k] for k in sswf} for sswf in state_sets_wire_format
         ]
-        r = await resolve_events_with_store(FakeClock(),room_id, KNOWN_ROOM_VERSIONS[room_ver_str], state_sets, event_map=None, state_res_store=self)
+        r = await resolve_events_with_store(FakeClock(),room_id, self.room_ver, state_sets, event_map=None, state_res_store=self)
         print(f"resolve_state: {id} responding")
         # convert tuple keys to strings
         r = {json.dumps(k):v for k,v in r.items()}
@@ -74,7 +75,7 @@ class Connection:
         await fut
         ev_dict = self.outstanding_requests[id].result()
         ev_dict.pop("event_id") # wire format shouldn't have this, but tardis includes it.
-        return make_event_from_dict(ev_dict, room_version=room_ver)
+        return make_event_from_dict(ev_dict, room_version=self.room_ver)
 
     async def get_events(
         self, event_ids: Collection[str], allow_rejected: bool = False
