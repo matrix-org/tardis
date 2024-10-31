@@ -1,0 +1,48 @@
+<html>
+
+<head>
+    <link rel="icon" href="/favicon.svg">
+    <title>TARDIS - Time Agnostic Room DAG Inspection Service</title>
+    <script src="/wasm_exec.js"></script>
+  <script type="module" crossorigin src="/assets/index-BTBwSoLF.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-oyMEiG0s.css">
+</head>
+
+<body>
+    <div id="page">
+        <div id="header">
+            <input id="jsonfile" type="file" />
+            <label>Auth Chain?<input id="showauthevents" type="checkbox" /></label>
+            <label>Outliers?<input id="showoutliers" type="checkbox" /></label>
+            <label>Collapse?<input id="collapse" type="checkbox" /></label>
+            <input id="stepbwd" type="button" value="<-" />
+            <input id="stepfwd" type="button" value="->" />
+            <input id="shimurl" type="text" value="http://localhost:1234" placeholder="Shim URL" />
+            <input id="resolve" type="button" value="Resolve State" />
+        </div>
+        <div id="infocontainer">
+            <pre id="closeinfocontainer">[ Close ]</pre>
+            <pre id="eventdetails" />
+        </div>
+        <div id="contents">
+            <div id="eventlist"></div>
+            <div id="svgcontainer" />
+        </div>
+    </div>
+
+    <template id="eventlisttemplate">
+        <div class="eventlistrow">
+            <div class="eventlistrowprefix">
+                123
+            </div>
+            <button class="eventlistrowjson" title="Show JSON">
+                { }
+            </button>
+            <div class="eventlistroweventid monospace"></div>
+            <div class="eventlistrowbody">Lorem Ipsum Dolor...</div>
+        </div>
+    </template>
+
+</body>
+
+</html>
