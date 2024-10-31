@@ -8,7 +8,7 @@ export interface ScenarioFile {
     // Required. The version of the file, always '1'.
     tardis_version: number;
     // Required. The events in this scenario, in the order they should be processed (typically topologically sorted)
-    events: Array<MatrixEvent>;
+    events: Array<ScenarioEvent>;
     // Optional. The room version these events are represented in. Default: DEFAULT_ROOM_VERSION.
     room_version: string;
     // Optional. If events are missing a room_id key, populate it from this field. For brevity.
@@ -23,6 +23,21 @@ export interface ScenarioFile {
         title: string;
         events: Record<EventID, string>;
     };
+}
+
+export interface ScenarioEvent {
+    // subset of MatrixEvent
+    event_id: string;
+    type: string;
+    state_key?: string;
+    // biome-ignore lint/suspicious/noExplicitAny: we don't know the values.
+    content: Record<string, any>;
+    sender: string;
+    depth: number;
+    prev_events: Array<string>;
+    auth_events: Array<string>;
+    origin_server_ts?: number;
+    room_id?: string;
 }
 
 // Scenario is a loaded scenario for use with tardis. ScenarioFiles end up being represented as Scenarios.
@@ -84,6 +99,10 @@ export async function loadScenarioFromFile(f: File): Promise<Scenario> {
         // it's a test scenario
         scenarioFile = eventsOrScenario;
     }
+    return loadScenarioFromScenarioFile(scenarioFile);
+}
+
+export function loadScenarioFromScenarioFile(scenarioFile: ScenarioFile): Scenario {
     const scenario: Scenario = {
         events: [],
         roomVersion: scenarioFile.room_version,
@@ -131,7 +150,7 @@ export async function loadScenarioFromFile(f: File): Promise<Scenario> {
                 scenario.annotations.events[realEventId] = scenario.annotations.events[fakeEventId];
             }
         }
-        scenario.events.push(ev);
+        scenario.events.push(ev as MatrixEvent);
     }
     // also also replace any references in precalculatedStateAfter AFTER we've processed all events
     if (scenario.precalculatedStateAfter) {

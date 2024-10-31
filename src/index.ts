@@ -3,7 +3,7 @@ import * as d3dag from "d3-dag";
 import { Cache } from "./cache";
 import { Debugger } from "./debugger";
 import { EventList } from "./event_list";
-import { type Scenario, loadScenarioFromFile } from "./scenario";
+import { type Scenario, loadScenarioFromFile, loadScenarioFromScenarioFile } from "./scenario";
 import {
     type DataGetEvent,
     type EventID,
@@ -51,8 +51,12 @@ class Dag {
         console.log("setShimUrl", u);
     }
 
-    async load(file: File) {
+    async loadFile(file: File) {
         const scenario = await loadScenarioFromFile(file);
+        this.loadScenario(scenario);
+    }
+
+    loadScenario(scenario: Scenario) {
         for (const ev of scenario.events) {
             this.cache.eventCache.store(ev);
             if (ev.type === "m.room.create" && ev.state_key === "") {
@@ -401,7 +405,7 @@ class Dag {
         const svgSelection = d3.select(svgNode);
         const title = svgSelection
             .append("text")
-            .attr("x", width / 2)
+            .attr("x", width / 3)
             .attr("y", 0)
             .style("font-size", "24px");
         for (const titleLine of (this.scenario?.annotations?.title || "").split("\n")) {
@@ -562,8 +566,9 @@ class Dag {
             })
             .attr("cursor", "pointer")
             .on("click", async (event, d) => {
-                document.getElementById("eventdetails")!.textContent = JSON.stringify(d.data, null, 2);
-                document.getElementById("infocontainer")!.style.display = "block";
+                this.debugger.goTo(d.data.event_id);
+                eventList.highlight(d.data.event_id);
+                this.refresh();
             })
             .attr("transform", `translate(${nodeRadius + 10}, 0)`)
             .attr("font-family", "sans-serif")
@@ -622,7 +627,7 @@ document.getElementById("collapse")!.addEventListener("change", (ev) => {
         dag = new Dag(new Cache());
         // set it initially from the input value else we might resolve without ever calling setShimUrl
         dag.setShimUrl(document.getElementById("shimurl").value);
-        await dag.load(files[0]);
+        await dag.loadFile(files[0]);
     },
     false,
 );
@@ -687,4 +692,132 @@ const go = new Go(); // Defined in wasm_exec.js
 WebAssembly.instantiateStreaming(fetch("gmsl.wasm"), go.importObject).then((obj) => {
     globalThis.wasm = obj.instance;
     go.run(globalThis.wasm);
+
+    // now load the tutorial scenario
+    const tutorial = loadScenarioFromScenarioFile({
+        calculate_event_ids: true,
+        events: [
+            {
+                type: "m.room.create",
+                state_key: "",
+                sender: "@creator:tardis",
+                auth_events: [],
+                prev_events: [],
+                content: { creator: "@creator:tardis" },
+                event_id: "$CREATE",
+                depth: 1,
+                origin_server_ts: 1409560240000,
+            },
+            {
+                type: "m.room.member",
+                state_key: "@creator:tardis",
+                sender: "@creator:tardis",
+                auth_events: ["$CREATE"],
+                prev_events: ["$CREATE"],
+                content: { membership: "join" },
+                event_id: "$JOIN",
+                depth: 2,
+                origin_server_ts: 1409560241000,
+            },
+            {
+                type: "m.room.message",
+                sender: "@creator:tardis",
+                auth_events: ["$CREATE", "$JOIN"],
+                prev_events: ["$JOIN"],
+                content: { body: "A wild fork appears!" },
+                event_id: "$FORK1",
+                depth: 3,
+                origin_server_ts: 1409560242000,
+            },
+            {
+                type: "m.room.message",
+                sender: "@creator:tardis",
+                auth_events: ["$CREATE", "$JOIN"],
+                prev_events: ["$JOIN"],
+                content: { body: "Another wild fork appears!" },
+                event_id: "$FORK2",
+                depth: 3,
+                origin_server_ts: 1409560243000,
+            },
+            {
+                type: "m.room.message",
+                sender: "@creator:tardis",
+                auth_events: ["$CREATE", "$JOIN"],
+                prev_events: ["$FORK1", "$FORK2"],
+                content: { body: "Merged!" },
+                event_id: "$MERGE",
+                depth: 4,
+                origin_server_ts: 1409560244000,
+            },
+            {
+                type: "m.room.message",
+                sender: "@creator:tardis",
+                auth_events: ["$CREATE", "$JOIN"],
+                prev_events: ["$MERGE"],
+                content: { body: "This event has precalculated state" },
+                event_id: "$PRESTATE",
+                depth: 5,
+                origin_server_ts: 1409560245000,
+            },
+            {
+                type: "m.room.name",
+                state_key: "",
+                sender: "@creator:tardis",
+                auth_events: ["$CREATE", "$JOIN"],
+                prev_events: ["$PRESTATE"],
+                content: { name: "State events are bigger than messages" },
+                event_id: "$MSG",
+                depth: 6,
+                origin_server_ts: 1409560246000,
+            },
+            {
+                type: "m.room.message",
+                sender: "@creator:tardis",
+                auth_events: ["$CREATE", "$JOIN"],
+                prev_events: ["$MSG"],
+                content: { body: "Boring long chains..." },
+                event_id: "$MSG2",
+                depth: 7,
+                origin_server_ts: 1409560246000,
+            },
+            {
+                type: "m.room.message",
+                sender: "@creator:tardis",
+                auth_events: ["$CREATE", "$JOIN"],
+                prev_events: ["$MSG2"],
+                content: { body: "...can be collapsed..." },
+                event_id: "$MSG3",
+                depth: 8,
+                origin_server_ts: 1409560246000,
+            },
+            {
+                type: "m.room.message",
+                sender: "@creator:tardis",
+                auth_events: ["$CREATE", "$JOIN"],
+                prev_events: ["$MSG3"],
+                content: { body: "...by checking the collapse checkbox." },
+                event_id: "$MSG4",
+                depth: 9,
+                origin_server_ts: 1409560246000,
+            },
+        ],
+        room_id: "!tutorial:tardis",
+        room_version: "10",
+        tardis_version: 1,
+        annotations: {
+            title: "Welcome to TARDIS!\n(click, drag, zoom to navigate the DAG)\n\nSelect a node to jump to that point in time.\nUse the arrow buttons to jump forward/back.\nSelect an event number to jump straight to that event.",
+            events: {
+                $MSG: "Bigger nodes like this one are state events.",
+                $MSG2: "Boring long chains...",
+                $MSG3: "...can be collapsed...",
+                $MSG4: "...by checking the collapse checkbox.",
+                $PRESTATE: "This event has pre-calculated state (in green) after this event",
+            },
+        },
+        precalculated_state_after: {
+            $PRESTATE: ["$CREATE", "$JOIN"],
+        },
+    });
+    console.log(tutorial);
+    dag.loadScenario(tutorial);
 });
