@@ -4,7 +4,7 @@
   "description": "Time Agnostic Room DAG Inspection Service",
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "build": "vite build --base=/tardis",
     "start": "vite",
     "test": "jest ./src",
     "lint": "biome check",
