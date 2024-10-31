@@ -406,7 +406,7 @@ class Dag {
         const title = svgSelection
             .append("text")
             .attr("x", width / 3)
-            .attr("y", 0)
+            .attr("y", -40)
             .style("font-size", "24px");
         for (const titleLine of (this.scenario?.annotations?.title || "").split("\n")) {
             title
@@ -805,7 +805,17 @@ WebAssembly.instantiateStreaming(fetch("gmsl.wasm"), go.importObject).then((obj)
         room_version: "10",
         tardis_version: 1,
         annotations: {
-            title: "Welcome to TARDIS!\n(click, drag, zoom to navigate the DAG)\n\nSelect a node to jump to that point in time.\nUse the arrow buttons to jump forward/back.\nSelect an event number to jump straight to that event.",
+            title: [
+                "Welcome to TARDIS!",
+                "(click, drag, zoom to navigate the DAG)",
+                "Select a node or use the arrow buttons to jump forward/back, or select an event number to jump to that point in time.",
+                "If you are running a shim server:",
+                " - type in your shim server URL,",
+                " - jump to the event you want to calculate the 'current' state for,",
+                " - hit 'Resolve State'.",
+                " - Nodes in green are part of the current state at this event.",
+                " - NOTE: as state resolution is iterative, it will resolve state for all earlier events as well.",
+            ].join("\n"),
             events: {
                 $MSG: "Bigger nodes like this one are state events.",
                 $MSG2: "Boring long chains...",
