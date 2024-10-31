@@ -597,6 +597,7 @@ class Dag {
     }
 }
 let dag = new Dag(new Cache());
+dag.setShimUrl(document.getElementById("shimurl").value); // TODO: this is annoying in so many places..
 const transport = new StateResolverTransport();
 const resolver = new StateResolver(transport, (data: DataGetEvent): MatrixEvent => {
     return dag.cache.eventCache.get(data.event_id)!;
