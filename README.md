@@ -2,24 +2,17 @@
 
 TARDIS is a time-travelling debugger for Matrix room DAGs, which reads a plaintext file
 to graphically visualise a room using [d3-dag](https://github.com/erikbrinkman/d3-dag) for
-debugging purposes.
-
-The original intention was to add it as a RightPanel widget to Element (particularly in p2p mode)
-to help figure out what's gone wrong if your P2P node goes weird. The current intention is
-to use it to explore the shape of public room DAGs to design better APIs for P2P federation.
-
-It's effectively the real-life version of the 2014-vintage D3 "how matrix
-works" animation from the frontpage of Matrix.org.
-
-Currently very experimental and PoC.
+debugging purposes. It can then perform state resolution at any given event on the DAG via
+a shim server. TARDIS comes with a Synapse shim server, which needs to be run in addition
+to TARDIS. See `shims/synapse`.
 
 ## Generates stuff like this:
 
-![](img/anim.gif)
+![](img/tardis.png)
 
 ### To use:
 
-Requires node 20+
+Requires node 20+ for global crypto variables.
 ```
 yarn install
 yarn run start
@@ -29,7 +22,11 @@ or:
 docker build -t tardis .
 docker run --rm -p 5173:5173 tardis
 ```
-Then provide a new-line delimited JSON file which contains events to render in the full federation format (with `prev_events`, etc).
+
+## Loading events
+
+### ..via existing events in a database
+Provide a new-line delimited JSON file which contains events to render in the full federation format (with `prev_events`, etc).
 To get such a file _for Synapse installations on Postgres_, run the following (assuming `matrix` is the name of your DB):
 ```
 $ psql matrix
@@ -47,8 +44,14 @@ matrix=> select jsonb_insert(json::JSONB, '{event_id}', ('"' || event_id || '"')
 You can drop the `stream_ordering` clauses if the room is small and you want to see the entire thing. The file created by these
 commands can be dropped **as-is** into TARDIS.
 
-### Event ID generation
+### ..via scenario JSON5 files
+Provide a JSON5 file which contains the scenario to run. See the `examples` directory for examples on
+the keys available.
 
+## Developing
+
+
+### Building WASM
 Sometimes we want to create mock scenarios which don't exist in databases. We use placeholder event IDs in this case. However, state
 resolution demands that they are actual event IDs. Tardis uses the same code paths as Dendrite (via wasm) to generate the correct event IDs.
 To build the wasm, you need [tinygo](https://tinygo.org/) installed and then:
