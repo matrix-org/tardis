@@ -33,7 +33,6 @@ export interface ScenarioEvent {
     // biome-ignore lint/suspicious/noExplicitAny: we don't know the values.
     content: Record<string, any>;
     sender: string;
-    depth: number;
     prev_events: Array<string>;
     auth_events: Array<string>;
     origin_server_ts?: number;
@@ -111,6 +110,7 @@ export function loadScenarioFromScenarioFile(scenarioFile: ScenarioFile): Scenar
     };
     // validate and preprocess the scenario file into a valid scenario
     const fakeEventIdToRealEventId = new Map<string, string>();
+    let time = new Date().getTime();
     for (const ev of scenarioFile.events) {
         if (!ev) {
             throw new Error("missing event");
@@ -121,18 +121,16 @@ export function loadScenarioFromScenarioFile(scenarioFile: ScenarioFile): Scenar
         if (!ev.type) {
             throw new Error(`event is missing 'type' field, got ${JSON.stringify(ev)}`);
         }
-        if (!ev.depth) {
-            throw new Error(`event is missing 'depth' field, got ${JSON.stringify(ev)}`);
+        if (!ev.origin_server_ts) {
+            ev.origin_server_ts = time;
+            time += 1000;
         }
         if (!ev.room_id && scenarioFile.room_id) {
             ev.room_id = scenarioFile.room_id;
         }
         if (scenarioFile.calculate_event_ids) {
             const fakeEventId = ev.event_id;
-            const realEventId = globalThis.gmslEventIDForEvent(JSON.stringify(ev), scenarioFile.room_version);
-            fakeEventIdToRealEventId.set(fakeEventId, realEventId);
-            ev.event_id = realEventId;
-            // also replace any references in prev_events and auth_events
+            // replace any references in prev_events and auth_events
             for (const key of ["prev_events", "auth_events"]) {
                 const replacement: Array<string> = [];
                 for (const eventIdToReplace of ev[key]) {
@@ -145,6 +143,11 @@ export function loadScenarioFromScenarioFile(scenarioFile: ScenarioFile): Scenar
                 }
                 ev[key] = replacement;
             }
+            // replace the fake event ID AFTER we mutate the event to set prev/auth events
+            const realEventId = globalThis.gmslEventIDForEvent(JSON.stringify(ev), scenarioFile.room_version);
+            fakeEventIdToRealEventId.set(fakeEventId, realEventId);
+            ev.event_id = realEventId;
+
             // also replace any references in annotations
             if (scenario.annotations?.events[fakeEventId]) {
                 scenario.annotations.events[realEventId] = scenario.annotations.events[fakeEventId];

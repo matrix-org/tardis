@@ -5,7 +5,6 @@ interface MatrixEvent {
     // biome-ignore lint/suspicious/noExplicitAny: we don't know the values.
     content: Record<string, any>;
     sender: string;
-    depth: number;
     prev_events: Array<string>;
     auth_events: Array<string>;
     room_id: string;
@@ -65,7 +64,11 @@ class StateResolver implements StateResolverReceiver {
     }
 
     onGetEventRequest(data: DataGetEvent): MatrixEvent {
-        return this.getEvent(data);
+        const ev = this.getEvent(data);
+        if (!ev) {
+            console.error(`WS: asked for event ${data.event_id} but didn't find it.`);
+        }
+        return ev;
     }
 
     onResolveStateResponse(id: string, data: DataResolveState) {
@@ -89,6 +92,7 @@ class StateResolver implements StateResolverReceiver {
         const promise = new Promise<ResolvedState>((resolve, reject) => {
             this.inflightRequests.set(id, (resolvedData: DataResolveState) => {
                 if (!resolvedData.result) {
+                    console.error("State resolved to the empty set");
                     resolve({ state: {} });
                     return;
                 }

@@ -154,7 +154,6 @@ class Dag {
                             content: {},
                             sender: "",
                             room_id: "!",
-                            depth: 0,
                         };
                     } else {
                         events[id] = {
@@ -166,7 +165,6 @@ class Dag {
                             content: {},
                             sender: "",
                             room_id: "!",
-                            depth: 0,
                         };
                     }
                 }
@@ -536,14 +534,14 @@ class Dag {
                     evStateKey = `(${d.data.state_key}=${d.data.content.membership})`;
                 }
             }
-            const depth = d.data.depth ? d.data.depth : "";
+            const depth = d.data.depth ? `(${d.data.depth})` : "";
             let collapse = d.data._collapse ? `+${d.data._collapse} more` : "";
             if (collapse === "") {
                 if (d.data.origin !== undefined) {
                     collapse = d.data.origin; // TODO: nonstandard field?
                 }
             }
-            const text = `${id} (${depth}) ${evType} ${evStateKey} ${collapse}`;
+            const text = `${id} ${depth} ${evType} ${evStateKey} ${collapse}`;
             return text;
         };
         nodes
@@ -706,7 +704,6 @@ WebAssembly.instantiateStreaming(fetch("gmsl.wasm"), go.importObject).then((obj)
                 prev_events: [],
                 content: { creator: "@creator:tardis" },
                 event_id: "$CREATE",
-                depth: 1,
                 origin_server_ts: 1409560240000,
             },
             {
@@ -717,7 +714,6 @@ WebAssembly.instantiateStreaming(fetch("gmsl.wasm"), go.importObject).then((obj)
                 prev_events: ["$CREATE"],
                 content: { membership: "join" },
                 event_id: "$JOIN",
-                depth: 2,
                 origin_server_ts: 1409560241000,
             },
             {
@@ -727,7 +723,6 @@ WebAssembly.instantiateStreaming(fetch("gmsl.wasm"), go.importObject).then((obj)
                 prev_events: ["$JOIN"],
                 content: { body: "A wild fork appears!" },
                 event_id: "$FORK1",
-                depth: 3,
                 origin_server_ts: 1409560242000,
             },
             {
@@ -737,7 +732,6 @@ WebAssembly.instantiateStreaming(fetch("gmsl.wasm"), go.importObject).then((obj)
                 prev_events: ["$JOIN"],
                 content: { body: "Another wild fork appears!" },
                 event_id: "$FORK2",
-                depth: 3,
                 origin_server_ts: 1409560243000,
             },
             {
@@ -747,7 +741,6 @@ WebAssembly.instantiateStreaming(fetch("gmsl.wasm"), go.importObject).then((obj)
                 prev_events: ["$FORK1", "$FORK2"],
                 content: { body: "Merged!" },
                 event_id: "$MERGE",
-                depth: 4,
                 origin_server_ts: 1409560244000,
             },
             {
@@ -757,7 +750,6 @@ WebAssembly.instantiateStreaming(fetch("gmsl.wasm"), go.importObject).then((obj)
                 prev_events: ["$MERGE"],
                 content: { body: "This event has precalculated state" },
                 event_id: "$PRESTATE",
-                depth: 5,
                 origin_server_ts: 1409560245000,
             },
             {
@@ -768,7 +760,6 @@ WebAssembly.instantiateStreaming(fetch("gmsl.wasm"), go.importObject).then((obj)
                 prev_events: ["$PRESTATE"],
                 content: { name: "State events are bigger than messages" },
                 event_id: "$MSG",
-                depth: 6,
                 origin_server_ts: 1409560246000,
             },
             {
@@ -778,7 +769,6 @@ WebAssembly.instantiateStreaming(fetch("gmsl.wasm"), go.importObject).then((obj)
                 prev_events: ["$MSG"],
                 content: { body: "Boring long chains..." },
                 event_id: "$MSG2",
-                depth: 7,
                 origin_server_ts: 1409560246000,
             },
             {
@@ -788,7 +778,6 @@ WebAssembly.instantiateStreaming(fetch("gmsl.wasm"), go.importObject).then((obj)
                 prev_events: ["$MSG2"],
                 content: { body: "...can be collapsed..." },
                 event_id: "$MSG3",
-                depth: 8,
                 origin_server_ts: 1409560246000,
             },
             {
@@ -798,7 +787,6 @@ WebAssembly.instantiateStreaming(fetch("gmsl.wasm"), go.importObject).then((obj)
                 prev_events: ["$MSG3"],
                 content: { body: "...by checking the collapse checkbox." },
                 event_id: "$MSG4",
-                depth: 9,
                 origin_server_ts: 1409560246000,
             },
         ],
