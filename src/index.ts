@@ -12,12 +12,12 @@ import {
     StateResolver,
     StateResolverTransport,
 } from "./state_resolver";
-import { quickstartFile, mainlineForks } from "./preloaded_scenarios";
+import { quickstartFile, mainlineForks, reverseTopologicalPowerOrdering } from "./preloaded_scenarios";
 
 const preloadedScenarios: Record<string, ScenarioFile> = {
     "Quick Start": quickstartFile,
     "Mainline Ordering": mainlineForks,
-    // "Reverse Topological Power Ordering": reverseTopologicalPowerOrdering,
+    "Reverse Topological Power Ordering": reverseTopologicalPowerOrdering,
 };
 
 interface Link {
