@@ -56,7 +56,7 @@ export class EventList {
         this.container.appendChild(row);
     }
 
-    private textRepresentation(ev: MatrixEvent): string {
+    public textRepresentation(ev: MatrixEvent): string {
         let stateDescription = "";
         let messageDescription = "";
         if (ev.state_key != null) {

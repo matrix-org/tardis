@@ -129,7 +129,7 @@ export function loadScenarioFromScenarioFile(scenarioFile: ScenarioFile): Scenar
     };
     // validate and preprocess the scenario file into a valid scenario
     const fakeEventIdToRealEventId = new Map<string, string>();
-    let time = new Date().getTime();
+    let time = new Date(2024, 0, 1).getTime();
     for (const ev of scenarioFile.events) {
         if (!ev) {
             throw new Error("missing event");

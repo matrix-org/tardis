@@ -3,7 +3,7 @@ import * as d3dag from "d3-dag";
 import { Cache } from "./cache";
 import { Debugger } from "./debugger";
 import { EventList } from "./event_list";
-import { type Scenario, loadScenarioFromFile, loadScenarioFromScenarioFile } from "./scenario";
+import { type Scenario, type ScenarioFile, loadScenarioFromFile, loadScenarioFromScenarioFile } from "./scenario";
 import {
     type DataGetEvent,
     type EventID,
@@ -12,6 +12,13 @@ import {
     StateResolver,
     StateResolverTransport,
 } from "./state_resolver";
+import { quickstartFile, mainlineForks } from "./preloaded_scenarios";
+
+const preloadedScenarios: Record<string, ScenarioFile> = {
+    "Quick Start": quickstartFile,
+    "Mainline Ordering": mainlineForks,
+    // "Reverse Topological Power Ordering": reverseTopologicalPowerOrdering,
+};
 
 interface Link {
     auth: boolean;
@@ -534,15 +541,7 @@ class Dag {
             if (this.scenario?.annotations?.events?.[eventId]) {
                 return `${id} ${this.scenario?.annotations?.events[eventId]}`;
             }
-
-            const evType = d.data.type;
-            let evStateKey = "";
-            if (d.data.state_key) {
-                evStateKey = `(${d.data.state_key})`;
-                if (evType === "m.room.member" && d.data.content.membership) {
-                    evStateKey = `(${d.data.state_key}=${d.data.content.membership})`;
-                }
-            }
+            const text = eventList.textRepresentation(d.data);
             const depth = d.data.depth ? `(${d.data.depth})` : "";
             let collapse = d.data._collapse ? `+${d.data._collapse} more` : "";
             if (collapse === "") {
@@ -550,8 +549,7 @@ class Dag {
                     collapse = d.data.origin; // TODO: nonstandard field?
                 }
             }
-            const text = `${id} ${depth} ${evType} ${evStateKey} ${collapse}`;
-            return text;
+            return `${id} ${depth} ${text} ${collapse}`;
         };
         nodes
             .append("text")
@@ -701,156 +699,22 @@ WebAssembly.instantiateStreaming(fetch("gmsl.wasm"), go.importObject).then((obj)
     globalThis.wasm = obj.instance;
     go.run(globalThis.wasm);
 
-    // now load the tutorial scenario
-    const tutorial = loadScenarioFromScenarioFile({
-        calculate_event_ids: true,
-        on_load_at_start: true,
-        events: [
-            {
-                type: "m.room.create",
-                state_key: "",
-                sender: "@creator:tardis",
-                auth_events: [],
-                prev_events: [],
-                content: { creator: "@creator:tardis" },
-                event_id: "$CREATE",
-                origin_server_ts: 1409560240000,
-            },
-            {
-                type: "m.room.member",
-                state_key: "@creator:tardis",
-                sender: "@creator:tardis",
-                auth_events: ["$CREATE"],
-                prev_events: ["$CREATE"],
-                content: { membership: "join" },
-                event_id: "$JOIN",
-                origin_server_ts: 1409560241000,
-            },
-            {
-                type: "m.room.message",
-                sender: "@creator:tardis",
-                auth_events: ["$CREATE", "$JOIN"],
-                prev_events: ["$JOIN"],
-                content: { body: "A wild fork appears!" },
-                event_id: "$FORK1",
-                origin_server_ts: 1409560242000,
-            },
-            {
-                type: "m.room.message",
-                sender: "@creator:tardis",
-                auth_events: ["$CREATE", "$JOIN"],
-                prev_events: ["$JOIN"],
-                content: { body: "Another wild fork appears!" },
-                event_id: "$FORK2",
-                origin_server_ts: 1409560243000,
-            },
-            {
-                type: "m.room.message",
-                sender: "@creator:tardis",
-                auth_events: ["$CREATE", "$JOIN"],
-                prev_events: ["$FORK1", "$FORK2"],
-                content: { body: "Merged!" },
-                event_id: "$MERGE",
-                origin_server_ts: 1409560244000,
-            },
-            {
-                type: "m.room.message",
-                sender: "@creator:tardis",
-                auth_events: ["$CREATE", "$JOIN"],
-                prev_events: ["$MERGE"],
-                content: { body: "This event has precalculated state" },
-                event_id: "$PRESTATE",
-                origin_server_ts: 1409560245000,
-            },
-            {
-                type: "m.room.name",
-                state_key: "",
-                sender: "@creator:tardis",
-                auth_events: ["$CREATE", "$JOIN"],
-                prev_events: ["$PRESTATE"],
-                content: { name: "State events are bigger than messages" },
-                event_id: "$MSG",
-                origin_server_ts: 1409560246000,
-            },
-            {
-                type: "m.room.message",
-                sender: "@creator:tardis",
-                auth_events: ["$CREATE", "$JOIN"],
-                prev_events: ["$MSG"],
-                content: { body: "Boring long chains..." },
-                event_id: "$MSG2",
-                origin_server_ts: 1409560246000,
-            },
-            {
-                type: "m.room.message",
-                sender: "@creator:tardis",
-                auth_events: ["$CREATE", "$JOIN"],
-                prev_events: ["$MSG2"],
-                content: { body: "...can be collapsed..." },
-                event_id: "$MSG3",
-                origin_server_ts: 1409560246000,
-            },
-            {
-                type: "m.room.message",
-                sender: "@creator:tardis",
-                auth_events: ["$CREATE", "$JOIN"],
-                prev_events: ["$MSG3"],
-                content: { body: "...by checking the collapse checkbox." },
-                event_id: "$MSG4",
-                origin_server_ts: 1409560246000,
-            },
-        ],
-        room_id: "!tutorial:tardis",
-        room_version: "10",
-        tardis_version: 1,
-        annotations: {
-            title: [
-                "Welcome to TARDIS!",
-                "(click, drag, zoom to navigate the DAG)",
-                "Press the → button to continue.",
-            ].join("\n"),
-            titles: {
-                $FORK1: [
-                    "The current event is highlighted in blue.",
-                    "Message events are smaller than state events.",
-                ].join("\n"),
-                $FORK2: ["The DAG can fork, which indicates", "some events were sent at the same time."].join("\n"),
-                $MERGE: ["The DAG can merge, which merges", "state from each fork together."].join("\n"),
-                $PRESTATE: [
-                    "Green events indicate the",
-                    "state at this event.",
-                    "Message events will never be green.",
-                ].join("\n"),
-                $MSG: ["Check the 'Auth Chain' box to show", "the `auth_events` for each event."].join("\n"),
-                $MSG2: [
-                    "Press the 'Resolve State' button to",
-                    "calculate which events are part of",
-                    "the current room state.",
-                ].join("\n"),
-                $MSG3: [
-                    "As state resolution is iterative,",
-                    "it will resolve state for all earlier",
-                    "events as well. Click on an earlier",
-                    "event in the list to jump to that event.",
-                ].join("\n"),
-                $MSG4: [
-                    "Now load a file or use one of the",
-                    "pre-loaded files to experiment with",
-                    "state resolution in Matrix!",
-                ].join("\n"),
-            },
-            events: {
-                $MSG: "Bigger nodes like this one are state events.",
-                $MSG2: "Boring long chains...",
-                $MSG3: "...can be collapsed...",
-                $MSG4: "...by checking the collapse checkbox.",
-                $PRESTATE: "This event has pre-calculated state (in green) after this event",
-            },
-        },
-        precalculated_state_after: {
-            $PRESTATE: ["$CREATE", "$JOIN"],
-        },
-    });
-    console.log(tutorial);
-    dag.loadScenario(tutorial);
+    const loadPreloadedFile = (sf: ScenarioFile) => {
+        // now load the tutorial scenario
+        const tutorial = loadScenarioFromScenarioFile(sf);
+        dag.loadScenario(tutorial);
+    };
+
+    const select = document.getElementById("file-select");
+    if (select) {
+        select.innerHTML = "";
+        Object.keys(preloadedScenarios).forEach((val, index) => {
+            select[index] = new Option(val);
+        });
+        select.addEventListener("change", (event) => {
+            const sf = preloadedScenarios[event?.target?.value];
+            loadPreloadedFile(sf);
+        });
+    }
+    loadPreloadedFile(quickstartFile);
 });
