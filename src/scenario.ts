@@ -17,10 +17,14 @@ export interface ScenarioFile {
     calculate_event_ids: boolean;
     // Optional. Can force the "state after the event" to be these events. Useful for testing /state_ids responses.
     precalculated_state_after?: Record<EventID, Array<EventID>>;
+    // Optional. If true, when this file is loaded it will start at the first event rather than the last event. Default: false.
+    // In general, starting at the beginning is only useful for tutorials.
+    on_load_at_start: boolean;
     // Optional. Can set custom strings for nodes (events) or on the graph in general (title). Use '\n\' to get line breaks
     // both in the file and rendered.
     annotations?: {
-        title: string;
+        title?: string;
+        titles: Record<EventID, string>;
         events: Record<EventID, string>;
     };
 }
@@ -47,10 +51,13 @@ export interface Scenario {
     roomVersion: string;
     // Pre-calculated state (useful for /state_ids responses, or for just demoing tardis without a shim!)
     precalculatedStateAfter?: Record<EventID, Array<EventID>>;
+    // If true, when this scenario is loaded, start at the first event.
+    onLoadAtStart: boolean;
     // Any annotations for the graph.
     annotations?: {
-        title: string;
-        events: Record<string, string>;
+        title?: string;
+        titles?: Record<EventID, string>;
+        events?: Record<string, string>;
     };
 }
 
@@ -67,7 +74,17 @@ export async function loadScenarioFromFile(f: File): Promise<Scenario> {
                 }
                 if (f.name.endsWith(".json5")) {
                     // scenario file
-                    resolve(JSON5.parse(data.target.result as string) as ScenarioFile);
+                    const sfJson = JSON5.parse(data.target.result as string);
+                    if (sfJson.on_load_at_start == null) {
+                        sfJson.on_load_at_start = false;
+                    }
+                    if (sfJson.calculate_event_ids == null) {
+                        sfJson.calculate_event_ids = false;
+                    }
+                    if (sfJson.room_version == null) {
+                        sfJson.room_version = DEFAULT_ROOM_VERSION;
+                    }
+                    resolve(sfJson as ScenarioFile);
                     return;
                 }
                 const contents = (data.target.result as string)
@@ -92,6 +109,7 @@ export async function loadScenarioFromFile(f: File): Promise<Scenario> {
             room_version: DEFAULT_ROOM_VERSION,
             room_id: eventsOrScenario[0].room_id,
             calculate_event_ids: false,
+            on_load_at_start: false,
             events: eventsOrScenario,
         };
     } else {
@@ -107,6 +125,7 @@ export function loadScenarioFromScenarioFile(scenarioFile: ScenarioFile): Scenar
         roomVersion: scenarioFile.room_version,
         annotations: scenarioFile.annotations,
         precalculatedStateAfter: scenarioFile.precalculated_state_after,
+        onLoadAtStart: scenarioFile.on_load_at_start,
     };
     // validate and preprocess the scenario file into a valid scenario
     const fakeEventIdToRealEventId = new Map<string, string>();
@@ -149,8 +168,11 @@ export function loadScenarioFromScenarioFile(scenarioFile: ScenarioFile): Scenar
             ev.event_id = realEventId;
 
             // also replace any references in annotations
-            if (scenario.annotations?.events[fakeEventId]) {
+            if (scenario.annotations?.events?.[fakeEventId]) {
                 scenario.annotations.events[realEventId] = scenario.annotations.events[fakeEventId];
+            }
+            if (scenario.annotations?.titles?.[fakeEventId]) {
+                scenario.annotations.titles[realEventId] = scenario.annotations.titles[fakeEventId];
             }
         }
         scenario.events.push(ev as MatrixEvent);

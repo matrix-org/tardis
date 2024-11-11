@@ -15,7 +15,6 @@ describe("StateResolver", () => {
                 prev_events: [],
                 event_id: "$foo",
                 sender: "@alice",
-                depth: 0,
                 room_id: "!foo",
             },
             $foomember: {
@@ -26,7 +25,6 @@ describe("StateResolver", () => {
                 prev_events: [],
                 event_id: "$foomember",
                 sender: "@alice",
-                depth: 1,
                 room_id: "!foo",
             },
             $bar: {
@@ -37,7 +35,6 @@ describe("StateResolver", () => {
                 prev_events: [],
                 event_id: "$bar",
                 sender: "@alice",
-                depth: 0,
                 room_id: "!foo",
             },
         };

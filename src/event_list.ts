@@ -45,7 +45,7 @@ export class EventList {
         row.setAttribute("id", ev.event_id);
         const prefix = row.getElementsByClassName("eventlistrowprefix")[0];
         prefix.textContent = String(index);
-        prefix.addEventListener("click", this.onCellClick.bind(this));
+        row.addEventListener("click", this.onCellClick.bind(this));
         const jsonButton = row.getElementsByClassName("eventlistrowjson")[0];
         jsonButton.addEventListener("click", this.onJsonClick.bind(this));
         row.getElementsByClassName("eventlistrowbody")[0].textContent = this.textRepresentation(ev);

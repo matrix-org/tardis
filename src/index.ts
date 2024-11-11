@@ -81,6 +81,9 @@ class Dag {
         }
         this.scenario = scenario;
         this.debugger = new Debugger(scenario);
+        if (scenario.onLoadAtStart && scenario.events.length >= 2) {
+            this.debugger.goTo(scenario.events[1].event_id);
+        }
         eventList.clear();
         scenario.events.forEach((ev, i) => {
             eventList.appendEvent(i, ev);
@@ -406,7 +409,13 @@ class Dag {
             .attr("x", width / 3)
             .attr("y", -40)
             .style("font-size", "24px");
-        for (const titleLine of (this.scenario?.annotations?.title || "").split("\n")) {
+        // use the title for the current event
+        let currTitle = this.scenario?.annotations?.titles?.[this.debugger.current()];
+        if (!currTitle) {
+            // ...fallback to the global title or nothing
+            currTitle = this.scenario?.annotations?.title || "";
+        }
+        for (const titleLine of currTitle.split("\n")) {
             title
                 .append("tspan")
                 .attr("x", width / 2)
@@ -510,7 +519,7 @@ class Dag {
             })
             .attr("fill", (n) => {
                 if (n.id === this.debugger.current()) {
-                    return "#6f8ea9";
+                    return "blue";
                 }
                 if (stateEvents.has(n.id)) {
                     return "green";
@@ -522,7 +531,7 @@ class Dag {
         const getLabel = (d) => {
             const eventId = d.data.event_id;
             const id = eventId.substr(0, 5);
-            if (this.scenario?.annotations?.events[eventId]) {
+            if (this.scenario?.annotations?.events?.[eventId]) {
                 return `${id} ${this.scenario?.annotations?.events[eventId]}`;
             }
 
@@ -656,7 +665,7 @@ document.getElementById("shimurl")!.addEventListener("change", (ev) => {
 const existingShimUrl = globalThis.localStorage.getItem("shim_url");
 if (existingShimUrl) {
     console.log("setting shim url from local storage");
-    document.getElementById("shimurl").value = existingShimUrl;
+    document.getElementById("shimurl")!.value = existingShimUrl;
 }
 
 document.getElementById("resolve")!.addEventListener("click", async (ev) => {
@@ -695,6 +704,7 @@ WebAssembly.instantiateStreaming(fetch("gmsl.wasm"), go.importObject).then((obj)
     // now load the tutorial scenario
     const tutorial = loadScenarioFromScenarioFile({
         calculate_event_ids: true,
+        on_load_at_start: true,
         events: [
             {
                 type: "m.room.create",
@@ -797,14 +807,38 @@ WebAssembly.instantiateStreaming(fetch("gmsl.wasm"), go.importObject).then((obj)
             title: [
                 "Welcome to TARDIS!",
                 "(click, drag, zoom to navigate the DAG)",
-                "Select a node or use the arrow buttons to jump forward/back, or select an event number to jump to that point in time.",
-                "If you are running a shim server:",
-                " - type in your shim server URL,",
-                " - jump to the event you want to calculate the 'current' state for,",
-                " - hit 'Resolve State'.",
-                " - Nodes in green are part of the current state at this event.",
-                " - NOTE: as state resolution is iterative, it will resolve state for all earlier events as well.",
+                "Press the → button to continue.",
             ].join("\n"),
+            titles: {
+                $FORK1: [
+                    "The current event is highlighted in blue.",
+                    "Message events are smaller than state events.",
+                ].join("\n"),
+                $FORK2: ["The DAG can fork, which indicates", "some events were sent at the same time."].join("\n"),
+                $MERGE: ["The DAG can merge, which merges", "state from each fork together."].join("\n"),
+                $PRESTATE: [
+                    "Green events indicate the",
+                    "state at this event.",
+                    "Message events will never be green.",
+                ].join("\n"),
+                $MSG: ["Check the 'Auth Chain' box to show", "the `auth_events` for each event."].join("\n"),
+                $MSG2: [
+                    "Press the 'Resolve State' button to",
+                    "calculate which events are part of",
+                    "the current room state.",
+                ].join("\n"),
+                $MSG3: [
+                    "As state resolution is iterative,",
+                    "it will resolve state for all earlier",
+                    "events as well. Click on an earlier",
+                    "event in the list to jump to that event.",
+                ].join("\n"),
+                $MSG4: [
+                    "Now load a file or use one of the",
+                    "pre-loaded files to experiment with",
+                    "state resolution in Matrix!",
+                ].join("\n"),
+            },
             events: {
                 $MSG: "Bigger nodes like this one are state events.",
                 $MSG2: "Boring long chains...",

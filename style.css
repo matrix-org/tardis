@@ -52,21 +52,19 @@ body {
     display: flex;
     border-bottom: 1px solid;
     border-color: #00060b;
+    cursor: pointer;
+}
+.eventlistrow:hover {
+    background-color: #a6b8c7;
 }
 
 .eventlistrowprefix {
     padding: 5px;
-    cursor: pointer;
 }
 .eventlistrowjson {
     padding: 5px;
     cursor: pointer;
     text-wrap: nowrap;
-}
-.eventlistrowprefix:hover {
-    background-color: #eee;
-    border: 1px solid;
-    padding: 4px;
 }
 .eventlistroweventid {
     padding: 5px;
@@ -77,6 +75,7 @@ body {
     overflow: scroll;
     white-space: nowrap;
     padding: 5px;
+    flex-grow: 1;
 }
 
 input {
