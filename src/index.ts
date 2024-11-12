@@ -3,6 +3,7 @@ import * as d3dag from "d3-dag";
 import { Cache } from "./cache";
 import { Debugger } from "./debugger";
 import { EventList } from "./event_list";
+import { mainlineForks, quickstartFile, reverseTopologicalPowerOrdering } from "./preloaded_scenarios";
 import { type Scenario, type ScenarioFile, loadScenarioFromFile, loadScenarioFromScenarioFile } from "./scenario";
 import {
     type DataGetEvent,
@@ -12,7 +13,6 @@ import {
     StateResolver,
     StateResolverTransport,
 } from "./state_resolver";
-import { quickstartFile, mainlineForks, reverseTopologicalPowerOrdering } from "./preloaded_scenarios";
 
 const preloadedScenarios: Record<string, ScenarioFile> = {
     "Quick Start": quickstartFile,
