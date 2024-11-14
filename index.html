@@ -4,7 +4,7 @@
     <link rel="icon" href="favicon.svg">
     <title>TARDIS - Time Agnostic Room DAG Inspection Service</title>
     <script src="wasm_exec.js"></script>
-  <script type="module" crossorigin src="/tardis/assets/index-CO0u8Dtj.js"></script>
+  <script type="module" crossorigin src="/tardis/assets/index-CSXUvRy_.js"></script>
   <link rel="stylesheet" crossorigin href="/tardis/assets/index-BaijwNC1.css">
 </head>
 
@@ -13,12 +13,13 @@
         <div id="header">
             <input id="jsonfile" type="file" />
             <select id="file-select"></select>
-            <label>Auth Chain?<input id="showauthevents" type="checkbox" /></label>
-            <label>Outliers?<input id="showoutliers" type="checkbox" /></label>
-            <label>Collapse?<input id="collapse" type="checkbox" /></label>
+            <label>Auth Chain<input id="showauthevents" type="checkbox" /></label>
+            <label>Outliers<input id="showoutliers" type="checkbox" /></label>
+            <label>Collapse<input id="collapse" type="checkbox" /></label>
+            <label>Timestamps<input id="timestamps" type="checkbox" /></label>
             <input id="stepbwd" type="button" value="&larr;" />
             <input id="stepfwd" type="button" value="&rarr;" />
-            <input id="shimurl" type="text" value="http://localhost:1234" placeholder="Shim URL" />
+            <input id="shimurl" type="text" value="https://tardis.element.dev/" placeholder="Shim URL" />
             <input id="resolve" type="button" value="Resolve State" />
         </div>
         <div id="infocontainer">
