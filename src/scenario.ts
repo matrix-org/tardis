@@ -143,6 +143,8 @@ export function loadScenarioFromScenarioFile(scenarioFile: ScenarioFile): Scenar
         if (!ev.origin_server_ts) {
             ev.origin_server_ts = time;
             time += 1000;
+        } else {
+            time = ev.origin_server_ts + 1000;
         }
         if (!ev.room_id && scenarioFile.room_id) {
             ev.room_id = scenarioFile.room_id;

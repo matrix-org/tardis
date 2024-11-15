@@ -12,7 +12,6 @@ const quickstartFile: ScenarioFile = {
             prev_events: [],
             content: { creator: "@creator:tardis" },
             event_id: "$CREATE",
-            origin_server_ts: 1409560240000,
         },
         {
             type: "m.room.member",
@@ -22,7 +21,6 @@ const quickstartFile: ScenarioFile = {
             prev_events: ["$CREATE"],
             content: { membership: "join" },
             event_id: "$JOIN",
-            origin_server_ts: 1409560241000,
         },
         {
             type: "m.room.message",
@@ -31,7 +29,6 @@ const quickstartFile: ScenarioFile = {
             prev_events: ["$JOIN"],
             content: { body: "A wild fork appears!" },
             event_id: "$FORK1",
-            origin_server_ts: 1409560242000,
         },
         {
             type: "m.room.message",
@@ -40,7 +37,6 @@ const quickstartFile: ScenarioFile = {
             prev_events: ["$JOIN"],
             content: { body: "Another wild fork appears!" },
             event_id: "$FORK2",
-            origin_server_ts: 1409560243000,
         },
         {
             type: "m.room.message",
@@ -49,7 +45,6 @@ const quickstartFile: ScenarioFile = {
             prev_events: ["$FORK1", "$FORK2"],
             content: { body: "Merged!" },
             event_id: "$MERGE",
-            origin_server_ts: 1409560244000,
         },
         {
             type: "m.room.message",
@@ -58,7 +53,6 @@ const quickstartFile: ScenarioFile = {
             prev_events: ["$MERGE"],
             content: { body: "This event has precalculated state" },
             event_id: "$PRESTATE",
-            origin_server_ts: 1409560245000,
         },
         {
             type: "m.room.name",
@@ -68,7 +62,6 @@ const quickstartFile: ScenarioFile = {
             prev_events: ["$PRESTATE"],
             content: { name: "State events are bigger than messages" },
             event_id: "$MSG",
-            origin_server_ts: 1409560246000,
         },
         {
             type: "m.room.message",
@@ -77,7 +70,6 @@ const quickstartFile: ScenarioFile = {
             prev_events: ["$MSG"],
             content: { body: "Boring long chains..." },
             event_id: "$MSG2",
-            origin_server_ts: 1409560246000,
         },
         {
             type: "m.room.message",
@@ -86,7 +78,6 @@ const quickstartFile: ScenarioFile = {
             prev_events: ["$MSG2"],
             content: { body: "...can be collapsed..." },
             event_id: "$MSG3",
-            origin_server_ts: 1409560246000,
         },
         {
             type: "m.room.message",
@@ -95,7 +86,6 @@ const quickstartFile: ScenarioFile = {
             prev_events: ["$MSG3"],
             content: { body: "...by checking the collapse checkbox." },
             event_id: "$MSG4",
-            origin_server_ts: 1409560246000,
         },
     ],
     room_id: "!quickstart:tardis",
@@ -259,7 +249,7 @@ const mainlineForks: ScenarioFile = {
             auth_events: ["$CREATE", "$BOB", "$PL"],
             prev_events: ["$MERGE2"],
             content: { name: "Bob Room 3" },
-            origin_server_ts: 1704077299300,
+            origin_server_ts: 1704077300300,
             event_id: "$BOB_NAME3",
         },
         {
@@ -491,20 +481,21 @@ const reverseTopologicalPowerOrdering: ScenarioFile = {
                 "resolution!",
             ].join("\n"),
             $MERGE1: [
-                "Bob wins because he has a lower PL (50 vs 100).",
+                "Bob's 'knock' wins because he has a lower PL (50 vs 100).",
                 "This seems undesirable at first,",
                 "but this can be worded another way:",
-                "Alice's event is APPLIED FIRST, and then only",
-                "if given Alice's event can Bob's event be",
-                "applied will it be applied.",
+                "Alice's 'invite' is APPLIED FIRST, and then",
+                "Bob's. This order ensures if Alice revokes",
+                "Bob's permissions, Alice wins.",
             ].join("\n"),
             $MERGE2: [
                 "Both Bob and Charlie have the same PL (50).",
-                "Charlie wins because his event has a higher origin_server_ts",
+                "Charlie's 'public' wins because his event has a",
+                "higher origin_server_ts",
             ].join("\n"),
             $MERGE3: [
                 "Both events have the same timestamp.",
-                "Bob wins because his event ID is greater than Charlie's",
+                "Bob's 'knock' wins because his event ID is greater than Charlie's",
                 "(A < Z < a < z)",
             ].join("\n"),
         },
