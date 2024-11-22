@@ -226,44 +226,16 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
             const node = d3.select(this);
             node.raise().attr("fill", currColor).attr("font-weight", "bold");
 
-            // next-events
             node.select(`.child-${d.event_id.slice(1, 5)}`)
                 .attr("stroke", nextColor)
+                .attr("stroke-width", "3");
+            node.select(`.parent-${d.event_id.slice(1, 5)}`)
+                .attr("stroke", prevColor)
                 .attr("stroke-width", "3");
 
             for (const id of d.next_events || []) {
                 d3.select(`.node-${id.slice(1, 5)}`).attr("fill", nextColor);
             }
-
-            // draw the prev-events over the top
-            // because we don't have a way to select prev-events
-            // (given next-events are drawn en masse)
-            node.append("path")
-                .attr("d", (d) => {
-                    const path = d3.path();
-                    if (d.prev_events) {
-                        for (const parent of d.prev_events) {
-                            const p = eventsById.get(parent);
-                            path.moveTo(p.x * g, p.y * g + r);
-                            path.arcTo(p.x * g, (p.y + 0.5) * g, d.x * g, (p.y + 0.5) * g, r);
-                            path.arcTo(d.x * g, (p.y + 0.5) * g, d.x * g, d.y * g - r, r);
-                            path.lineTo(d.x * g, d.y * g - r);
-
-                            // arrowhead
-                            path.moveTo(p.x * g - r / 3, p.y * g + r + r / 2);
-                            path.lineTo(p.x * g, p.y * g + r);
-                            path.lineTo(p.x * g + r / 3, p.y * g + r + r / 2);
-                            path.lineTo(p.x * g - r / 3, p.y * g + r + r / 2);
-                            path.lineTo(p.x * g, p.y * g + r);
-                        }
-                    }
-
-                    return path;
-                })
-                .attr("stroke", prevColor)
-                .attr("stroke-width", "3")
-                .attr("fill", "none");
-
             for (const id of d.prev_events) {
                 d3.select(`.node-${id.slice(1, 5)}`).attr("fill", prevColor);
             }
@@ -272,9 +244,6 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
             d3.select(this)
                 .attr("fill", null)
                 .attr("font-weight", null)
-                // remove prev-events
-                .select(":last-child")
-                .remove();
 
             for (const id of d.prev_events) {
                 d3.select(`.node-${id.slice(1, 5)}`).attr("fill", null);
@@ -284,6 +253,10 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
             }
 
             node.select(`.child-${d.event_id.slice(1, 5)}`)
+                .attr("stroke", "black")
+                .attr("stroke-width", "1");
+
+            node.select(`.parent-${d.event_id.slice(1, 5)}`)
                 .attr("stroke", "black")
                 .attr("stroke-width", "1");
         });
@@ -320,6 +293,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
             .attr("fill", "none");
     }
 
+    // next-events
     node.append("path")
         .attr("d", (d) => {
             const path = d3.path();
@@ -376,11 +350,43 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
         .attr("stroke", "black")
         .attr("fill", "none");
 
+        // prev-events (hidden by default)
+        node.append("path")
+        .attr("d", (d) => {
+            const path = d3.path();
+            if (d.prev_events) {
+                for (const parent of d.prev_events) {
+                    const p = eventsById.get(parent);
+                    path.moveTo(p.x * g, p.y * g + r);
+                    path.arcTo(p.x * g, (p.y + 0.5) * g, d.x * g, (p.y + 0.5) * g, r);
+                    path.arcTo(d.x * g, (p.y + 0.5) * g, d.x * g, d.y * g - r, r);
+                    path.lineTo(d.x * g, d.y * g - r);
+
+                    // arrowhead
+                    path.moveTo(p.x * g - r / 3, p.y * g + r + r / 2);
+                    path.lineTo(p.x * g, p.y * g + r);
+                    path.lineTo(p.x * g + r / 3, p.y * g + r + r / 2);
+                    path.lineTo(p.x * g - r / 3, p.y * g + r + r / 2);
+                    path.lineTo(p.x * g, p.y * g + r);
+                }
+            }
+
+            return path;
+        })
+        .attr("class", (d) => `parent-${d.event_id.slice(1, 5)}`)
+        .attr("stroke", null)
+        .attr("stroke-width", 0)
+        .attr("fill", "none");
+
     node.append("text")
         .text(
             (d) =>
-                `${d.y} ${d.event_id.slice(0, 5)} ${d.sender} P:${d.prev_events.map((id) => id.slice(0, 5)).join(", ")} | N:${d.next_events?.map((id) => id.slice(0, 5)).join(", ")}`,
+                `${d.y} ${d.event_id.slice(0, 5)} ${d.sender} ${d.type} ${d.content.body ?? ''}`,
         )
+        // .text(
+        //     (d) =>
+        //         `${d.y} ${d.event_id.slice(0, 5)} ${d.sender} P:${d.prev_events.map((id) => id.slice(0, 5)).join(", ")} | N:${d.next_events?.map((id) => id.slice(0, 5)).join(", ")}`,
+        // )
         //.text(d => `${d.y} ${d.event_id.substr(0, 5)} ${d.sender} ${d.type} prev:${d.prev_events.map(id => id.substr(0, 5)).join(", ")}`)
         .attr("x", (d) => d.laneWidth * g + 14)
         .attr("y", (d) => d.y * g + 4);
