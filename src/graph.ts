@@ -221,18 +221,18 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
         .data(data)
         .enter()
         .append("g")
-        .attr("class", (d) => `node-${d.event_id.slice(1, 6)}`)
+        .attr("class", (d) => `node-${d.event_id.slice(1, 5)}`)
         .on("mouseover", function (e, d) {
             const node = d3.select(this);
             node.raise().attr("fill", currColor).attr("font-weight", "bold");
 
             // next-events
-            node.select(`.child-${d.event_id.slice(1, 6)}`)
+            node.select(`.child-${d.event_id.slice(1, 5)}`)
                 .attr("stroke", nextColor)
                 .attr("stroke-width", "3");
 
             for (const id of d.next_events || []) {
-                d3.select(`.node-${id.slice(1, 6)}`).attr("fill", nextColor);
+                d3.select(`.node-${id.slice(1, 5)}`).attr("fill", nextColor);
             }
 
             // draw the prev-events over the top
@@ -265,7 +265,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
                 .attr("fill", "none");
 
             for (const id of d.prev_events) {
-                d3.select(`.node-${id.substr(1, 6)}`).attr("fill", prevColor);
+                d3.select(`.node-${id.slice(1, 5)}`).attr("fill", prevColor);
             }
         })
         .on("mouseout", function (e, d) {
@@ -277,13 +277,13 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
                 .remove();
 
             for (const id of d.prev_events) {
-                d3.select(`.node-${id.substr(1, 6)}`).attr("fill", null);
+                d3.select(`.node-${id.slice(1, 5)}`).attr("fill", null);
             }
             for (const id of d.next_events || []) {
-                d3.select(`.node-${id.substr(1, 6)}`).attr("fill", null);
+                d3.select(`.node-${id.slice(1, 5)}`).attr("fill", null);
             }
 
-            node.select(`.child-${d.event_id.substr(1, 6)}`)
+            node.select(`.child-${d.event_id.slice(1, 5)}`)
                 .attr("stroke", "black")
                 .attr("stroke-width", "1");
         });
@@ -297,7 +297,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
         .style("fill-opacity", "0.5")
         .style("stroke", (d) => (d.state_key ? "#4300ff" : "#ff3e00"));
 
-    const nudgeOffset = 4;
+    const nudgeOffset = 0;
 
     if (!nudgeOffset) {
         node.append("path")
@@ -372,14 +372,14 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
 
             return path;
         })
-        .attr("class", (d) => `child-${d.event_id.substr(1, 6)}`)
+        .attr("class", (d) => `child-${d.event_id.slice(1, 5)}`)
         .attr("stroke", "black")
         .attr("fill", "none");
 
     node.append("text")
         .text(
             (d) =>
-                `${d.y} ${d.event_id.substr(0, 5)} ${d.sender} P:${d.prev_events.map((id) => id.substr(0, 5)).join(", ")} | N:${d.next_events?.map((id) => id.substr(0, 5)).join(", ")}`,
+                `${d.y} ${d.event_id.slice(0, 5)} ${d.sender} P:${d.prev_events.map((id) => id.slice(0, 5)).join(", ")} | N:${d.next_events?.map((id) => id.slice(0, 5)).join(", ")}`,
         )
         //.text(d => `${d.y} ${d.event_id.substr(0, 5)} ${d.sender} ${d.type} prev:${d.prev_events.map(id => id.substr(0, 5)).join(", ")}`)
         .attr("x", (d) => d.laneWidth * g + 14)
