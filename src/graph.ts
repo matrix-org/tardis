@@ -241,9 +241,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
             }
         })
         .on("mouseout", function (e, d) {
-            d3.select(this)
-                .attr("fill", null)
-                .attr("font-weight", null)
+            d3.select(this).attr("fill", null).attr("font-weight", null);
 
             for (const id of d.prev_events) {
                 d3.select(`.node-${id.slice(1, 5)}`).attr("fill", null);
@@ -350,8 +348,8 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
         .attr("stroke", "black")
         .attr("fill", "none");
 
-        // prev-events (hidden by default)
-        node.append("path")
+    // prev-events (hidden by default)
+    node.append("path")
         .attr("d", (d) => {
             const path = d3.path();
             if (d.prev_events) {
@@ -379,10 +377,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
         .attr("fill", "none");
 
     node.append("text")
-        .text(
-            (d) =>
-                `${d.y} ${d.event_id.slice(0, 5)} ${d.sender} ${d.type} ${d.content.body ?? ''}`,
-        )
+        .text((d) => `${d.y} ${d.event_id.slice(0, 5)} ${d.sender} ${d.type} ${d.content.body ?? ""}`)
         // .text(
         //     (d) =>
         //         `${d.y} ${d.event_id.slice(0, 5)} ${d.sender} P:${d.prev_events.map((id) => id.slice(0, 5)).join(", ")} | N:${d.next_events?.map((id) => id.slice(0, 5)).join(", ")}`,
