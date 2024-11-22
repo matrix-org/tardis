@@ -10,9 +10,10 @@ interface RenderableMatrixEvent extends MatrixEvent {
 
 const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
     // copy the events so we don't alter the caller's copy
+    // biome-ignore lint/style/noParameterAssign:
     events = JSON.parse(JSON.stringify(events));
     // sort events chronologically
-    const data: Array<RenderableMatrixEvent> = events.sort((a, b) => a.origin_server_ts - b.origin_server_ts);
+    const data: Array<RenderableMatrixEvent> = events; // .sort((a, b) => a.origin_server_ts - b.origin_server_ts);
 
     const eventsById: Map<string, RenderableMatrixEvent> = new Map();
     for (const d of data) {
@@ -67,6 +68,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
     function getNextLane(after: number | null = null) {
         const balanced = false;
         if (balanced) {
+            // biome-ignore lint/style/noParameterAssign:
             if (after == null) after = 0;
             // finds the next empty lane
             // if (after >= lanes.length) return after;
@@ -104,7 +106,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
         const d = data[i];
         console.log(
             y,
-            d.event_id.substr(0, 5),
+            d.event_id.slice(0, 5),
             d.sender,
             d.type,
             lanes.map((id) => id?.substr(0, 5)).join(", "),
@@ -178,8 +180,6 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
         d.laneWidth = edges.at(-1)?.x;
     }
 
-    let width: number;
-    let height: number;
     const margin = {
         top: 20,
         right: 20,
@@ -201,8 +201,8 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
     d3.select(vis).html(null);
 
     // determine width & height of parent element and subtract the margin
-    width = lanes.length * g + 1000;
-    height = data.length * g;
+    const width = lanes.length * g + 1000;
+    const height = data.length * g;
 
     // create svg and create a group inside that is moved by means of margin
     const svg = d3
@@ -295,7 +295,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
         .style("fill-opacity", "0.5")
         .style("stroke", (d) => (d.state_key ? "#4300ff" : "#ff3e00"));
 
-    const nudgeOffset = 0;
+    const nudgeOffset = 4;
 
     if (!nudgeOffset) {
         node.append("path")
