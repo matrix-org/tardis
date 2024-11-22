@@ -8,7 +8,7 @@ interface MatrixEvent {
     prev_events: Array<string>;
     auth_events: Array<string>;
     room_id: string;
-    origin_server_ts?: number;
+    origin_server_ts: number;
 
     // TODO: fix metadata fields
     _collapse?: number;

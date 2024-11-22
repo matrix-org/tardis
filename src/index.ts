@@ -3,6 +3,7 @@ import * as d3dag from "d3-dag";
 import { Cache } from "./cache";
 import { Debugger } from "./debugger";
 import { EventList } from "./event_list";
+import { redraw } from "./graph";
 import { mainlineForks, quickstartFile, reverseTopologicalPowerOrdering } from "./preloaded_scenarios";
 import { type Scenario, type ScenarioFile, loadScenarioFromFile, loadScenarioFromScenarioFile } from "./scenario";
 import {
@@ -37,6 +38,7 @@ class Dag {
     showOutliers: boolean;
     showTimestamps: boolean;
     collapse: boolean;
+    experimentalLayout: boolean;
     shimUrl?: string;
 
     debugger: Debugger;
@@ -52,6 +54,7 @@ class Dag {
         this.showOutliers = false;
         this.showTimestamps = false;
         this.collapse = false;
+        this.experimentalLayout = false;
         this.renderEvents = {};
     }
 
@@ -128,8 +131,20 @@ class Dag {
     setTimestamps(ts: boolean) {
         this.showTimestamps = ts;
     }
+    setExperimentalLayout(exp: boolean) {
+        this.experimentalLayout = exp;
+    }
     async refresh() {
         let renderEvents = await this.recalculate();
+        if (this.experimentalLayout) {
+            const eventsArray: Array<MatrixEvent> = [];
+            for (const k in renderEvents) {
+                eventsArray.push(renderEvents[k]);
+            }
+            redraw(document.getElementById("svgcontainer")! as HTMLDivElement, eventsArray);
+            return;
+        }
+
         if (this.collapse) {
             renderEvents = this.collapsifier(renderEvents);
         }
@@ -647,6 +662,10 @@ document.getElementById("collapse")!.addEventListener("change", (ev) => {
 (<HTMLInputElement>document.getElementById("timestamps"))!.checked = dag.showTimestamps;
 document.getElementById("timestamps")!.addEventListener("change", (ev) => {
     dag.setTimestamps((<HTMLInputElement>ev.target)!.checked);
+    dag.refresh();
+});
+document.getElementById("explayout")!.addEventListener("change", (ev) => {
+    dag.setExperimentalLayout((<HTMLInputElement>ev.target)!.checked);
     dag.refresh();
 });
 (<HTMLInputElement>document.getElementById("collapse"))!.checked = dag.collapse;
