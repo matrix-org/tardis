@@ -6,6 +6,7 @@ interface RenderableMatrixEvent extends MatrixEvent {
     x: number;
     y: number;
     laneWidth: number;
+    streamPosition: number;
 }
 
 const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
@@ -16,8 +17,9 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
     const data: Array<RenderableMatrixEvent> = events; // .sort((a, b) => a.origin_server_ts - b.origin_server_ts);
 
     const eventsById: Map<string, RenderableMatrixEvent> = new Map();
-    for (const d of data) {
-        eventsById.set(d.event_id, d);
+    for (let i = 0; i < data.length; i++) {
+        data[i].streamPosition = i;
+        eventsById.set(data[i].event_id, data[i]);
     }
 
     // and insert potential placeholders for dangling prev_events.
@@ -25,7 +27,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
     for (const d of data.slice()) {
         // order parents chronologically
         d.prev_events.sort((a: string, b: string) => {
-            return (eventsById.get(a)?.origin_server_ts || 0) - (eventsById.get(b)?.origin_server_ts || 0);
+            return (eventsById.get(a)?.streamPosition || 0) - (eventsById.get(b)?.streamPosition || 0);
         });
 
         for (const p of d.prev_events) {
@@ -229,7 +231,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
                 .attr("stroke", nextColor)
                 .attr("stroke-width", "3");
 
-            for (const id of d.next_events) {
+            for (const id of d.next_events || []) {
                 d3.select(`.node-${id.slice(1, 6)}`).attr("fill", nextColor);
             }
 
@@ -277,7 +279,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
             for (const id of d.prev_events) {
                 d3.select(`.node-${id.substr(1, 6)}`).attr("fill", null);
             }
-            for (const id of d.next_events) {
+            for (const id of d.next_events || []) {
                 d3.select(`.node-${id.substr(1, 6)}`).attr("fill", null);
             }
 
