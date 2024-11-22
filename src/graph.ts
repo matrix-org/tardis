@@ -184,7 +184,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
         top: 20,
         right: 20,
         bottom: 30,
-        left: 140,
+        left: 220,
     };
 
     //
@@ -219,18 +219,18 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
         .data(data)
         .enter()
         .append("g")
-        .attr("class", (d) => `node-${d.event_id.substr(1, 6)}`)
+        .attr("class", (d) => `node-${d.event_id.slice(1, 6)}`)
         .on("mouseover", function (e, d) {
             const node = d3.select(this);
             node.raise().attr("fill", currColor).attr("font-weight", "bold");
 
             // next-events
-            node.select(`.child-${d.event_id.substr(1, 6)}`)
+            node.select(`.child-${d.event_id.slice(1, 6)}`)
                 .attr("stroke", nextColor)
                 .attr("stroke-width", "3");
 
             for (const id of d.next_events) {
-                d3.select(`.node-${id.substr(1, 6)}`).attr("fill", nextColor);
+                d3.select(`.node-${id.slice(1, 6)}`).attr("fill", nextColor);
             }
 
             // draw the prev-events over the top
@@ -385,7 +385,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
 
     node.append("text")
         .text((d) => (d.origin_server_ts ? new Date(d.origin_server_ts).toLocaleString() : ""))
-        .attr("x", -140)
+        .attr("x", -margin.left)
         .attr("y", (d) => d.y * g + 4);
 };
 

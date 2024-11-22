@@ -133,6 +133,11 @@ class Dag {
     }
     setExperimentalLayout(exp: boolean) {
         this.experimentalLayout = exp;
+        if (this.experimentalLayout) {
+            document.getElementById("svgcontainer")?.classList.add("monospace");
+        } else {
+            document.getElementById("svgcontainer")?.classList.remove("monospace");
+        }
     }
     async refresh() {
         let renderEvents = await this.recalculate();
