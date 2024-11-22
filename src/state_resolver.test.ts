@@ -16,6 +16,7 @@ describe("StateResolver", () => {
                 event_id: "$foo",
                 sender: "@alice",
                 room_id: "!foo",
+                origin_server_ts: 1,
             },
             $foomember: {
                 type: "m.room.member",
@@ -26,6 +27,7 @@ describe("StateResolver", () => {
                 event_id: "$foomember",
                 sender: "@alice",
                 room_id: "!foo",
+                origin_server_ts: 1,
             },
             $bar: {
                 type: "m.room.create",
@@ -36,6 +38,7 @@ describe("StateResolver", () => {
                 event_id: "$bar",
                 sender: "@alice",
                 room_id: "!foo",
+                origin_server_ts: 1,
             },
         };
 
