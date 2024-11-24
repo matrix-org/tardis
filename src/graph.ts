@@ -214,7 +214,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
 
     // determine width & height of parent element and subtract the margin
     const width = lanes.length * gx + 1000;
-    const height = data.length * gy
+    const height = data.length * gy;
 
     // create svg and create a group inside that is moved by means of margin
     const svg = d3
