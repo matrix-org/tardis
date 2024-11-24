@@ -167,6 +167,8 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
         }
     }
 
+    const balanceTwoWayForks = true;
+
     // another pass to figure out the right-hand edge
     const edges: Array<{ x: number; y: number }> = [];
     data[0].laneWidth = 0;
@@ -182,7 +184,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
         }
         edges.sort((a, b) => a.x - b.x);
         d.laneWidth = edges.at(-1)?.x;
-        if (d.laneWidth % 2) {
+        if (balanceTwoWayForks && d.laneWidth % 2) {
             // balance simple 2-way forks
             d.x -= 0.5;
             d.laneWidth -= 0.5;
