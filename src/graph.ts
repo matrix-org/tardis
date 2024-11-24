@@ -182,7 +182,8 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
         }
         edges.sort((a, b) => a.x - b.x);
         d.laneWidth = edges.at(-1)?.x;
-        if (d.laneWidth % 2) { // balance simple 2-way forks
+        if (d.laneWidth % 2) {
+            // balance simple 2-way forks
             d.x -= 0.5;
             d.laneWidth -= 0.5;
         }
