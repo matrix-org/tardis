@@ -205,6 +205,9 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
     const gy = 25; // vertical grid spacing
     const r = 5; // node size
 
+    const lineWidth = 2;
+    const lineWidthHighlight = 3;
+
     const prevColor = "#f00";
     const currColor = "#0a0";
     const nextColor = "#00f";
@@ -232,18 +235,18 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
         .enter()
         .append("g")
         .attr("class", (d) => `node-${d.event_id.slice(1, 5)}`)
-        .on("mouseenter", function (e, d) {
+        .on("mouseover", function (e, d) {
             const node = d3.select(this);
             node.attr("fill", currColor).attr("font-weight", "bold");
 
             d3.selectAll(`.child-${d.event_id.slice(1, 5)}`)
                 .raise()
                 .attr("stroke", nextColor)
-                .attr("stroke-width", "3");
+                .attr("stroke-width", lineWidthHighlight);
             d3.selectAll(`.parent-${d.event_id.slice(1, 5)}`)
                 .raise()
                 .attr("stroke", prevColor)
-                .attr("stroke-width", "3");
+                .attr("stroke-width", lineWidthHighlight);
 
             for (const id of d.next_events || []) {
                 d3.select(`.node-${id.slice(1, 5)}`).attr("fill", nextColor);
@@ -264,10 +267,10 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
 
             d3.selectAll(`.child-${d.event_id.slice(1, 5)}`)
                 .attr("stroke", "black")
-                .attr("stroke-width", "1");
+                .attr("stroke-width", lineWidth);
             d3.selectAll(`.parent-${d.event_id.slice(1, 5)}`)
                 .attr("stroke", "black")
-                .attr("stroke-width", "1");
+                .attr("stroke-width", lineWidth);
         });
 
     // draw data points
@@ -299,7 +302,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
                 return path;
             })
             .attr("stroke", "white")
-            .attr("stroke-width", "2")
+            .attr("stroke-width", lineWidth + 2)
             .attr("fill", "none");
     }
 
@@ -358,6 +361,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
                     .attr("d", path.toString())
                     .attr("class", (d) => `child-${d.event_id.slice(1, 5)} parent-${c?.event_id.slice(1, 5)}`)
                     .attr("stroke", "black")
+                    .attr("stroke-width", lineWidth)
                     .attr("fill", "none");
             }
         }
