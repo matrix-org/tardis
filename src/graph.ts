@@ -106,15 +106,15 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
     data[0].x = 0;
     for (let i = 0; i < data.length; i++) {
         const d = data[i];
-        console.log(
-            y,
-            d.event_id.slice(0, 5),
-            d.sender,
-            d.type,
-            lanes.map((id) => id?.substr(0, 5)).join(", "),
-            `p:${d.prev_events.map((id) => id.substr(0, 5)).join(", ")}`,
-            `n:${d.next_events?.map((id) => id.substr(0, 5)).join(", ")}`,
-        );
+        // console.log(
+        //     y,
+        //     d.event_id.slice(0, 5),
+        //     d.sender,
+        //     d.type,
+        //     lanes.map((id) => id?.substr(0, 5)).join(", "),
+        //     `p:${d.prev_events.map((id) => id.substr(0, 5)).join(", ")}`,
+        //     `n:${d.next_events?.map((id) => id.substr(0, 5)).join(", ")}`,
+        // );
 
         d.y = y;
         y++;
@@ -161,7 +161,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
             // will go under it, to stop other nodes grabbing it
             lanes[d.x] = d.event_id;
         } else {
-            console.log(`terminating lane ${d.x}`);
+            //console.log(`terminating lane ${d.x}`);
             delete lanes[d.x];
             laneEnd[d.x] = y;
         }
@@ -222,14 +222,16 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
         .enter()
         .append("g")
         .attr("class", (d) => `node-${d.event_id.slice(1, 5)}`)
-        .on("mouseover", function (e, d) {
+        .on("mouseenter", function (e, d) {
             const node = d3.select(this);
-            node.raise().attr("fill", currColor).attr("font-weight", "bold");
+            node.attr("fill", currColor).attr("font-weight", "bold");
 
-            node.select(`.child-${d.event_id.slice(1, 5)}`)
+            d3.selectAll(`.child-${d.event_id.slice(1, 5)}`)
+                .raise()
                 .attr("stroke", nextColor)
                 .attr("stroke-width", "3");
-            node.select(`.parent-${d.event_id.slice(1, 5)}`)
+            d3.selectAll(`.parent-${d.event_id.slice(1, 5)}`)
+                .raise()
                 .attr("stroke", prevColor)
                 .attr("stroke-width", "3");
 
@@ -243,18 +245,17 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
         .on("mouseout", function (e, d) {
             d3.select(this).attr("fill", null).attr("font-weight", null);
 
-            for (const id of d.prev_events) {
-                d3.select(`.node-${id.slice(1, 5)}`).attr("fill", null);
-            }
             for (const id of d.next_events || []) {
                 d3.select(`.node-${id.slice(1, 5)}`).attr("fill", null);
             }
+            for (const id of d.prev_events) {
+                d3.select(`.node-${id.slice(1, 5)}`).attr("fill", null);
+            }
 
-            node.select(`.child-${d.event_id.slice(1, 5)}`)
+            d3.selectAll(`.child-${d.event_id.slice(1, 5)}`)
                 .attr("stroke", "black")
                 .attr("stroke-width", "1");
-
-            node.select(`.parent-${d.event_id.slice(1, 5)}`)
+            d3.selectAll(`.parent-${d.event_id.slice(1, 5)}`)
                 .attr("stroke", "black")
                 .attr("stroke-width", "1");
         });
@@ -270,6 +271,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
 
     const nudgeOffset = 0;
 
+    // next-events outlines
     if (!nudgeOffset) {
         node.append("path")
             .attr("d", (d) => {
@@ -291,90 +293,65 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
             .attr("fill", "none");
     }
 
-    // next-events
-    node.append("path")
-        .attr("d", (d) => {
-            const path = d3.path();
-            if (d.next_events) {
-                let childIndex = 0;
-                for (const child of d.next_events) {
-                    const c = eventsById.get(child);
+    // links
+    node.each((d, i, nodes) => {
+        const n = d3.select(nodes[i]);
 
-                    let nudge_x = 0;
-                    let nudge_y = 0;
+        if (d.next_events) {
+            let childIndex = 0;
+            for (const child of d.next_events) {
+                const c = eventsById.get(child);
 
-                    if (nudgeOffset) {
-                        // nudge horizontal up or down based on how many next_events there are from this node.
-                        nudge_y =
-                            d.next_events.length > 1 ? nudgeOffset * (childIndex - (d.next_events.length - 2) / 2) : 0;
-                        // nudge vertical left or right based on how many prev_events there are from this child.
-                        const childParentIndex = c.prev_events.findIndex((id) => id === d.event_id);
-                        nudge_x = nudgeOffset * (childParentIndex - (c.prev_events.length - 1) / 2);
-                    }
+                const path = d3.path();
 
-                    path.moveTo(d.x * g, d.y * g + r + nudge_y);
+                let nudge_x = 0;
+                let nudge_y = 0;
 
-                    // path.lineTo(c.x * g, d.y * g);
-                    // path.lineTo(c.x * g, c.y * g);
-                    // path.quadraticCurveTo(c.x * g, d.y * g, c.x * g, c.y * g);
-
-                    // path.arcTo(c.x * g, d.y * g, c.x * g, c.y * g, g/2);
-                    // path.lineTo(c.x * g, c.y * g);
-
-                    if (nudgeOffset) {
-                        path.lineTo(d.x * g, (d.y + 0.5) * g + nudge_y);
-                        path.lineTo(c.x * g + nudge_x, (d.y + 0.5) * g + nudge_y);
-                    } else {
-                        path.arcTo(d.x * g, (d.y + 0.5) * g, c.x * g, (d.y + 0.5) * g, r);
-                        path.arcTo(c.x * g, (d.y + 0.5) * g, c.x * g, c.y * g - r, r);
-                    }
-
-                    path.lineTo(c.x * g + nudge_x, c.y * g - r);
-
-                    childIndex++;
+                if (nudgeOffset) {
+                    // nudge horizontal up or down based on how many next_events there are from this node.
+                    nudge_y =
+                        d.next_events.length > 1 ? nudgeOffset * (childIndex - (d.next_events.length - 2) / 2) : 0;
+                    // nudge vertical left or right based on how many prev_events there are from this child.
+                    const childParentIndex = c.prev_events.findIndex((id) => id === d.event_id);
+                    nudge_x = nudgeOffset * (childParentIndex - (c.prev_events.length - 1) / 2);
                 }
-            }
 
-            // arrowhead
-            path.moveTo(d.x * g - r / 3, d.y * g + r + r / 2);
-            path.lineTo(d.x * g, d.y * g + r);
-            path.lineTo(d.x * g + r / 3, d.y * g + r + r / 2);
-            path.lineTo(d.x * g - r / 3, d.y * g + r + r / 2);
-            path.lineTo(d.x * g, d.y * g + r);
+                path.moveTo(d.x * g, d.y * g + r + nudge_y);
 
-            return path;
-        })
-        .attr("class", (d) => `child-${d.event_id.slice(1, 5)}`)
-        .attr("stroke", "black")
-        .attr("fill", "none");
+                // path.lineTo(c.x * g, d.y * g);
+                // path.lineTo(c.x * g, c.y * g);
+                // path.quadraticCurveTo(c.x * g, d.y * g, c.x * g, c.y * g);
 
-    // prev-events (hidden by default)
-    node.append("path")
-        .attr("d", (d) => {
-            const path = d3.path();
-            if (d.prev_events) {
-                for (const parent of d.prev_events) {
-                    const p = eventsById.get(parent);
-                    path.moveTo(p.x * g, p.y * g + r);
-                    path.arcTo(p.x * g, (p.y + 0.5) * g, d.x * g, (p.y + 0.5) * g, r);
-                    path.arcTo(d.x * g, (p.y + 0.5) * g, d.x * g, d.y * g - r, r);
-                    path.lineTo(d.x * g, d.y * g - r);
+                // path.arcTo(c.x * g, d.y * g, c.x * g, c.y * g, g/2);
+                // path.lineTo(c.x * g, c.y * g);
 
-                    // arrowhead
-                    path.moveTo(p.x * g - r / 3, p.y * g + r + r / 2);
-                    path.lineTo(p.x * g, p.y * g + r);
-                    path.lineTo(p.x * g + r / 3, p.y * g + r + r / 2);
-                    path.lineTo(p.x * g - r / 3, p.y * g + r + r / 2);
-                    path.lineTo(p.x * g, p.y * g + r);
+                if (nudgeOffset) {
+                    path.lineTo(d.x * g, (d.y + 0.5) * g + nudge_y);
+                    path.lineTo(c.x * g + nudge_x, (d.y + 0.5) * g + nudge_y);
+                } else {
+                    path.arcTo(d.x * g, (d.y + 0.5) * g, c.x * g, (d.y + 0.5) * g, r);
+                    path.arcTo(c.x * g, (d.y + 0.5) * g, c.x * g, c.y * g - r, r);
                 }
-            }
 
-            return path;
-        })
-        .attr("class", (d) => `parent-${d.event_id.slice(1, 5)}`)
-        .attr("stroke", null)
-        .attr("stroke-width", 0)
-        .attr("fill", "none");
+                path.lineTo(c.x * g + nudge_x, c.y * g - r);
+
+                // arrowhead - we draw one per link so that prev_event highlighting works
+                path.moveTo(d.x * g - r / 3, d.y * g + r + r / 2);
+                path.lineTo(d.x * g, d.y * g + r);
+                path.lineTo(d.x * g + r / 3, d.y * g + r + r / 2);
+                path.lineTo(d.x * g - r / 3, d.y * g + r + r / 2);
+                path.lineTo(d.x * g, d.y * g + r);
+
+                childIndex++;
+
+                n.append("path")
+                    .attr("d", path.toString())
+                    .attr("class", (d) => `child-${d.event_id.slice(1, 5)} parent-${c?.event_id.slice(1, 5)}`)
+                    .attr("stroke", "black")
+                    .attr("fill", "none");
+            }
+        }
+    });
 
     node.append("text")
         .text((d) => `${d.y} ${d.event_id.slice(0, 5)} ${d.sender} ${d.type} ${d.content.body ?? ""}`)
