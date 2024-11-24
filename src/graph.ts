@@ -167,19 +167,28 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
         }
     }
 
+    const balanceTwoWayForks = true;
+
     // another pass to figure out the right-hand edge
     const edges: Array<{ x: number; y: number }> = [];
-    for (let i = 0; i < data.length; i++) {
+    data[0].laneWidth = 0;
+    for (let i = 1; i < data.length; i++) {
+        const p = data[i - 1];
         const d = data[i];
         while (edges.length > 0 && i > edges.at(-1)?.y) edges.pop();
-        if (d.next_events) {
+        if (p.next_events) {
             edges.push({
-                x: eventsById.get(d.next_events.at(-1)).x,
-                y: eventsById.get(d.next_events.at(-1)).y,
+                x: eventsById.get(p.next_events.at(-1)).x,
+                y: eventsById.get(p.next_events.at(-1)).y,
             });
         }
         edges.sort((a, b) => a.x - b.x);
         d.laneWidth = edges.at(-1)?.x;
+        if (balanceTwoWayForks && d.laneWidth % 2) {
+            // balance simple 2-way forks
+            d.x -= 0.5;
+            d.laneWidth -= 0.5;
+        }
     }
 
     const margin = {
