@@ -195,13 +195,14 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
         top: 20,
         right: 20,
         bottom: 30,
-        left: 220,
+        left: 230,
     };
 
     //
     // Drawing operations below
     //
-    const g = 20; // grid spacing
+    const gx = 40; // horizontal grid spacing
+    const gy = 25; // vertical grid spacing
     const r = 5; // node size
 
     const prevColor = "#f00";
@@ -212,8 +213,8 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
     d3.select(vis).html(null);
 
     // determine width & height of parent element and subtract the margin
-    const width = lanes.length * g + 1000;
-    const height = data.length * g;
+    const width = lanes.length * gx + 1000;
+    const height = data.length * gy
 
     // create svg and create a group inside that is moved by means of margin
     const svg = d3
@@ -271,8 +272,8 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
 
     // draw data points
     node.append("circle")
-        .attr("cx", (d) => d.x * g)
-        .attr("cy", (d) => d.y * g)
+        .attr("cx", (d) => d.x * gx)
+        .attr("cy", (d) => d.y * gy)
         .attr("r", r)
         .style("fill", (d) => (d.state_key ? "#4300ff" : "#ff3e00"))
         .style("fill-opacity", "0.5")
@@ -288,10 +289,10 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
                 if (d.next_events) {
                     for (const child of d.next_events) {
                         const c = eventsById.get(child);
-                        path.moveTo(d.x * g, d.y * g + r);
-                        path.arcTo(d.x * g, (d.y + 0.5) * g, c.x * g, (d.y + 0.5) * g, r);
-                        path.arcTo(c.x * g, (d.y + 0.5) * g, c.x * g, c.y * g - r, r);
-                        path.lineTo(c.x * g, c.y * g - r);
+                        path.moveTo(d.x * gx, d.y * gy + r);
+                        path.arcTo(d.x * gx, (d.y + 0.5) * gy, c.x * gx, (d.y + 0.5) * gy, r);
+                        path.arcTo(c.x * gx, (d.y + 0.5) * gy, c.x * gx, c.y * gy - r, r);
+                        path.lineTo(c.x * gx, c.y * gy - r);
                     }
                 }
 
@@ -325,31 +326,31 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
                     nudge_x = nudgeOffset * (childParentIndex - (c.prev_events.length - 1) / 2);
                 }
 
-                path.moveTo(d.x * g, d.y * g + r + nudge_y);
+                path.moveTo(d.x * gx, d.y * gy + r + nudge_y);
 
-                // path.lineTo(c.x * g, d.y * g);
-                // path.lineTo(c.x * g, c.y * g);
-                // path.quadraticCurveTo(c.x * g, d.y * g, c.x * g, c.y * g);
+                // path.lineTo(c.x * g, d.y * gy);
+                // path.lineTo(c.x * g, c.y * gy);
+                // path.quadraticCurveTo(c.x * gx, d.y * gy, c.x * gx, c.y * gy);
 
-                // path.arcTo(c.x * g, d.y * g, c.x * g, c.y * g, g/2);
-                // path.lineTo(c.x * g, c.y * g);
+                // path.arcTo(c.x * gx, d.y * gy, c.x * gx, c.y * gy, gy/2);
+                // path.lineTo(c.x * gx, c.y * gy);
 
                 if (nudgeOffset) {
-                    path.lineTo(d.x * g, (d.y + 0.5) * g + nudge_y);
-                    path.lineTo(c.x * g + nudge_x, (d.y + 0.5) * g + nudge_y);
+                    path.lineTo(d.x * gx, (d.y + 0.5) * gy + nudge_y);
+                    path.lineTo(c.x * gx + nudge_x, (d.y + 0.5) * gy + nudge_y);
                 } else {
-                    path.arcTo(d.x * g, (d.y + 0.5) * g, c.x * g, (d.y + 0.5) * g, r);
-                    path.arcTo(c.x * g, (d.y + 0.5) * g, c.x * g, c.y * g - r, r);
+                    path.arcTo(d.x * gx, (d.y + 0.5) * gy, c.x * gx, (d.y + 0.5) * gy, r);
+                    path.arcTo(c.x * gx, (d.y + 0.5) * gy, c.x * gx, c.y * gy - r, r);
                 }
 
-                path.lineTo(c.x * g + nudge_x, c.y * g - r);
+                path.lineTo(c.x * gx + nudge_x, c.y * gy - r);
 
                 // arrowhead - we draw one per link so that prev_event highlighting works
-                path.moveTo(d.x * g - r / 3, d.y * g + r + r / 2);
-                path.lineTo(d.x * g, d.y * g + r);
-                path.lineTo(d.x * g + r / 3, d.y * g + r + r / 2);
-                path.lineTo(d.x * g - r / 3, d.y * g + r + r / 2);
-                path.lineTo(d.x * g, d.y * g + r);
+                path.moveTo(d.x * gx - r / 3, d.y * gy + r + r / 2);
+                path.lineTo(d.x * gx, d.y * gy + r);
+                path.lineTo(d.x * gx + r / 3, d.y * gy + r + r / 2);
+                path.lineTo(d.x * gx - r / 3, d.y * gy + r + r / 2);
+                path.lineTo(d.x * gx, d.y * gy + r);
 
                 childIndex++;
 
@@ -369,13 +370,13 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
         //         `${d.y} ${d.event_id.slice(0, 5)} ${d.sender} P:${d.prev_events.map((id) => id.slice(0, 5)).join(", ")} | N:${d.next_events?.map((id) => id.slice(0, 5)).join(", ")}`,
         // )
         //.text(d => `${d.y} ${d.event_id.substr(0, 5)} ${d.sender} ${d.type} prev:${d.prev_events.map(id => id.substr(0, 5)).join(", ")}`)
-        .attr("x", (d) => d.laneWidth * g + 14)
-        .attr("y", (d) => d.y * g + 4);
+        .attr("x", (d) => d.laneWidth * gx + 25)
+        .attr("y", (d) => d.y * gy + 4);
 
     node.append("text")
         .text((d) => (d.origin_server_ts ? new Date(d.origin_server_ts).toLocaleString() : ""))
         .attr("x", -margin.left)
-        .attr("y", (d) => d.y * g + 4);
+        .attr("y", (d) => d.y * gy + 4);
 };
 
 export { redraw };
