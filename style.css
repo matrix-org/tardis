@@ -30,8 +30,12 @@ body {
 
 #contents {
     display: flex;
-    justify-content: space-around;
-    overflow: hidden;
+    /* 
+     * this makes firefox center-justify the contents and hide it when the svg is wide
+     * and don't hide the overflow when the svg is wide
+     */
+    /* justify-content: space-around; */
+    /* overflow: hidden; */
     flex-grow: 1;
 }
 

@@ -63,12 +63,14 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
     const laneEnd: Array<number> = []; // the height at which this lane was terminated
 
     // for balanced layout:
+    const balanced = false;
     const laneWidth = 100;
-    lanes.length = laneWidth;
-    laneEnd.length = laneWidth;
+    if (balanced) {
+        lanes.length = laneWidth;
+        laneEnd.length = laneWidth;
+    }
 
     function getNextLane(after: number | null = null) {
-        const balanced = false;
         if (balanced) {
             // biome-ignore lint/style/noParameterAssign:
             if (after == null) after = 0;
@@ -229,8 +231,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
         .attr("transform", `translate(${[margin.left, margin.top]})`);
 
     const node = svg
-        .append("g")
-        .selectAll("circle")
+        .selectAll("g")
         .data(data)
         .enter()
         .append("g")
@@ -314,6 +315,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
             let childIndex = 0;
             for (const child of d.next_events) {
                 const c = eventsById.get(child);
+                if (!c) continue;
 
                 const path = d3.path();
 
