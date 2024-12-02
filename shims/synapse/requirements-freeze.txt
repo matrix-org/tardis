@@ -34,7 +34,7 @@ pydantic_core==2.23.4
 pymacaroons==0.13.0
 PyNaCl==1.5.0
 pyOpenSSL==24.2.1
-python-multipart==0.0.12
+python-multipart==0.0.18
 PyYAML==6.0.2
 referencing==0.35.1
 requests==2.32.3
