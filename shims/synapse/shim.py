@@ -2,6 +2,7 @@
 import asyncio
 import json
 import logging
+import os
 import uuid
 from typing import Collection, Dict, Iterable, List, Optional, Sequence, Set
 from pydantic import BaseModel
@@ -250,6 +251,7 @@ async def handler(websocket):
 
 
 async def main():
+    print(f"Running on commit {os.getenv("COMMIT")}", flush=True)
     print("Listening on 0.0.0.0:1234")
     async with serve(handler, "0.0.0.0", 1234):
         await asyncio.get_running_loop().create_future()  # run forever

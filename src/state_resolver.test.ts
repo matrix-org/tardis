@@ -41,6 +41,26 @@ describe("StateResolver", () => {
                 origin_server_ts: 1,
             },
         };
+        const atFoo: MatrixEvent = {
+            type: "foo",
+            content: {},
+            sender: "@alice",
+            auth_events: [],
+            prev_events: [],
+            room_id: "!foo",
+            origin_server_ts: 2,
+            event_id: "$atFoo",
+        };
+        const atBar: MatrixEvent = {
+            type: "bar",
+            content: {},
+            sender: "@alice",
+            auth_events: [],
+            prev_events: [],
+            room_id: "!bar",
+            origin_server_ts: 2,
+            event_id: "$atBar",
+        };
 
         it("pairs up requests and sends the right request shape", async () => {
             const outstandingRequests: Array<{ id: string; data: DataResolveState }> = [];
@@ -59,14 +79,14 @@ describe("StateResolver", () => {
             );
             // biome-ignore lint/complexity/useLiteralKeys: it reads much nicer in IDEs to use this form
             const fooState = [{ [`["m.room.create",""]`]: "$foo", [`["m.room.member","@alice"]`]: "$foomember" }];
-            const promiseFoo = sr.resolveState(roomId, roomVer, fooState);
+            const promiseFoo = sr.resolveState(roomId, roomVer, fooState, atFoo);
             let fooResolved = false;
             promiseFoo.then(() => {
                 fooResolved = true;
             });
             // biome-ignore lint/complexity/useLiteralKeys: it reads much nicer in IDEs to use this form
             const barState = [{ [`["m.room.create",""]`]: "$bar" }];
-            const promiseBar = sr.resolveState(roomId, roomVer, barState);
+            const promiseBar = sr.resolveState(roomId, roomVer, barState, atBar);
             let barResolved = false;
             promiseBar.then(() => {
                 barResolved = true;
@@ -78,6 +98,7 @@ describe("StateResolver", () => {
                 room_id: "!foo",
                 room_version: roomVer,
                 state: fooState,
+                event: atFoo,
             });
             const barRequest = outstandingRequests[1];
             expect(barRequest.id).toBeDefined();
@@ -85,6 +106,7 @@ describe("StateResolver", () => {
                 room_id: "!foo",
                 room_version: roomVer,
                 state: barState,
+                event: atBar,
             });
 
             // neither promise should have resolved yet
@@ -98,6 +120,7 @@ describe("StateResolver", () => {
                 result: { [`["m.room.create",""]`]: "$bar" },
                 room_id: "!foo",
                 room_version: roomVer,
+                event: atBar,
             });
             const barResult = await promiseBar;
             expect(barResolved).toBe(true);
@@ -113,6 +136,7 @@ describe("StateResolver", () => {
                 result: { [`["m.room.create",""]`]: "$foo" },
                 room_id: "!foo",
                 room_version: roomVer,
+                event: atFoo,
             });
             const fooResult = await promiseFoo;
             expect(fooResolved).toBe(true);
