@@ -173,7 +173,7 @@ const mainlineForks: ScenarioFile = {
         {
             type: "m.room.join_rules",
             state_key: "",
-            sender: "@creator:tardis",
+            sender: "@alice:tardis",
             auth_events: ["$CREATE", "$ALICE", "$PL"],
             prev_events: ["$PL"],
             content: { join_rule: "public" },
@@ -221,7 +221,7 @@ const mainlineForks: ScenarioFile = {
             auth_events: ["$CREATE", "$ALICE", "$PL"],
             prev_events: ["$MERGE1"],
             content: { name: "Alice Room 2" },
-            origin_server_ts: 1704067291337,
+            origin_server_ts: 1704067281337,
             event_id: "$ALICE_NAME2",
         },
         {
@@ -231,7 +231,7 @@ const mainlineForks: ScenarioFile = {
             auth_events: ["$CREATE", "$BOB", "$PL"],
             prev_events: ["$MERGE1"],
             content: { name: "Bob Room 2" },
-            origin_server_ts: 1704067291337,
+            origin_server_ts: 1704067281337,
             event_id: "$BOB_NAME2",
         },
         {
@@ -353,7 +353,7 @@ const reverseTopologicalPowerOrdering: ScenarioFile = {
         {
             type: "m.room.join_rules",
             state_key: "",
-            sender: "@creator:tardis",
+            sender: "@alice:tardis",
             auth_events: ["$CREATE", "$ALICE", "$PL"],
             prev_events: ["$PL"],
             content: { join_rule: "public" },
@@ -436,7 +436,7 @@ const reverseTopologicalPowerOrdering: ScenarioFile = {
             auth_events: ["$CREATE", "$BOB", "$PL"],
             prev_events: ["$MERGE2"],
             content: { join_rule: "knock" },
-            origin_server_ts: 1704077299300,
+            origin_server_ts: 1704077299001,
             event_id: "$BOB_JR3",
         },
         {
@@ -446,7 +446,7 @@ const reverseTopologicalPowerOrdering: ScenarioFile = {
             auth_events: ["$CREATE", "$CHARLIE", "$PL"],
             prev_events: ["$MERGE2"],
             content: { join_rule: "invite" },
-            origin_server_ts: 1704077299300,
+            origin_server_ts: 1704077299001,
             event_id: "$CHARLIE_JR2",
         },
         {

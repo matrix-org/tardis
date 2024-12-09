@@ -1,6 +1,6 @@
 import type { Cache } from "./cache";
 import type { Scenario } from "./scenario";
-import type { EventID, StateKeyTuple } from "./state_resolver";
+import type { EventID, MatrixEvent, StateKeyTuple } from "./state_resolver";
 
 // Debugger provides a mechanism for stepping through a scenario, exposing UI elements and calling out to resolve state.
 export class Debugger {
@@ -58,6 +58,7 @@ export class Debugger {
             roomId: string,
             roomVer: string,
             states: Array<Record<StateKeyTuple, EventID>>,
+            atEvent: MatrixEvent,
         ) => Promise<Record<StateKeyTuple, EventID>>,
     ): Promise<void> {
         // we don't just resolve the current step, but resolve all steps up to and including the current
@@ -75,51 +76,26 @@ export class Debugger {
             roomId: string,
             roomVer: string,
             states: Array<Record<StateKeyTuple, EventID>>,
+            atEvent: MatrixEvent,
         ) => Promise<Record<StateKeyTuple, EventID>>,
     ): Promise<void> {
         if (cache.stateAtEvent.getStateAsEventIds(atEventId).size > 0) {
             return; // we've already worked out the state at this event.
         }
         const atEvent = cache.eventCache.get(atEventId)!;
-        let theState: Record<StateKeyTuple, EventID> = {};
-        switch (atEvent.prev_events.length) {
-            case 0: // e.g m.room.create
-                // do nothing, as we default to empty prev states.
-                // we'll add the create event now.
-                break;
-            case 1: {
-                // linear: the state is what came before plus this
-                const prevEventId = atEvent.prev_events[0];
-                const prevState = cache.stateAtEvent.getState(prevEventId);
-                if (Object.keys(prevState).length === 0) {
-                    console.error(
-                        `WARN: we do not know the state at ${prevEventId} yet, so the state calculation for ${atEventId} may be wrong!`,
-                    );
-                }
-                theState = prevState;
-                break;
+        // we need to do state resolution.
+        const states: Array<Record<StateKeyTuple, EventID>> = [];
+        for (const prevEventId of atEvent.prev_events) {
+            const prevState = cache.stateAtEvent.getState(prevEventId);
+            if (Object.keys(prevState).length === 0) {
+                console.error(
+                    `WARN: we do not know the state at ${prevEventId} yet, so the state calculation for ${atEventId} may be wrong!`,
+                );
             }
-            default: {
-                // we need to do state resolution.
-                const states: Array<Record<StateKeyTuple, EventID>> = [];
-                for (const prevEventId of atEvent.prev_events) {
-                    const prevState = cache.stateAtEvent.getState(prevEventId);
-                    if (Object.keys(prevState).length === 0) {
-                        console.error(
-                            `WARN: we do not know the state at ${prevEventId} yet, so the state calculation for ${atEventId} may be wrong!`,
-                        );
-                    }
-                    states.push(prevState);
-                }
-                console.log("performing state resolution for prev_events:", atEvent.prev_events);
-                theState = await resolveState(atEvent.room_id, this.scenario.roomVersion, states);
-            }
+            states.push(prevState);
         }
-        // include this state event
-        if (atEvent.state_key != null) {
-            theState[JSON.stringify([atEvent.type, atEvent.state_key])] = atEventId;
-        }
-
+        console.log("performing state resolution for prev_events:", atEvent.prev_events);
+        const theState = await resolveState(atEvent.room_id, this.scenario.roomVersion, states, atEvent);
         cache.stateAtEvent.setState(atEventId, theState);
     }
 }

@@ -715,32 +715,39 @@ const existingShimUrl = globalThis.localStorage.getItem("shim_url");
 if (existingShimUrl) {
     console.log("setting shim url from local storage");
     document.getElementById("shimurl")!.value = existingShimUrl;
+    dag.setShimUrl(existingShimUrl);
 }
 
 document.getElementById("resolve")!.addEventListener("click", async (ev) => {
-    await dag.debugger.resolve(
-        dag.cache,
-        async (
-            roomId: string,
-            roomVer: string,
-            states: Array<Record<StateKeyTuple, EventID>>,
-        ): Promise<Record<StateKeyTuple, EventID>> => {
-            if (!dag.shimUrl) {
-                console.error("you need to set a shim url to resolve state!");
+    if (!dag.shimUrl) {
+        console.error("you need to set a shim url to resolve state!");
+        return {};
+    }
+    console.log(dag.shimUrl);
+    try {
+        await transport.connect(dag.shimUrl, resolver);
+        await dag.debugger.resolve(
+            dag.cache,
+            async (
+                roomId: string,
+                roomVer: string,
+                states: Array<Record<StateKeyTuple, EventID>>,
+                atEvent: MatrixEvent,
+            ): Promise<Record<StateKeyTuple, EventID>> => {
+                try {
+                    const r = await resolver.resolveState(roomId, roomVer, states, atEvent);
+                    return r.state;
+                } catch (err) {
+                    console.error("failed to resolve state:", err);
+                }
                 return {};
-            }
-            try {
-                await transport.connect(dag.shimUrl, resolver);
-                const r = await resolver.resolveState(roomId, roomVer, states);
-                return r.state;
-            } catch (err) {
-                console.error("failed to setup WS connection:", err);
-            } finally {
-                transport.close();
-            }
-            return {};
-        },
-    );
+            },
+        );
+    } catch (err) {
+        console.error("failed to setup WS connection:", err);
+    } finally {
+        transport.close();
+    }
     dag.refresh();
 });
 

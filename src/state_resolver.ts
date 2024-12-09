@@ -34,7 +34,9 @@ interface DataResolveState {
     room_id: string;
     room_version: string;
     state: Array<Record<StateKeyTuple, EventID>>;
+    event: MatrixEvent;
     result?: Record<StateKeyTuple, EventID>;
+    error?: string;
 }
 interface DataGetEvent {
     event_id: string;
@@ -77,6 +79,9 @@ class StateResolver implements StateResolverReceiver {
             console.error(`onResolveStateResponse: no request id for response! id=${id}`);
             return;
         }
+        if (data.error) {
+            console.error(id, data.error);
+        }
         resolve(data);
         this.inflightRequests.delete(id);
     }
@@ -85,8 +90,9 @@ class StateResolver implements StateResolverReceiver {
         roomId: string,
         roomVersion: string,
         states: Array<Record<StateKeyTuple, EventID>>,
+        atEvent: MatrixEvent,
     ): Promise<ResolvedState> {
-        console.log("resolveState", states);
+        console.log("resolveState", states, atEvent);
         // make an id so we can pair it up when we get the response
         const id = globalThis.crypto.randomUUID();
         const promise = new Promise<ResolvedState>((resolve, reject) => {
@@ -104,6 +110,7 @@ class StateResolver implements StateResolverReceiver {
                 state: states,
                 room_id: roomId,
                 room_version: roomVersion,
+                event: atEvent,
             });
         });
 
