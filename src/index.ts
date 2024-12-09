@@ -141,6 +141,9 @@ class Dag {
     }
     async refresh() {
         let renderEvents = await this.recalculate();
+        if (this.collapse) {
+            renderEvents = this.collapsifier(renderEvents);
+        }
         if (this.experimentalLayout) {
             const eventsArray: Array<MatrixEvent> = [];
             for (const k in renderEvents) {
@@ -148,10 +151,6 @@ class Dag {
             }
             redraw(document.getElementById("svgcontainer")! as HTMLDivElement, eventsArray);
             return;
-        }
-
-        if (this.collapse) {
-            renderEvents = this.collapsifier(renderEvents);
         }
         this.renderEvents = renderEvents;
         await this.render(this.eventsToCompleteDag(renderEvents));

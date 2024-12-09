@@ -279,9 +279,9 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
         .attr("cx", (d) => d.x * gx)
         .attr("cy", (d) => d.y * gy)
         .attr("r", r)
-        .style("fill", (d) => (d.state_key ? "#4300ff" : "#ff3e00"))
+        .style("fill", (d) => (d.state_key != null ? "#4300ff" : "#111111"))
         .style("fill-opacity", "0.5")
-        .style("stroke", (d) => (d.state_key ? "#4300ff" : "#ff3e00"));
+        .style("stroke", (d) => (d.state_key != null ? "#4300ff" : "#111111"));
 
     const nudgeOffset = 0;
 
@@ -370,7 +370,10 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
     });
 
     node.append("text")
-        .text((d) => `${d.y} ${d.event_id.slice(0, 5)} ${d.sender} ${d.type} ${d.content.body ?? ""}`)
+        .text((d) => {
+            const eventDepth = d._collapse ? `${d.y}+${d._collapse}` : d.y;
+            return `${eventDepth} ${d.event_id.slice(0, 5)} ${d.sender} ${d.type} ${d.content.body ?? ""}`;
+        })
         // .text(
         //     (d) =>
         //         `${d.y} ${d.event_id.slice(0, 5)} ${d.sender} P:${d.prev_events.map((id) => id.slice(0, 5)).join(", ")} | N:${d.next_events?.map((id) => id.slice(0, 5)).join(", ")}`,
