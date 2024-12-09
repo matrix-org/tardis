@@ -2,7 +2,7 @@ import * as d3 from "d3";
 import * as d3dag from "d3-dag";
 import { Cache } from "./cache";
 import { Debugger } from "./debugger";
-import { EventList } from "./event_list";
+import { EventList, textRepresentation } from "./event_list";
 import { redraw } from "./graph";
 import { mainlineForks, quickstartFile, reverseTopologicalPowerOrdering } from "./preloaded_scenarios";
 import { type Scenario, type ScenarioFile, loadScenarioFromFile, loadScenarioFromScenarioFile } from "./scenario";
@@ -149,7 +149,12 @@ class Dag {
             for (const k in renderEvents) {
                 eventsArray.push(renderEvents[k]);
             }
-            redraw(document.getElementById("svgcontainer")! as HTMLDivElement, eventsArray);
+            redraw(
+                document.getElementById("svgcontainer")! as HTMLDivElement,
+                eventsArray,
+                this.debugger.current(),
+                this.scenario,
+            );
             return;
         }
         this.renderEvents = renderEvents;
@@ -565,7 +570,7 @@ class Dag {
             if (this.scenario?.annotations?.events?.[eventId]) {
                 return `${id} ${this.scenario?.annotations?.events[eventId]}`;
             }
-            const text = eventList.textRepresentation(d.data);
+            const text = textRepresentation(d.data);
             const depth = d.data.depth ? `(${d.data.depth})` : "";
             let collapse = d.data._collapse ? `+${d.data._collapse} more` : "";
             if (collapse === "") {

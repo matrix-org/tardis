@@ -82,6 +82,9 @@ body {
     flex-grow: 1;
 }
 
+.node-text {
+    font-family: Gill Sans,Gill Sans MT,Calibri,sans-serif;
+}
 input {
     font-family: Gill Sans,Gill Sans MT,Calibri,sans-serif;
 }

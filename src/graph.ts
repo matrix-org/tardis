@@ -1,5 +1,7 @@
 import * as d3 from "d3";
 import type { MatrixEvent } from "./state_resolver";
+import type { Scenario } from "./scenario";
+import { textRepresentation } from "./event_list";
 
 interface RenderableMatrixEvent extends MatrixEvent {
     next_events: Array<string>;
@@ -9,7 +11,18 @@ interface RenderableMatrixEvent extends MatrixEvent {
     streamPosition: number;
 }
 
-const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
+const textualRepresentation = (ev: RenderableMatrixEvent, scenario?: Scenario) => {
+    const eventId = ev.event_id;
+    const id = eventId.substr(0, 5);
+    if (scenario?.annotations?.events?.[eventId]) {
+        return `${id} ${scenario?.annotations?.events[eventId]}`;
+    }
+    const text = textRepresentation(ev);
+    const collapse = ev._collapse ? `+${ev._collapse} more` : "";
+    return `${id} ${text} ${collapse}`;
+};
+
+const redraw = (vis: HTMLDivElement, events: MatrixEvent[], currentEventId: string, scenario?: Scenario) => {
     // copy the events so we don't alter the caller's copy
     // biome-ignore lint/style/noParameterAssign:
     events = JSON.parse(JSON.stringify(events));
@@ -371,9 +384,9 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
 
     node.append("text")
         .text((d) => {
-            const eventDepth = d._collapse ? `${d.y}+${d._collapse}` : d.y;
-            return `${eventDepth} ${d.event_id.slice(0, 5)} ${d.sender} ${d.type} ${d.content.body ?? ""}`;
+            return textualRepresentation(d, scenario);
         })
+        .attr("class", (d) => "node-text")
         // .text(
         //     (d) =>
         //         `${d.y} ${d.event_id.slice(0, 5)} ${d.sender} P:${d.prev_events.map((id) => id.slice(0, 5)).join(", ")} | N:${d.next_events?.map((id) => id.slice(0, 5)).join(", ")}`,
@@ -386,6 +399,15 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[]) => {
         .text((d) => (d.origin_server_ts ? new Date(d.origin_server_ts).toLocaleString() : ""))
         .attr("x", -margin.left)
         .attr("y", (d) => d.y * gy + 4);
+
+    // use the title for the current event
+    const title = svg.append("g").append("text").attr("class", "node-text").attr("x", -margin.left).attr("y", height);
+    let currTitle = scenario?.annotations?.titles?.[currentEventId];
+    if (!currTitle) {
+        // ...fallback to the global title or nothing
+        currTitle = scenario?.annotations?.title || "";
+    }
+    title.text(currTitle);
 };
 
 export { redraw };
