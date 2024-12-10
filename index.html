@@ -4,8 +4,8 @@
     <link rel="icon" href="favicon.svg">
     <title>TARDIS - Time Agnostic Room DAG Inspection Service</title>
     <script src="wasm_exec.js"></script>
-  <script type="module" crossorigin src="/tardis/assets/index-NsyrjHq3.js"></script>
-  <link rel="stylesheet" crossorigin href="/tardis/assets/index-CHq2wy8q.css">
+  <script type="module" crossorigin src="/tardis/assets/index-DQTZ8TLb.js"></script>
+  <link rel="stylesheet" crossorigin href="/tardis/assets/index-b20xi-z2.css">
 </head>
 
 <body>
@@ -16,12 +16,12 @@
             <label>Auth Chain<input id="showauthevents" type="checkbox" /></label>
             <label>Outliers<input id="showoutliers" type="checkbox" /></label>
             <label>Collapse<input id="collapse" type="checkbox" /></label>
-            <label>Timestamps<input id="timestamps" type="checkbox" /></label>
             <input id="stepbwd" type="button" value="&larr;" />
             <input id="stepfwd" type="button" value="&rarr;" />
             <input id="shimurl" type="text" value="https://tardis.element.dev/" placeholder="Shim URL" />
             <input id="resolve" type="button" value="Resolve State" />
-            <label>Experimental Layout<input id="explayout" type="checkbox" /></label>
+            <div class="loader" id="loader"></div>
+            <span class="loader-status" id="loader-status"></span>
         </div>
         <div id="infocontainer">
             <pre id="closeinfocontainer">[ Close ]</pre>
@@ -29,7 +29,7 @@
         </div>
         <div id="contents">
             <div id="eventlist"></div>
-            <div id="svgcontainer" />
+            <div id="svgcontainer" class="monospace" />
         </div>
     </div>
 
