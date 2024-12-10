@@ -149,12 +149,11 @@ class Dag {
             for (const k in renderEvents) {
                 eventsArray.push(renderEvents[k]);
             }
-            redraw(
-                document.getElementById("svgcontainer")! as HTMLDivElement,
-                eventsArray,
-                this.debugger.current(),
-                this.scenario,
-            );
+            redraw(document.getElementById("svgcontainer")! as HTMLDivElement, eventsArray, {
+                currentEventId: this.debugger.current(),
+                scenario: this.scenario,
+                stateAtEvent: this.cache.stateAtEvent.getStateAsEventIds(this.debugger.current()),
+            });
             return;
         }
         this.renderEvents = renderEvents;

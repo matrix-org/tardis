@@ -1,7 +1,13 @@
 import * as d3 from "d3";
-import type { MatrixEvent } from "./state_resolver";
+import type { EventID, MatrixEvent } from "./state_resolver";
 import type { Scenario } from "./scenario";
 import { textRepresentation } from "./event_list";
+
+export interface RenderOptions {
+    currentEventId: string;
+    stateAtEvent?: Set<EventID>;
+    scenario?: Scenario;
+}
 
 interface RenderableMatrixEvent extends MatrixEvent {
     next_events: Array<string>;
@@ -22,7 +28,7 @@ const textualRepresentation = (ev: RenderableMatrixEvent, scenario?: Scenario) =
     return `${id} ${text} ${collapse}`;
 };
 
-const redraw = (vis: HTMLDivElement, events: MatrixEvent[], currentEventId: string, scenario?: Scenario) => {
+const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions) => {
     // copy the events so we don't alter the caller's copy
     // biome-ignore lint/style/noParameterAssign:
     events = JSON.parse(JSON.stringify(events));
@@ -286,15 +292,24 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], currentEventId: stri
                 .attr("stroke", "black")
                 .attr("stroke-width", lineWidth);
         });
-
     // draw data points
     node.append("circle")
         .attr("cx", (d) => d.x * gx)
         .attr("cy", (d) => d.y * gy)
         .attr("r", r)
-        .style("fill", (d) => (d.state_key != null ? "#4300ff" : "#111111"))
+        .style("fill", (d) => {
+            if (opts.stateAtEvent?.has(d.event_id)) {
+                return "#43ff00";
+            }
+            return d.state_key != null ? "#4300ff" : "#111111";
+        })
         .style("fill-opacity", "0.5")
-        .style("stroke", (d) => (d.state_key != null ? "#4300ff" : "#111111"));
+        .style("stroke", (d) => {
+            if (opts.stateAtEvent?.has(d.event_id)) {
+                return "#43ff00";
+            }
+            return d.state_key != null ? "#4300ff" : "#111111";
+        });
 
     const nudgeOffset = 0;
 
@@ -384,7 +399,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], currentEventId: stri
 
     node.append("text")
         .text((d) => {
-            return textualRepresentation(d, scenario);
+            return textualRepresentation(d, opts.scenario);
         })
         .attr("class", (d) => "node-text")
         // .text(
@@ -402,10 +417,10 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], currentEventId: stri
 
     // use the title for the current event
     const title = svg.append("g").append("text").attr("class", "node-text").attr("x", -margin.left).attr("y", height);
-    let currTitle = scenario?.annotations?.titles?.[currentEventId];
+    let currTitle = opts.scenario?.annotations?.titles?.[opts.currentEventId];
     if (!currTitle) {
         // ...fallback to the global title or nothing
-        currTitle = scenario?.annotations?.title || "";
+        currTitle = opts.scenario?.annotations?.title || "";
     }
     title.text(currTitle);
 };
