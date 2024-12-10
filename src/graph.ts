@@ -228,6 +228,14 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         left: 230,
     };
 
+    let currTitle = opts.scenario?.annotations?.titles?.[opts.currentEventId];
+    if (!currTitle) {
+        // ...fallback to the global title or nothing
+        currTitle = opts.scenario?.annotations?.title || "";
+    }
+    const lines = currTitle.split("\n");
+    const lineHeight = 20;
+
     //
     // Drawing operations below
     //
@@ -254,7 +262,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         .select(vis)
         .append("svg")
         .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
+        .attr("height", height + margin.top + margin.bottom + lineHeight * lines.length)
         .append("g")
         .attr("transform", `translate(${[margin.left, margin.top]})`);
 
@@ -434,13 +442,16 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         .attr("y", (d) => d.y * gy + 4);
 
     // use the title for the current event
-    const title = svg.append("g").append("text").attr("class", "node-text").attr("x", -margin.left).attr("y", height);
-    let currTitle = opts.scenario?.annotations?.titles?.[opts.currentEventId];
-    if (!currTitle) {
-        // ...fallback to the global title or nothing
-        currTitle = opts.scenario?.annotations?.title || "";
+    const title = svg.append("text").attr("class", "node-text").attr("x", -margin.left).attr("y", height);
+
+    for (let i = 0; i < lines.length; i++) {
+        title
+            .append("tspan")
+            .attr("x", -margin.left)
+            .attr("y", height + i * lineHeight)
+            .text(lines[i]);
     }
-    title.text(currTitle);
+    //title.text(currTitle);
 };
 
 export { redraw };
