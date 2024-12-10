@@ -153,6 +153,7 @@ class Dag {
                 currentEventId: this.debugger.current(),
                 scenario: this.scenario,
                 stateAtEvent: this.cache.stateAtEvent.getStateAsEventIds(this.debugger.current()),
+                showAuthChain: this.showAuthChain,
             });
             return;
         }

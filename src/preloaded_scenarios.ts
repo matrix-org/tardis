@@ -98,9 +98,7 @@ const quickstartFile: ScenarioFile = {
             "Press the → button to continue.",
         ].join("\n"),
         titles: {
-            $FORK1: ["The current event is highlighted in blue.", "Message events are smaller than state events."].join(
-                "\n",
-            ),
+            $FORK1: "State events are highlighted in blue.",
             $FORK2: ["The DAG can fork, which indicates", "some events were sent at the same time."].join("\n"),
             $MERGE: ["The DAG can merge, which merges", "state from each fork together."].join("\n"),
             $PRESTATE: [

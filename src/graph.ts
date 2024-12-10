@@ -7,6 +7,7 @@ export interface RenderOptions {
     currentEventId: string;
     stateAtEvent?: Set<EventID>;
     scenario?: Scenario;
+    showAuthChain: boolean;
 }
 
 interface RenderableMatrixEvent extends MatrixEvent {
@@ -15,17 +16,24 @@ interface RenderableMatrixEvent extends MatrixEvent {
     y: number;
     laneWidth: number;
     streamPosition: number;
+    edges?: Array<string>;
 }
+
+const edgesForEvent = (ev: RenderableMatrixEvent, opts: RenderOptions): string[] => {
+    if (opts.showAuthChain) {
+        return (ev.auth_events || []).concat(ev.prev_events);
+    }
+    return ev.prev_events;
+};
 
 const textualRepresentation = (ev: RenderableMatrixEvent, scenario?: Scenario) => {
     const eventId = ev.event_id;
-    const id = eventId.substr(0, 5);
     if (scenario?.annotations?.events?.[eventId]) {
-        return `${id} ${scenario?.annotations?.events[eventId]}`;
+        return `${scenario?.annotations?.events[eventId]}`;
     }
     const text = textRepresentation(ev);
     const collapse = ev._collapse ? `+${ev._collapse} more` : "";
-    return `${id} ${text} ${collapse}`;
+    return `${text} ${collapse}`;
 };
 
 const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions) => {
@@ -41,15 +49,15 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         eventsById.set(data[i].event_id, data[i]);
     }
 
-    // and insert potential placeholders for dangling prev_events.
+    // and insert potential placeholders for dangling edges.
     // we slice to do a shallow copy given we're inserting placeholders into data
     for (const d of data.slice()) {
         // order parents chronologically
-        d.prev_events.sort((a: string, b: string) => {
+        d.edges = edgesForEvent(d, opts).sort((a: string, b: string) => {
             return (eventsById.get(a)?.streamPosition || 0) - (eventsById.get(b)?.streamPosition || 0);
         });
 
-        for (const p of d.prev_events) {
+        for (const p of d.edges) {
             if (!eventsById.get(p)) {
                 const placeholder = {
                     event_id: p,
@@ -61,6 +69,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
                     auth_events: [],
                     room_id: "",
                     origin_server_ts: 0,
+                    edges: [],
                 };
                 eventsById.set(p, placeholder);
                 // insert the placeholder immediately before the event which refers to it
@@ -142,7 +151,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
 
         // if any of my parents has a lane, position me under it, preferring the oldest
         let foundLane = false;
-        for (const p of d.prev_events) {
+        for (const p of d.edges!) {
             const parent = eventsById.get(p);
             if (lanes.findIndex((id) => id === parent.event_id) !== -1) {
                 d.x = parent.x;
@@ -156,8 +165,8 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
             // don't re-use lanes if you have prev_events higher than the end of the lane
             // otherwise you'll overlap them.
             d.x = getNextLane();
-            if (d.prev_events && eventsById.get(d.prev_events[0])) {
-                const oldestPrevEventY = eventsById.get(d.prev_events[0]).y;
+            if (d.edges && eventsById.get(d.edges[0])) {
+                const oldestPrevEventY = eventsById.get(d.edges[0]).y;
                 while (laneEnd[d.x] !== undefined && oldestPrevEventY < laneEnd[d.x]) {
                     d.x = getNextLane(d.x);
                 }
@@ -170,7 +179,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         if (d.next_events) {
             for (const c of d.next_events) {
                 const child = eventsById.get(c);
-                if (child.prev_events[0] === d.event_id) {
+                if (child!.edges![0] === d.event_id) {
                     oldestParent = true;
                     break;
                 }
@@ -271,7 +280,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
             for (const id of d.next_events || []) {
                 d3.select(`.node-${id.slice(1, 5)}`).attr("fill", nextColor);
             }
-            for (const id of d.prev_events) {
+            for (const id of d.edges!) {
                 d3.select(`.node-${id.slice(1, 5)}`).attr("fill", prevColor);
             }
         })
@@ -281,7 +290,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
             for (const id of d.next_events || []) {
                 d3.select(`.node-${id.slice(1, 5)}`).attr("fill", null);
             }
-            for (const id of d.prev_events) {
+            for (const id of d.edges!) {
                 d3.select(`.node-${id.slice(1, 5)}`).attr("fill", null);
             }
 
@@ -355,8 +364,8 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
                     nudge_y =
                         d.next_events.length > 1 ? nudgeOffset * (childIndex - (d.next_events.length - 2) / 2) : 0;
                     // nudge vertical left or right based on how many prev_events there are from this child.
-                    const childParentIndex = c.prev_events.findIndex((id) => id === d.event_id);
-                    nudge_x = nudgeOffset * (childParentIndex - (c.prev_events.length - 1) / 2);
+                    const childParentIndex = c.edges!.findIndex((id) => id === d.event_id);
+                    nudge_x = nudgeOffset * (childParentIndex - (c.edges!.length - 1) / 2);
                 }
 
                 path.moveTo(d.x * gx, d.y * gy + r + nudge_y);
@@ -397,6 +406,15 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         }
     });
 
+    // Add event IDs on the right side
+    node.append("text")
+        .text((d) => {
+            return d.event_id.substr(0, 5);
+        })
+        .attr("x", (d) => d.laneWidth * gx + 25)
+        .attr("y", (d) => d.y * gy + 4);
+
+    // Add descriptions alongside the event ID
     node.append("text")
         .text((d) => {
             return textualRepresentation(d, opts.scenario);
@@ -407,7 +425,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         //         `${d.y} ${d.event_id.slice(0, 5)} ${d.sender} P:${d.prev_events.map((id) => id.slice(0, 5)).join(", ")} | N:${d.next_events?.map((id) => id.slice(0, 5)).join(", ")}`,
         // )
         //.text(d => `${d.y} ${d.event_id.substr(0, 5)} ${d.sender} ${d.type} prev:${d.prev_events.map(id => id.substr(0, 5)).join(", ")}`)
-        .attr("x", (d) => d.laneWidth * gx + 25)
+        .attr("x", (d) => d.laneWidth * gx + 105)
         .attr("y", (d) => d.y * gy + 4);
 
     node.append("text")
