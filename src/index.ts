@@ -34,7 +34,6 @@ class Dag {
     cache: Cache;
     createEventId: string | null;
     showAuthChain: boolean;
-    showPrevEvents: boolean;
     showOutliers: boolean;
     collapse: boolean;
     shimUrl?: string;
@@ -48,7 +47,6 @@ class Dag {
         this.cache = cache;
         this.createEventId = null;
         this.showAuthChain = false;
-        this.showPrevEvents = true;
         this.showOutliers = false;
         this.collapse = false;
         this.renderEvents = {};
@@ -115,9 +113,6 @@ class Dag {
     setShowAuthChain(show: boolean) {
         this.showAuthChain = show;
     }
-    setShowPrevEvents(show: boolean) {
-        this.showPrevEvents = show;
-    }
     setShowOutliers(show: boolean) {
         this.showOutliers = show;
     }
@@ -125,7 +120,10 @@ class Dag {
         this.collapse = col;
     }
     async refresh() {
-        let renderEvents = await this.recalculate();
+        let renderEvents = Object.create(null);
+        for (const eventId of this.debugger.eventsUpToCurrent()) {
+            renderEvents[eventId] = this.cache.eventCache.get(eventId);
+        }
         if (this.collapse) {
             renderEvents = this.collapsifier(renderEvents);
         }
@@ -139,57 +137,6 @@ class Dag {
             stateAtEvent: this.cache.stateAtEvent.getStateAsEventIds(this.debugger.current()),
             showAuthChain: this.showAuthChain,
         });
-    }
-    // returns the set of events to render
-    async recalculate(): Promise<Record<string, MatrixEvent>> {
-        const renderEvents = Object.create(null);
-        for (const eventId of this.debugger.eventsUpToCurrent()) {
-            renderEvents[eventId] = this.cache.eventCache.get(eventId);
-        }
-        return renderEvents;
-    }
-
-    // Converts a map of event ID to event into a complete DAG which d3dag will accept. This primarily
-    // does 2 things:
-    // - check prev/auth events and if they are missing in the dag AND the cache add a "missing" event
-    // - check prev/auth events and if they are missing in the dag but not the cache add a "..." event.
-    // Both these events have no prev/auth events so it forms a complete DAG with no missing nodes.
-    eventsToCompleteDag(events: Record<string, MatrixEvent>): Record<string, MatrixEvent> {
-        for (const id in events) {
-            const ev = events[id];
-            const keys = ["auth_events", "prev_events"];
-            for (const key of keys) {
-                for (const id of ev[key]) {
-                    if (events[id]) {
-                        continue; // already linked to a renderable part of the dag, ignore.
-                    }
-                    if (this.cache.eventCache.get(id)) {
-                        events[id] = {
-                            event_id: id,
-                            prev_events: [],
-                            auth_events: [],
-                            state_key: "...",
-                            type: "...",
-                            content: {},
-                            sender: "",
-                            room_id: "!",
-                        };
-                    } else {
-                        events[id] = {
-                            event_id: id,
-                            prev_events: [],
-                            auth_events: [],
-                            state_key: "missing",
-                            type: "missing",
-                            content: {},
-                            sender: "",
-                            room_id: "!",
-                        };
-                    }
-                }
-            }
-        }
-        return events;
     }
     // find the event(s) which aren't pointed to by anyone which has prev/auth events, as this is the
     // forward extremity, we do this by playing a deathmatch - everyone is eligible at first and
@@ -352,266 +299,10 @@ class Dag {
         console.log("collapsifier complete");
         return events;
     }
-
-    // render a set of events
-    async render(eventsToRender: Record<string, MatrixEvent>) {
-        const hideOrphans = !this.showOutliers;
-        const svgContainer = document.getElementById("svgcontainer")!;
-        svgContainer.innerHTML = "";
-        const width = svgContainer.offsetWidth;
-        const height = window.innerHeight;
-
-        // stratify the events into a DAG
-        console.log(eventsToRender);
-        if (Object.keys(eventsToRender).length <= 1) {
-            return; // we need at least 2 nodes for d3-dag to render things.
-        }
-        let dag = d3dag
-            .dagStratify<MatrixEvent>()
-            .id((event: MatrixEvent) => event.event_id)
-            .parentIds((event: MatrixEvent) => {
-                if (this.showAuthChain) {
-                    return event.prev_events.concat(event.auth_events.filter((id) => id !== this.createEventId));
-                }
-                return event.prev_events;
-            })
-            .parentData((event: MatrixEvent): Array<[string, Link]> => {
-                const parentData: Array<[string, Link]> = [];
-                const parentEvents = this.showAuthChain
-                    ? event.prev_events.concat(event.auth_events)
-                    : event.prev_events;
-                for (const parentEventId of new Set<string>(parentEvents)) {
-                    const parentEvent = eventsToRender[parentEventId];
-                    if (parentEvent) {
-                        parentData.push([
-                            parentEventId,
-                            {
-                                auth:
-                                    event.auth_events.includes(parentEventId) && // the parent is an auth event
-                                    !event.prev_events.includes(parentEventId), // the parent is not a prev_event (in which case prev_event wins in terms of colour)
-                            },
-                        ]);
-                    }
-                }
-                return parentData;
-            })(Object.values(eventsToRender));
-
-        const rootNodes = dag.split();
-        if (hideOrphans) {
-            // hide root nodes with no children
-            const connectedRoots = rootNodes.filter((dag) => {
-                return dag.descendants().length > 1;
-            });
-            if (connectedRoots.length > 1) {
-                console.error(
-                    `hideOrphans: ${connectedRoots.length} roots with children, this should not be possible unless there are 2 DAG chunks in this file`,
-                );
-            }
-            dag = connectedRoots[0];
-        }
-
-        console.log("dag:", dag);
-
-        const nodeRadius = 10;
-        const margin = nodeRadius * 4;
-        const svgNode = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        svgNode.setAttribute("width", String(width));
-        svgNode.setAttribute("height", String(height));
-        svgNode.setAttribute("viewBox", `${-margin} ${-margin} ${width + 10 * margin} ${height + 2 * margin}`);
-
-        const svgSelection = d3.select(svgNode);
-        const title = svgSelection
-            .append("text")
-            .attr("x", width / 3)
-            .attr("y", -40)
-            .style("font-size", "24px");
-        // use the title for the current event
-        let currTitle = this.scenario?.annotations?.titles?.[this.debugger.current()];
-        if (!currTitle) {
-            // ...fallback to the global title or nothing
-            currTitle = this.scenario?.annotations?.title || "";
-        }
-        for (const titleLine of currTitle.split("\n")) {
-            title
-                .append("tspan")
-                .attr("x", width / 2)
-                .attr("dy", "1.2em")
-                .text(titleLine);
-        }
-        const defs = svgSelection.append("defs");
-
-        // below is derived from
-        // https://observablehq.com/@erikbrinkman/d3-dag-sugiyama-with-arrows
-
-        // d3dag.zherebko()
-        d3dag
-            .sugiyama()
-            .layering(d3dag.layeringCoffmanGraham().width(2))
-            .coord(d3dag.coordCenter())
-            .size([width, height])(dag);
-
-        const steps = dag.size();
-        const interp = d3.interpolateRainbow;
-        const colorMap = {};
-        dag.idescendants("after").forEach((node, i) => {
-            colorMap[node.id] = interp(i / steps);
-        });
-
-        // How to draw edges
-        const line = d3
-            .line()
-            .curve(d3.curveCatmullRom)
-            .x((d) => d.x)
-            .y((d) => d.y);
-
-        // Plot edges
-        const edges = svgSelection
-            .append("g")
-            .selectAll("path")
-            .data(dag.links())
-            .enter()
-            //.filter(({data})=>!data.auth)
-            .append("path")
-            .attr("d", ({ points }) => line(points))
-            .attr("fill", "none")
-            .attr("stroke-width", (d) => {
-                const target = d.target;
-                if (!target.data._collapse) {
-                    return 3;
-                }
-                if (target.data._collapse < 5) {
-                    return 5;
-                }
-                return 10;
-            })
-            .text("test")
-            .attr("stroke", (dagLink) => {
-                const source = dagLink.source;
-                const target = dagLink.target;
-
-                const gradId = `${source.id}-${target.id}`;
-                const grad = defs
-                    .append("linearGradient")
-                    .attr("id", gradId)
-                    .attr("gradientUnits", "userSpaceOnUse")
-                    .attr("x1", source.x)
-                    .attr("x2", target.x)
-                    .attr("y1", source.y)
-                    .attr("y2", target.y);
-
-                /*
-                grad.append('stop')
-                    .attr('offset', '0%').attr('stop-color', colorMap[source.id]);
-                grad.append('stop')
-                    .attr('offset', '100%').attr('stop-color', colorMap[target.id]); */
-                grad.append("stop")
-                    .attr("offset", "0%")
-                    .attr("stop-color", dagLink.data.auth ? colorMap[source.id] : "#000");
-                grad.append("stop")
-                    .attr("offset", "100%")
-                    .attr("stop-color", dagLink.data.auth ? colorMap[target.id] : "#000");
-                return `url(#${gradId})`;
-            });
-
-        // Select nodes
-        const nodes = svgSelection
-            .append("g")
-            .selectAll("g")
-            .data(dag.descendants())
-            .enter()
-            .append("g")
-            .attr("transform", ({ x, y }) => `translate(${x}, ${y})`);
-
-        // Plot node circles
-        const stateEvents = this.cache.stateAtEvent.getStateAsEventIds(this.debugger.current());
-        nodes
-            .append("circle")
-            .attr("r", (n) => {
-                const ev = this.cache.eventCache.get(n.id);
-                if (ev && ev.state_key != null) {
-                    return nodeRadius * 1.5;
-                }
-                return nodeRadius;
-            })
-            .attr("fill", (n) => {
-                if (n.id === this.debugger.current()) {
-                    return "blue";
-                }
-                if (stateEvents.has(n.id)) {
-                    return "green";
-                }
-                return "black";
-            });
-
-        // Add text to nodes with border
-        const getLabel = (d) => {
-            const eventId = d.data.event_id;
-            const id = eventId.substr(0, 5);
-            if (this.scenario?.annotations?.events?.[eventId]) {
-                return `${id} ${this.scenario?.annotations?.events[eventId]}`;
-            }
-            const text = textRepresentation(d.data);
-            const depth = d.data.depth ? `(${d.data.depth})` : "";
-            let collapse = d.data._collapse ? `+${d.data._collapse} more` : "";
-            if (collapse === "") {
-                if (d.data.origin !== undefined) {
-                    collapse = d.data.origin; // TODO: nonstandard field?
-                }
-            }
-            return `${id} ${depth} ${text} ${collapse}`;
-        };
-        nodes
-            .append("text")
-            .text((d) => {
-                return getLabel(d);
-            })
-            .attr("transform", `translate(${nodeRadius + 10}, 0)`)
-            .attr("font-family", "sans-serif")
-            .attr("text-anchor", "left")
-            .attr("alignment-baseline", "middle")
-            .attr("fill", "white")
-            .attr("opacity", 0.8)
-            .attr("stroke", "white");
-
-        nodes
-            .append("text")
-            .text((d) => {
-                return getLabel(d);
-            })
-            .attr("cursor", "pointer")
-            .on("click", async (event, d) => {
-                this.debugger.goTo(d.data.event_id);
-                eventList.highlight(d.data.event_id);
-                this.refresh();
-            })
-            .attr("transform", `translate(${nodeRadius + 10}, 0)`)
-            .attr("font-family", "sans-serif")
-            .attr("text-anchor", "left")
-            .attr("alignment-baseline", "middle")
-            .attr("fill", (d) => {
-                return "black";
-            });
-
-        function zoomed({ transform }) {
-            nodes.attr("transform", (d) => {
-                return `translate(${transform.applyX(d.x)}, ${transform.applyY(d.y)})`;
-            });
-            edges.attr("d", ({ points }) =>
-                line(points.map((d) => ({ x: transform.applyX(d.x), y: transform.applyY(d.y) }))),
-            );
-            title.attr("transform", () => {
-                return `translate(${transform.applyX(title.attr("x"))}, ${transform.applyY(title.attr("y"))})`;
-            });
-        }
-
-        const zoom = d3.zoom().scaleExtent([0.1, 10]).on("zoom", zoomed);
-
-        svgSelection.call(zoom).call(zoom.transform, d3.zoomIdentity);
-        d3.select("#svgcontainer").append(() => svgNode);
-    }
 }
+const shimInputElement = document.getElementById("shimurl") as HTMLInputElement;
 let dag = new Dag(new Cache());
-dag.setShimUrl(document.getElementById("shimurl").value); // TODO: this is annoying in so many places..
+dag.setShimUrl(shimInputElement.value); // TODO: this is annoying in so many places..
 const transport = new StateResolverTransport();
 const resolver = new StateResolver(transport, (data: DataGetEvent): MatrixEvent => {
     return dag.cache.eventCache.get(data.event_id)!;
@@ -641,7 +332,7 @@ document.getElementById("collapse")!.addEventListener("change", (ev) => {
         }
         dag = new Dag(new Cache());
         // set it initially from the input value else we might resolve without ever calling setShimUrl
-        dag.setShimUrl(document.getElementById("shimurl").value);
+        dag.setShimUrl(shimInputElement.value);
         await dag.loadFile(files[0]);
     },
     false,
@@ -663,7 +354,7 @@ document.getElementById("stepbwd")!.addEventListener("click", async (ev) => {
     eventList.highlight(dag.debugger.current());
 });
 
-document.getElementById("shimurl")!.addEventListener("change", (ev) => {
+shimInputElement.addEventListener("change", (ev) => {
     const newUrl = (<HTMLInputElement>ev.target)!.value;
     dag.setShimUrl(newUrl);
     globalThis.localStorage.setItem("shim_url", newUrl);
@@ -672,7 +363,7 @@ document.getElementById("shimurl")!.addEventListener("change", (ev) => {
 const existingShimUrl = globalThis.localStorage.getItem("shim_url");
 if (existingShimUrl) {
     console.log("setting shim url from local storage");
-    document.getElementById("shimurl")!.value = existingShimUrl;
+    shimInputElement.value = existingShimUrl;
     dag.setShimUrl(existingShimUrl);
 }
 
