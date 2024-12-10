@@ -36,7 +36,6 @@ class Dag {
     showAuthChain: boolean;
     showPrevEvents: boolean;
     showOutliers: boolean;
-    showTimestamps: boolean;
     collapse: boolean;
     experimentalLayout: boolean;
     shimUrl?: string;
@@ -52,7 +51,6 @@ class Dag {
         this.showAuthChain = false;
         this.showPrevEvents = true;
         this.showOutliers = false;
-        this.showTimestamps = false;
         this.collapse = false;
         this.experimentalLayout = false;
         this.renderEvents = {};
@@ -127,9 +125,6 @@ class Dag {
     }
     setCollapse(col: boolean) {
         this.collapse = col;
-    }
-    setTimestamps(ts: boolean) {
-        this.showTimestamps = ts;
     }
     setExperimentalLayout(exp: boolean) {
         this.experimentalLayout = exp;
@@ -612,23 +607,6 @@ class Dag {
                 return "black";
             });
 
-        // add timestamps
-        if (this.showTimestamps) {
-            nodes
-                .append("text")
-                .text((d) => {
-                    const date = new Date(d.data.origin_server_ts || 0);
-                    return date.toLocaleString();
-                })
-                .attr("transform", `translate(${nodeRadius + 10}, ${nodeRadius + 10})`)
-                .attr("font-family", "sans-serif")
-                .attr("text-anchor", "left")
-                .attr("alignment-baseline", "middle")
-                .attr("fill", (d) => {
-                    return "grey";
-                });
-        }
-
         function zoomed({ transform }) {
             nodes.attr("transform", (d) => {
                 return `translate(${transform.applyX(d.x)}, ${transform.applyY(d.y)})`;
@@ -666,11 +644,6 @@ document.getElementById("showoutliers")!.addEventListener("change", (ev) => {
 (<HTMLInputElement>document.getElementById("showoutliers"))!.checked = dag.showOutliers;
 document.getElementById("collapse")!.addEventListener("change", (ev) => {
     dag.setCollapse((<HTMLInputElement>ev.target)!.checked);
-    dag.refresh();
-});
-(<HTMLInputElement>document.getElementById("timestamps"))!.checked = dag.showTimestamps;
-document.getElementById("timestamps")!.addEventListener("change", (ev) => {
-    dag.setTimestamps((<HTMLInputElement>ev.target)!.checked);
     dag.refresh();
 });
 document.getElementById("explayout")!.addEventListener("change", (ev) => {
