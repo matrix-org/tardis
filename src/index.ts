@@ -365,12 +365,20 @@ if (existingShimUrl) {
     dag.setShimUrl(existingShimUrl);
 }
 
+const loaderElement = document.getElementById("loader")!;
+const loaderMsgElement = document.getElementById("loader-status")!;
+
+const setLoaderMessage = (text: string) => {
+    loaderMsgElement.innerText = text;
+};
+
 document.getElementById("resolve")!.addEventListener("click", async (ev) => {
     if (!dag.shimUrl) {
         console.error("you need to set a shim url to resolve state!");
         return {};
     }
-    console.log(dag.shimUrl);
+    loaderElement.style.display = "block";
+    setLoaderMessage(`Connecting to ${dag.shimUrl}`);
     try {
         await transport.connect(dag.shimUrl, resolver);
         await dag.debugger.resolve(
@@ -382,19 +390,23 @@ document.getElementById("resolve")!.addEventListener("click", async (ev) => {
                 atEvent: MatrixEvent,
             ): Promise<Record<StateKeyTuple, EventID>> => {
                 try {
+                    setLoaderMessage(`Resolving state at event ${atEvent.event_id}`);
                     const r = await resolver.resolveState(roomId, roomVer, states, atEvent);
                     return r.state;
                 } catch (err) {
                     console.error("failed to resolve state:", err);
+                    setLoaderMessage(`Failed to resolve state at event ${atEvent.event_id} : ${err}`);
+                    throw err;
                 }
-                return {};
             },
         );
+        setLoaderMessage("");
     } catch (err) {
-        console.error("failed to setup WS connection:", err);
+        console.error("resolving state failed: ", err);
     } finally {
         transport.close();
     }
+    loaderElement.style.display = "none";
     dag.refresh();
 });
 

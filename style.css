@@ -15,6 +15,7 @@ body {
     border-color: #00060b;
     border: 1px solid;
     margin: 5px;
+    display: flex;
 }
 
 #infocontainer {
@@ -80,6 +81,26 @@ body {
     white-space: nowrap;
     padding: 5px;
     flex-grow: 1;
+}
+
+.loader {
+    border: 3px solid #f3f3f3; /* Light grey */
+    border-top: 3px solid #3498db; /* Blue */
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    animation: spin 1s linear infinite;
+    margin: 0 10 0 10;
+    display: none;
+}
+
+.loader-status {
+
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 .node-text {

@@ -102,6 +102,10 @@ class StateResolver implements StateResolverReceiver {
                     resolve({ state: {} });
                     return;
                 }
+                if (resolvedData.error && resolvedData.error !== "") {
+                    reject(resolvedData.error);
+                    return;
+                }
                 resolve({
                     state: resolvedData.result,
                 });
