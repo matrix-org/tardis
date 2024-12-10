@@ -37,7 +37,6 @@ class Dag {
     showPrevEvents: boolean;
     showOutliers: boolean;
     collapse: boolean;
-    experimentalLayout: boolean;
     shimUrl?: string;
 
     debugger: Debugger;
@@ -52,7 +51,6 @@ class Dag {
         this.showPrevEvents = true;
         this.showOutliers = false;
         this.collapse = false;
-        this.experimentalLayout = false;
         this.renderEvents = {};
     }
 
@@ -126,34 +124,21 @@ class Dag {
     setCollapse(col: boolean) {
         this.collapse = col;
     }
-    setExperimentalLayout(exp: boolean) {
-        this.experimentalLayout = exp;
-        if (this.experimentalLayout) {
-            document.getElementById("svgcontainer")?.classList.add("monospace");
-        } else {
-            document.getElementById("svgcontainer")?.classList.remove("monospace");
-        }
-    }
     async refresh() {
         let renderEvents = await this.recalculate();
         if (this.collapse) {
             renderEvents = this.collapsifier(renderEvents);
         }
-        if (this.experimentalLayout) {
-            const eventsArray: Array<MatrixEvent> = [];
-            for (const k in renderEvents) {
-                eventsArray.push(renderEvents[k]);
-            }
-            redraw(document.getElementById("svgcontainer")! as HTMLDivElement, eventsArray, {
-                currentEventId: this.debugger.current(),
-                scenario: this.scenario,
-                stateAtEvent: this.cache.stateAtEvent.getStateAsEventIds(this.debugger.current()),
-                showAuthChain: this.showAuthChain,
-            });
-            return;
+        const eventsArray: Array<MatrixEvent> = [];
+        for (const k in renderEvents) {
+            eventsArray.push(renderEvents[k]);
         }
-        this.renderEvents = renderEvents;
-        await this.render(this.eventsToCompleteDag(renderEvents));
+        redraw(document.getElementById("svgcontainer")! as HTMLDivElement, eventsArray, {
+            currentEventId: this.debugger.current(),
+            scenario: this.scenario,
+            stateAtEvent: this.cache.stateAtEvent.getStateAsEventIds(this.debugger.current()),
+            showAuthChain: this.showAuthChain,
+        });
     }
     // returns the set of events to render
     async recalculate(): Promise<Record<string, MatrixEvent>> {
@@ -644,10 +629,6 @@ document.getElementById("showoutliers")!.addEventListener("change", (ev) => {
 (<HTMLInputElement>document.getElementById("showoutliers"))!.checked = dag.showOutliers;
 document.getElementById("collapse")!.addEventListener("change", (ev) => {
     dag.setCollapse((<HTMLInputElement>ev.target)!.checked);
-    dag.refresh();
-});
-document.getElementById("explayout")!.addEventListener("change", (ev) => {
-    dag.setExperimentalLayout((<HTMLInputElement>ev.target)!.checked);
     dag.refresh();
 });
 (<HTMLInputElement>document.getElementById("collapse"))!.checked = dag.collapse;
