@@ -24,7 +24,9 @@
     }
   },
   "files": {
-    "maxSize": 2097152
+    "maxSize": 2097152,
+    "ignoreUnknown": true,
+    "ignore": ["shims/*", "public/*"]
   },
   "json": {
     "formatter": {

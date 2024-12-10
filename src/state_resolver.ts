@@ -45,11 +45,11 @@ interface DataGetEvent {
 
 interface StateResolverReceiver {
     onGetEventRequest(data: DataGetEvent): MatrixEvent;
-    onResolveStateResponse(id: string, data: DataResolveState);
+    onResolveStateResponse(id: string, data: DataResolveState): void;
 }
 
 interface StateResolverSender {
-    sendResolveState(id: string, data: DataResolveState);
+    sendResolveState(id: string, data: DataResolveState): Promise<void>;
 }
 
 interface ResolvedState {
@@ -57,7 +57,7 @@ interface ResolvedState {
 }
 
 class StateResolver implements StateResolverReceiver {
-    inflightRequests: Map<string, (DataResolveState) => void>;
+    inflightRequests: Map<string, (arg0: DataResolveState) => void>;
     constructor(
         readonly sender: StateResolverSender,
         readonly getEvent: (data: DataGetEvent) => MatrixEvent,
@@ -160,8 +160,8 @@ class StateResolverTransport implements StateResolverSender {
         this.ws.send(JSON.stringify(msg));
     }
 
-    onWsClose(ev: CloseEvent) {}
-    onWsError(ev: Event) {}
+    onWsClose(_: CloseEvent) {}
+    onWsError(_: Event) {}
     onWsMessage(ev: MessageEvent) {
         // biome-ignore lint/suspicious/noExplicitAny: <explanation>
         const msg = JSON.parse(ev.data) as WebSocketMessage<any>;

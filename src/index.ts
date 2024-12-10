@@ -372,7 +372,7 @@ const setLoaderMessage = (text: string) => {
     loaderMsgElement.innerText = text;
 };
 
-document.getElementById("resolve")!.addEventListener("click", async (ev) => {
+document.getElementById("resolve")!.addEventListener("click", async (_) => {
     if (!dag.shimUrl) {
         console.error("you need to set a shim url to resolve state!");
         return {};

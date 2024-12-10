@@ -1,7 +1,7 @@
 import * as d3 from "d3";
-import type { EventID, MatrixEvent } from "./state_resolver";
-import type { Scenario } from "./scenario";
 import { textRepresentation } from "./event_list";
+import type { Scenario } from "./scenario";
+import type { EventID, MatrixEvent } from "./state_resolver";
 
 export interface RenderOptions {
     currentEventId: string;

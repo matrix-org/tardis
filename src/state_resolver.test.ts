@@ -66,7 +66,7 @@ describe("StateResolver", () => {
             const outstandingRequests: Array<{ id: string; data: DataResolveState }> = [];
             const sr = new StateResolver(
                 {
-                    sendResolveState: (id: string, data: DataResolveState) => {
+                    sendResolveState: async (id: string, data: DataResolveState) => {
                         outstandingRequests.push({
                             id: id,
                             data: data,

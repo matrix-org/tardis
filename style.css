@@ -12,8 +12,7 @@ body {
     left: 0;
     padding: 8px;
     background-color: #a6b8c7;
-    border-color: #00060b;
-    border: 1px solid;
+    border: 1px solid #00060b;
     margin: 5px;
     display: flex;
 }
@@ -94,23 +93,23 @@ body {
     display: none;
 }
 
-.loader-status {
-
-}
-
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .node-text {
-    font-family: Gill Sans,Gill Sans MT,Calibri,sans-serif;
+    font-family: Gill Sans, Calibri, sans-serif;
 }
 input {
-    font-family: Gill Sans,Gill Sans MT,Calibri,sans-serif;
+    font-family: Gill Sans, Calibri, sans-serif;
 }
 div {
-    font-family: Gill Sans,Gill Sans MT,Calibri,sans-serif;
+    font-family: Gill Sans, Calibri, sans-serif;
 }
 body {
     height: 100%;
