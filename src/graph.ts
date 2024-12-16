@@ -500,53 +500,55 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
     // auth chains
     const agx = gx / 2; // tighter grid for auth events
 
-    node.each((d, i, nodes) => {
-        const n = d3.select(nodes[i]);
+    if (opts.showAuthChain) {
+        node.each((d, i, nodes) => {
+            const n = d3.select(nodes[i]);
 
-        if (d.auth_events) {
-            for (const parent of d.auth_events) {
-                const p = eventsById.get(parent);
-                if (!p) continue;
+            if (d.auth_events) {
+                for (const parent of d.auth_events) {
+                    const p = eventsById.get(parent);
+                    if (!p) continue;
 
-                const path = d3.path();
+                    const path = d3.path();
 
-                const nudge_y = -3;
-                const nudge_x = 0;
-                // XXX: is authLaneStart going to be constant enough for this to work?
-                const authOffset = p.authLaneStart * gx + (p.authLane - p.authLaneStart) * agx;
+                    const nudge_y = -3;
+                    const nudge_x = 0;
+                    // XXX: is authLaneStart going to be constant enough for this to work?
+                    const authOffset = p.authLaneStart * gx + (p.authLane - p.authLaneStart) * agx;
 
-                path.moveTo(d.x * gx + r + nudge_x, d.y * gy + nudge_y);
-                path.arcTo(
-                    authOffset, d.y * gy + nudge_y,
-                    authOffset, p.y * gy + nudge_y,
-                    r * 2
-                );
-                path.arcTo(
-                    authOffset, p.y * gy + nudge_y,
-                    p.x * gx + r + nudge_x, p.y * gy + nudge_y,
-                    r * 2
-                );
-                // path.lineTo(p.authLane * gx, d.y * gy + nudge);
-                // path.lineTo(p.authLane * gx, p.y * gy + nudge);
-                path.lineTo(p.x * gx + r + nudge_x, p.y * gy + nudge_y);
+                    path.moveTo(d.x * gx + r + nudge_x, d.y * gy + nudge_y);
+                    path.arcTo(
+                        authOffset, d.y * gy + nudge_y,
+                        authOffset, p.y * gy + nudge_y,
+                        r * 2
+                    );
+                    path.arcTo(
+                        authOffset, p.y * gy + nudge_y,
+                        p.x * gx + r + nudge_x, p.y * gy + nudge_y,
+                        r * 2
+                    );
+                    // path.lineTo(p.authLane * gx, d.y * gy + nudge);
+                    // path.lineTo(p.authLane * gx, p.y * gy + nudge);
+                    path.lineTo(p.x * gx + r + nudge_x, p.y * gy + nudge_y);
 
-                // arrowhead
-                path.moveTo(p.x * gx + nudge_x + r + r / 2, p.y * gy + nudge_y + r / 3);
-                path.lineTo(p.x * gx + nudge_x + r        , p.y * gy + nudge_y);
-                path.lineTo(p.x * gx + nudge_x + r + r / 2, p.y * gy + nudge_y - r / 3);
-                path.lineTo(p.x * gx + nudge_x + r + r / 2, p.y * gy + nudge_y + r / 3);
-                path.lineTo(p.x * gx + nudge_x + r        , p.y * gy + nudge_y);
+                    // arrowhead
+                    path.moveTo(p.x * gx + nudge_x + r + r / 2, p.y * gy + nudge_y + r / 3);
+                    path.lineTo(p.x * gx + nudge_x + r        , p.y * gy + nudge_y);
+                    path.lineTo(p.x * gx + nudge_x + r + r / 2, p.y * gy + nudge_y - r / 3);
+                    path.lineTo(p.x * gx + nudge_x + r + r / 2, p.y * gy + nudge_y + r / 3);
+                    path.lineTo(p.x * gx + nudge_x + r        , p.y * gy + nudge_y);
 
-                n.append("path")
-                    .attr("d", path.toString())
-                    .attr("class", (d) => `authchild-${p.event_id.slice(1, 5)} authparent-${d?.event_id.slice(1, 5)}`)
-                    .attr("stroke", authColor)
-                    .attr("stroke-width", 1)
-                    // .attr("stroke-dasharray", `${lineWidth * 2},${lineWidth}`)
-                    .attr("fill", "none");
+                    n.append("path")
+                        .attr("d", path.toString())
+                        .attr("class", (d) => `authchild-${p.event_id.slice(1, 5)} authparent-${d?.event_id.slice(1, 5)}`)
+                        .attr("stroke", authColor)
+                        .attr("stroke-width", 1)
+                        // .attr("stroke-dasharray", `${lineWidth * 2},${lineWidth}`)
+                        .attr("fill", "none");
+                }
             }
-        }
-    });
+        });
+    }
 
     /*
     // auth chain made out of arcs
@@ -579,15 +581,16 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
     });
     */
 
-    // const textOffset = d.laneWidth * gx;
-    const textOffset = maxAuthLaneStart * gx + (maxAuthLane - maxAuthLaneStart) * agx;
+    const textOffset = (d) => opts.showAuthChain ? 
+                              maxAuthLaneStart * gx + (maxAuthLane - maxAuthLaneStart) * agx :
+                              d.laneWidth * gx;
 
     // Add event IDs on the right side
     node.append("text")
         .text((d) => {
             return d.event_id.substr(0, 5);
         })
-        .attr("x", (d) => textOffset + agx)
+        .attr("x", (d) => textOffset(d) + agx)
         .attr("y", (d) => d.y * gy + 4);
 
     // Add descriptions alongside the event ID
@@ -601,7 +604,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         //         `${d.y} ${d.event_id.slice(0, 5)} ${d.sender} P:${d.prev_events.map((id) => id.slice(0, 5)).join(", ")} | N:${d.next_events?.map((id) => id.slice(0, 5)).join(", ")}`,
         // )
         //.text(d => `${d.y} ${d.event_id.substr(0, 5)} ${d.sender} ${d.type} prev:${d.prev_events.map(id => id.substr(0, 5)).join(", ")}`)
-        .attr("x", (d) => textOffset + agx + 70)
+        .attr("x", (d) => textOffset(d) + agx + 70)
         .attr("y", (d) => d.y * gy + 4);
 
     node.append("text")
