@@ -16,15 +16,16 @@ interface RenderableMatrixEvent extends MatrixEvent {
     y: number;
     laneWidth: number;
     streamPosition: number;
-    edges?: Array<string>;
+    authLane: number; // which lane for auth events which point to this event, if any
+    authLaneStart: number; // what's the oldest auth lane in play at this event (for layout)
 }
 
-const edgesForEvent = (ev: RenderableMatrixEvent, opts: RenderOptions): string[] => {
-    if (opts.showAuthChain) {
-        return (ev.auth_events || []).concat(ev.prev_events);
-    }
-    return ev.prev_events;
-};
+// const edgesForEvent = (ev: RenderableMatrixEvent, opts: RenderOptions): string[] => {
+//     if (opts.showAuthChain) {
+//         return (ev.prev_events || []).concat(ev.auth_events || []);
+//     }
+//     return ev.prev_events;
+// };
 
 const textualRepresentation = (ev: RenderableMatrixEvent, scenario?: Scenario) => {
     const eventId = ev.event_id;
@@ -53,11 +54,15 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
     // we slice to do a shallow copy given we're inserting placeholders into data
     for (const d of data.slice()) {
         // order parents chronologically
-        d.edges = edgesForEvent(d, opts).sort((a: string, b: string) => {
+        d.prev_events = d.prev_events.sort((a: string, b: string) => {
             return (eventsById.get(a)?.streamPosition || 0) - (eventsById.get(b)?.streamPosition || 0);
         });
+        // order auth events reverse chronologically
+        d.auth_events = d.auth_events.sort((a: string, b: string) => {
+            return (eventsById.get(b)?.streamPosition || 0) - (eventsById.get(a)?.streamPosition || 0);
+        });
 
-        for (const p of d.edges) {
+        for (const p of d.prev_events) {
             if (!eventsById.get(p)) {
                 const placeholder = {
                     event_id: p,
@@ -69,7 +74,6 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
                     auth_events: [],
                     room_id: "",
                     origin_server_ts: 0,
-                    edges: [],
                 };
                 eventsById.set(p, placeholder);
                 // insert the placeholder immediately before the event which refers to it
@@ -86,9 +90,11 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         }
     }
 
-    // which lanes are in use, so we know which to fill up
+    // which lanes are in use for prev_events that point to a given event_id
+    // so we know how to fill up the lanes.
     const lanes: Array<string> = [];
-    const laneEnd: Array<number> = []; // the height at which this lane was terminated
+    // the height at which a given lane ended (i.e. was terminated)
+    const laneEnd: Array<number> = [];
 
     // for balanced layout:
     const balanced = false;
@@ -132,7 +138,6 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         }
     }
 
-    let y = 0;
     data[0].x = 0;
     for (let i = 0; i < data.length; i++) {
         const d = data[i];
@@ -146,13 +151,12 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         //     `n:${d.next_events?.map((id) => id.substr(0, 5)).join(", ")}`,
         // );
 
-        d.y = y;
-        y++;
+        d.y = i;
 
         // if any of my parents has a lane, position me under it, preferring the oldest
         let foundLane = false;
-        for (const p of d.edges!) {
-            const parent = eventsById.get(p);
+        for (const p of d.prev_events!) {
+            const parent = eventsById.get(p)!;
             if (lanes.findIndex((id) => id === parent.event_id) !== -1) {
                 d.x = parent.x;
                 foundLane = true;
@@ -165,8 +169,8 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
             // don't re-use lanes if you have prev_events higher than the end of the lane
             // otherwise you'll overlap them.
             d.x = getNextLane();
-            if (d.edges && eventsById.get(d.edges[0])) {
-                const oldestPrevEventY = eventsById.get(d.edges[0]).y;
+            if (d.prev_events && eventsById.get(d.prev_events[0])) {
+                const oldestPrevEventY = eventsById.get(d.prev_events[0])!.y;
                 while (laneEnd[d.x] !== undefined && oldestPrevEventY < laneEnd[d.x]) {
                     d.x = getNextLane(d.x);
                 }
@@ -179,7 +183,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         if (d.next_events) {
             for (const c of d.next_events) {
                 const child = eventsById.get(c);
-                if (child!.edges![0] === d.event_id) {
+                if (child!.prev_events![0] === d.event_id) {
                     oldestParent = true;
                     break;
                 }
@@ -193,18 +197,68 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         } else {
             //console.log(`terminating lane ${d.x}`);
             delete lanes[d.x];
-            laneEnd[d.x] = y;
+            laneEnd[d.x] = i;
+        }
+    }
+
+    // the current list of authLanes on the go, so we know where to insert new ones.
+    const authLanes: Array<string> = [];
+
+    function getNextAuthLane(y1: number, y2: number) {
+        let rightHandEdge = 0;
+        for (let y = y1; y <= y2; y++) {
+            rightHandEdge = data[y].x > rightHandEdge ? data[y].x : rightHandEdge;
+            // XXX: alternatively, we could push out beyond the prev-event laneWidth
+            // to avoid crisscrossing the prev-event DAG with the auth DAG
+        }
+        rightHandEdge++;
+        // XXX: ideally we'd ensure that the oldest lane keeps getting pushed out by newer ones
+        // as we find them, rather than just appending like this.
+        // So, we'd find the right slot based on comparing y1 with the y offsets of the
+        // events for these lanes, and then shuffle the events over if needed.
+        // however, this would be tricky when reusing lanes, as the order will break.
+        while (authLanes[rightHandEdge] !== undefined) {
+            rightHandEdge++;
+        }
+        return rightHandEdge;
+    }
+
+    // pass from bottom to top to figure out auth dag
+    for (let i = data.length - 1; i >= 0; i--) {
+        const d = data[i];
+        if (!d.auth_events) continue;
+        for (const id of d.auth_events!) {
+            const p = eventsById.get(id)!;
+            if (p.authLane) {
+                continue;
+            }
+            else {
+                const lane = getNextAuthLane(p.y, i);
+                p.authLane = lane;
+                authLanes[lane] = id;
+                p.authLaneStart = authLanes.findIndex((lane) => lane !== undefined) - 1;
+            }
+        }
+        // reclaim lanes once we've moved past their events
+        if (d.authLane) {
+            delete authLanes[d.authLane];
         }
     }
 
     const balanceTwoWayForks = true;
 
     // another pass to figure out the right-hand edge
+    let maxAuthLane: number = 0;
+    let maxAuthLaneStart: number = 0;
     const edges: Array<{ x: number; y: number }> = [];
     data[0].laneWidth = 0;
     for (let i = 1; i < data.length; i++) {
         const p = data[i - 1];
         const d = data[i];
+        if (p.authLane > maxAuthLane) {
+            maxAuthLane = p.authLane;
+            maxAuthLaneStart = p.authLaneStart;
+        }
         while (edges.length > 0 && i > edges.at(-1)?.y) edges.pop();
         if (p.next_events) {
             edges.push({
@@ -246,9 +300,15 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
     const lineWidth = 2;
     const lineWidthHighlight = 3;
 
+    const authLineWidth = 1;
+    const authLineWidthHighlight = 3;
+
     const prevColor = "#f00";
     const currColor = "#0a0";
     const nextColor = "#00f";
+    const prevAuthColor = "#f88";
+    const nextAuthColor = "#88f";
+    const authColor = "#888";
 
     // empty vis div
     d3.select(vis).html(null);
@@ -285,10 +345,25 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
                 .attr("stroke", prevColor)
                 .attr("stroke-width", lineWidthHighlight);
 
+            d3.selectAll(`.authchild-${d.event_id.slice(1, 5)}`)
+                .raise()
+                .attr("stroke", nextAuthColor)
+                .attr("stroke-width", authLineWidthHighlight);
+                // .each(function() {
+                //     d3.select(this.parentNode).raise();
+                // });                
+            d3.selectAll(`.authparent-${d.event_id.slice(1, 5)}`)
+                .raise()
+                .attr("stroke", prevAuthColor)
+                .attr("stroke-width", authLineWidthHighlight);
+                // .each(function() {
+                //     d3.select(this.parentNode).raise();
+                // });
+
             for (const id of d.next_events || []) {
                 d3.select(`.node-${id.slice(1, 5)}`).attr("fill", nextColor);
             }
-            for (const id of d.edges!) {
+            for (const id of d.prev_events!) {
                 d3.select(`.node-${id.slice(1, 5)}`).attr("fill", prevColor);
             }
         })
@@ -298,7 +373,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
             for (const id of d.next_events || []) {
                 d3.select(`.node-${id.slice(1, 5)}`).attr("fill", null);
             }
-            for (const id of d.edges!) {
+            for (const id of d.prev_events!) {
                 d3.select(`.node-${id.slice(1, 5)}`).attr("fill", null);
             }
 
@@ -308,7 +383,15 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
             d3.selectAll(`.parent-${d.event_id.slice(1, 5)}`)
                 .attr("stroke", "black")
                 .attr("stroke-width", lineWidth);
-        });
+
+            d3.selectAll(`.authchild-${d.event_id.slice(1, 5)}`)
+                .attr("stroke", authColor)
+                .attr("stroke-width", authLineWidth);
+            d3.selectAll(`.authparent-${d.event_id.slice(1, 5)}`)
+                .attr("stroke", authColor)
+                .attr("stroke-width", authLineWidth);
+            });
+
     // draw data points
     node.append("circle")
         .attr("cx", (d) => d.x * gx)
@@ -372,8 +455,8 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
                     nudge_y =
                         d.next_events.length > 1 ? nudgeOffset * (childIndex - (d.next_events.length - 2) / 2) : 0;
                     // nudge vertical left or right based on how many prev_events there are from this child.
-                    const childParentIndex = c.edges!.findIndex((id) => id === d.event_id);
-                    nudge_x = nudgeOffset * (childParentIndex - (c.edges!.length - 1) / 2);
+                    const childParentIndex = c.prev_events!.findIndex((id) => id === d.event_id);
+                    nudge_x = nudgeOffset * (childParentIndex - (c.prev_events!.length - 1) / 2);
                 }
 
                 path.moveTo(d.x * gx, d.y * gy + r + nudge_y);
@@ -414,12 +497,97 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         }
     });
 
+    // auth chains
+    const agx = gx / 2; // tighter grid for auth events
+
+    node.each((d, i, nodes) => {
+        const n = d3.select(nodes[i]);
+
+        if (d.auth_events) {
+            for (const parent of d.auth_events) {
+                const p = eventsById.get(parent);
+                if (!p) continue;
+
+                const path = d3.path();
+
+                const nudge_y = -3;
+                const nudge_x = 0;
+                // XXX: is authLaneStart going to be constant enough for this to work?
+                const authOffset = p.authLaneStart * gx + (p.authLane - p.authLaneStart) * agx;
+
+                path.moveTo(d.x * gx + r + nudge_x, d.y * gy + nudge_y);
+                path.arcTo(
+                    authOffset, d.y * gy + nudge_y,
+                    authOffset, p.y * gy + nudge_y,
+                    r * 2
+                );
+                path.arcTo(
+                    authOffset, p.y * gy + nudge_y,
+                    p.x * gx + r + nudge_x, p.y * gy + nudge_y,
+                    r * 2
+                );
+                // path.lineTo(p.authLane * gx, d.y * gy + nudge);
+                // path.lineTo(p.authLane * gx, p.y * gy + nudge);
+                path.lineTo(p.x * gx + r + nudge_x, p.y * gy + nudge_y);
+
+                // arrowhead
+                path.moveTo(p.x * gx + nudge_x + r + r / 2, p.y * gy + nudge_y + r / 3);
+                path.lineTo(p.x * gx + nudge_x + r        , p.y * gy + nudge_y);
+                path.lineTo(p.x * gx + nudge_x + r + r / 2, p.y * gy + nudge_y - r / 3);
+                path.lineTo(p.x * gx + nudge_x + r + r / 2, p.y * gy + nudge_y + r / 3);
+                path.lineTo(p.x * gx + nudge_x + r        , p.y * gy + nudge_y);
+
+                n.append("path")
+                    .attr("d", path.toString())
+                    .attr("class", (d) => `authchild-${p.event_id.slice(1, 5)} authparent-${d?.event_id.slice(1, 5)}`)
+                    .attr("stroke", authColor)
+                    .attr("stroke-width", 1)
+                    // .attr("stroke-dasharray", `${lineWidth * 2},${lineWidth}`)
+                    .attr("fill", "none");
+            }
+        }
+    });
+
+    /*
+    // auth chain made out of arcs
+    node.each((d, i, nodes) => {
+        const n = d3.select(nodes[i]);
+
+        if (d.auth_events) {
+            for (const parent of d.auth_events) {
+                const p = eventsById.get(parent);
+                if (!p) continue;
+
+                const path = d3.path();
+
+                path.moveTo(d.x * gx, d.y * gy);
+                path.arcTo(
+                    ((d.x + p.x) * 0.5 * gx) + ((d.y - p.y) * 0.5 * gy), (p.y + d.y) * 0.5 * gy,
+                    p.x * gx, p.y * gy,
+                    (d.y - p.y) * 0.5 * (gx + gy)/2
+                );
+
+                n.append("path")
+                    .attr("d", path.toString())
+                    // .attr("class", (d) => `child-${d.event_id.slice(1, 5)} parent-${c?.event_id.slice(1, 5)}`)
+                    .attr("stroke", "#888")
+                    .attr("stroke-width", 1)
+                    .attr("stroke-dasharray", `${lineWidth * 2},${lineWidth}`)
+                    .attr("fill", "none");
+            }
+        }
+    });
+    */
+
+    // const textOffset = d.laneWidth * gx;
+    const textOffset = maxAuthLaneStart * gx + (maxAuthLane - maxAuthLaneStart) * agx;
+
     // Add event IDs on the right side
     node.append("text")
         .text((d) => {
             return d.event_id.substr(0, 5);
         })
-        .attr("x", (d) => d.laneWidth * gx + 25)
+        .attr("x", (d) => textOffset + agx)
         .attr("y", (d) => d.y * gy + 4);
 
     // Add descriptions alongside the event ID
@@ -433,7 +601,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         //         `${d.y} ${d.event_id.slice(0, 5)} ${d.sender} P:${d.prev_events.map((id) => id.slice(0, 5)).join(", ")} | N:${d.next_events?.map((id) => id.slice(0, 5)).join(", ")}`,
         // )
         //.text(d => `${d.y} ${d.event_id.substr(0, 5)} ${d.sender} ${d.type} prev:${d.prev_events.map(id => id.substr(0, 5)).join(", ")}`)
-        .attr("x", (d) => d.laneWidth * gx + 105)
+        .attr("x", (d) => textOffset + agx + 70)
         .attr("y", (d) => d.y * gy + 4);
 
     node.append("text")
