@@ -229,10 +229,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         if (!d.auth_events) continue;
         for (const id of d.auth_events!) {
             const p = eventsById.get(id)!;
-            if (p.authLane) {
-                continue;
-            }
-            else {
+            if (!p.authLane) {
                 const lane = getNextAuthLane(p.y, i);
                 p.authLane = lane;
                 authLanes[lane] = id;
@@ -248,8 +245,8 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
     const balanceTwoWayForks = true;
 
     // another pass to figure out the right-hand edge
-    let maxAuthLane: number = 0;
-    let maxAuthLaneStart: number = 0;
+    let maxAuthLane = 0;
+    let maxAuthLaneStart = 0;
     const edges: Array<{ x: number; y: number }> = [];
     data[0].laneWidth = 0;
     for (let i = 1; i < data.length; i++) {
@@ -349,16 +346,16 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
                 .raise()
                 .attr("stroke", nextAuthColor)
                 .attr("stroke-width", authLineWidthHighlight);
-                // .each(function() {
-                //     d3.select(this.parentNode).raise();
-                // });                
+            // .each(function() {
+            //     d3.select(this.parentNode).raise();
+            // });
             d3.selectAll(`.authparent-${d.event_id.slice(1, 5)}`)
                 .raise()
                 .attr("stroke", prevAuthColor)
                 .attr("stroke-width", authLineWidthHighlight);
-                // .each(function() {
-                //     d3.select(this.parentNode).raise();
-                // });
+            // .each(function() {
+            //     d3.select(this.parentNode).raise();
+            // });
 
             for (const id of d.next_events || []) {
                 d3.select(`.node-${id.slice(1, 5)}`).attr("fill", nextColor);
@@ -390,7 +387,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
             d3.selectAll(`.authparent-${d.event_id.slice(1, 5)}`)
                 .attr("stroke", authColor)
                 .attr("stroke-width", authLineWidth);
-            });
+        });
 
     // draw data points
     node.append("circle")
@@ -517,30 +514,25 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
                     const authOffset = p.authLaneStart * gx + (p.authLane - p.authLaneStart) * agx;
 
                     path.moveTo(d.x * gx + r + nudge_x, d.y * gy + nudge_y);
-                    path.arcTo(
-                        authOffset, d.y * gy + nudge_y,
-                        authOffset, p.y * gy + nudge_y,
-                        r * 2
-                    );
-                    path.arcTo(
-                        authOffset, p.y * gy + nudge_y,
-                        p.x * gx + r + nudge_x, p.y * gy + nudge_y,
-                        r * 2
-                    );
+                    path.arcTo(authOffset, d.y * gy + nudge_y, authOffset, p.y * gy + nudge_y, r * 2);
+                    path.arcTo(authOffset, p.y * gy + nudge_y, p.x * gx + r + nudge_x, p.y * gy + nudge_y, r * 2);
                     // path.lineTo(p.authLane * gx, d.y * gy + nudge);
                     // path.lineTo(p.authLane * gx, p.y * gy + nudge);
                     path.lineTo(p.x * gx + r + nudge_x, p.y * gy + nudge_y);
 
                     // arrowhead
                     path.moveTo(p.x * gx + nudge_x + r + r / 2, p.y * gy + nudge_y + r / 3);
-                    path.lineTo(p.x * gx + nudge_x + r        , p.y * gy + nudge_y);
+                    path.lineTo(p.x * gx + nudge_x + r, p.y * gy + nudge_y);
                     path.lineTo(p.x * gx + nudge_x + r + r / 2, p.y * gy + nudge_y - r / 3);
                     path.lineTo(p.x * gx + nudge_x + r + r / 2, p.y * gy + nudge_y + r / 3);
-                    path.lineTo(p.x * gx + nudge_x + r        , p.y * gy + nudge_y);
+                    path.lineTo(p.x * gx + nudge_x + r, p.y * gy + nudge_y);
 
                     n.append("path")
                         .attr("d", path.toString())
-                        .attr("class", (d) => `authchild-${p.event_id.slice(1, 5)} authparent-${d?.event_id.slice(1, 5)}`)
+                        .attr(
+                            "class",
+                            (d) => `authchild-${p.event_id.slice(1, 5)} authparent-${d?.event_id.slice(1, 5)}`,
+                        )
                         .attr("stroke", authColor)
                         .attr("stroke-width", 1)
                         // .attr("stroke-dasharray", `${lineWidth * 2},${lineWidth}`)
@@ -581,9 +573,8 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
     });
     */
 
-    const textOffset = (d) => opts.showAuthChain ? 
-                              maxAuthLaneStart * gx + (maxAuthLane - maxAuthLaneStart) * agx :
-                              d.laneWidth * gx;
+    const textOffset = (d) =>
+        opts.showAuthChain ? maxAuthLaneStart * gx + (maxAuthLane - maxAuthLaneStart) * agx : d.laneWidth * gx;
 
     // Add event IDs on the right side
     node.append("text")
