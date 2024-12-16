@@ -508,7 +508,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
 
                     const path = d3.path();
 
-                    const nudge_y = -3;
+                    const nudge_y = 0;
                     const nudge_x = 0;
                     // XXX: is authLaneStart going to be constant enough for this to work?
                     const authOffset = p.authLaneStart * gx + (p.authLane - p.authLaneStart) * agx;
