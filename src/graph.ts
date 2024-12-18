@@ -556,9 +556,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
                             return `authchild-${p.event_id.slice(1, 5)} authparent-${d?.event_id.slice(1, 5)}`;
                         }
                         return (
-                            d.authed_list.map((id) => `authparent-${id?.slice(1, 5)}`).join(" ") +
-                            " " +
-                            d.auth_list.map((id) => `authchild-${id?.slice(1, 5)}`).join(" ")
+                            `${d.authed_list.map((id) => `authparent-${id?.slice(1, 5)}`).join(" ")} ${d.auth_list.map((id) => `authchild-${id?.slice(1, 5)}`).join(" ")}`
                         );
                     };
 
