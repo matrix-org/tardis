@@ -324,7 +324,6 @@ document.getElementById("showauthdag")!.addEventListener("change", (ev) => {
 });
 (<HTMLInputElement>document.getElementById("showauthdag"))!.checked = dag.showAuthDAG;
 
-
 document.getElementById("showoutliers")!.addEventListener("change", (ev) => {
     dag.setShowOutliers((<HTMLInputElement>ev.target)!.checked);
     dag.refresh();

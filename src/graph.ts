@@ -231,17 +231,18 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
     // pass from bottom to top to figure out auth dag
     for (let i = data.length - 1; i >= 0; i--) {
         const d = data[i];
-        const authEvents = opts.showAuthChain ? d.auth_events : (opts.showAuthDAG ? d.prev_auth_events : undefined);
+        const authEvents = opts.showAuthChain ? d.auth_events : opts.showAuthDAG ? d.prev_auth_events : undefined;
         if (!authEvents) continue;
 
-        if (opts.showAuthDAG) { // walk the DAG to the root to get a list of edges to light up for this node
+        if (opts.showAuthDAG) {
+            // walk the DAG to the root to get a list of edges to light up for this node
             const walk = (e) => {
                 e.auth_list ||= [];
                 e.auth_list.push(d.event_id);
                 for (const id of e.prev_auth_events) {
                     walk(eventsById.get(id));
                 }
-            }
+            };
             walk(d);
         }
 
@@ -549,11 +550,9 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
 
                     const classes = (d) => {
                         if (opts.showAuthChain) {
-                            return `authchild-${p.event_id.slice(1, 5)} authparent-${d?.event_id.slice(1, 5)}`
+                            return `authchild-${p.event_id.slice(1, 5)} authparent-${d?.event_id.slice(1, 5)}`;
                         }
-                        else {
-                            return d.auth_list.map(id => `authparent-${id?.slice(1, 5)}`).join(' ')
-                        }
+                        return d.auth_list.map((id) => `authparent-${id?.slice(1, 5)}`).join(" ");
                     };
 
                     n.append("path")
@@ -600,7 +599,9 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
     */
 
     const textOffset = (d) =>
-        (opts.showAuthChain || opts.showAuthDAG) ? maxAuthLaneStart * gx + (maxAuthLane - maxAuthLaneStart) * agx : d.laneWidth * gx;
+        opts.showAuthChain || opts.showAuthDAG
+            ? maxAuthLaneStart * gx + (maxAuthLane - maxAuthLaneStart) * agx
+            : d.laneWidth * gx;
 
     // Add event IDs on the right side
     node.append("text")
