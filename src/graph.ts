@@ -13,6 +13,7 @@ export interface RenderOptions {
 
 interface RenderableMatrixEvent extends MatrixEvent {
     prev_auth_events: Array<string>; // until MatrixEvent knows about it
+    authed_list: Array<string>; // list of events which this one is authenticated by in an auth DAG
     auth_list: Array<string>; // list of events which this one authenticates in an auth DAG
     next_events: Array<string>;
     x: number;
@@ -235,11 +236,13 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         if (!authEvents) continue;
 
         if (opts.showAuthDAG) {
-            // walk the DAG to the root to get a list of edges to light up for this node
+            // walk the DAG to the root to get authed & authing events
+            d.auth_list = [];
             const walk = (e) => {
-                e.auth_list ||= [];
-                e.auth_list.push(d.event_id);
+                e.authed_list ||= [];
+                e.authed_list.push(d.event_id);
                 for (const id of e.prev_auth_events) {
+                    d.auth_list.push(id);
                     walk(eventsById.get(id));
                 }
             };
@@ -552,7 +555,10 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
                         if (opts.showAuthChain) {
                             return `authchild-${p.event_id.slice(1, 5)} authparent-${d?.event_id.slice(1, 5)}`;
                         }
-                        return d.auth_list.map((id) => `authparent-${id?.slice(1, 5)}`).join(" ");
+                        return (
+                            d.authed_list.map((id) => `authparent-${id?.slice(1, 5)}`).join(" ") + ' ' +
+                            d.auth_list.map((id) => `authchild-${id?.slice(1, 5)}`).join(" ")
+                        );
                     };
 
                     n.append("path")
