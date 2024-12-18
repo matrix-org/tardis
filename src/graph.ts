@@ -325,8 +325,8 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
     const prevColor = "#f00";
     const currColor = "#0a0";
     const nextColor = "#00f";
-    const prevAuthColor = "#f88";
-    const nextAuthColor = "#88f";
+    const prevAuthColor = "#faa";
+    const nextAuthColor = "#aaf";
     const authColor = "#888";
 
     // empty vis div

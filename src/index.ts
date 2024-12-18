@@ -314,15 +314,23 @@ const resolver = new StateResolver(transport, (data: DataGetEvent): MatrixEvent 
 
 document.getElementById("showauthevents")!.addEventListener("change", (ev) => {
     dag.setShowAuthChain((<HTMLInputElement>ev.target)!.checked);
+    if ((<HTMLInputElement>ev.target)!.checked) {
+        dag.setShowAuthDAG(false);
+    }
     dag.refresh();
+    (<HTMLInputElement>document.getElementById("showauthevents"))!.checked = dag.showAuthChain;
+    (<HTMLInputElement>document.getElementById("showauthdag"))!.checked = dag.showAuthDAG;
 });
-(<HTMLInputElement>document.getElementById("showauthevents"))!.checked = dag.showAuthChain;
 
 document.getElementById("showauthdag")!.addEventListener("change", (ev) => {
     dag.setShowAuthDAG((<HTMLInputElement>ev.target)!.checked);
+    if ((<HTMLInputElement>ev.target)!.checked) {
+        dag.setShowAuthChain(false);
+    }
     dag.refresh();
+    (<HTMLInputElement>document.getElementById("showauthevents"))!.checked = dag.showAuthChain;
+    (<HTMLInputElement>document.getElementById("showauthdag"))!.checked = dag.showAuthDAG;
 });
-(<HTMLInputElement>document.getElementById("showauthdag"))!.checked = dag.showAuthDAG;
 
 document.getElementById("showoutliers")!.addEventListener("change", (ev) => {
     dag.setShowOutliers((<HTMLInputElement>ev.target)!.checked);
