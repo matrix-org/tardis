@@ -237,19 +237,19 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
 
         if (opts.showAuthDAG) {
             // walk the DAG to the root to get authed & authing events
-            d.auth_list = [];
             const walk = (e) => {
                 e.authed_list ||= [];
                 e.authed_list.push(d.event_id);
                 for (const id of e.prev_auth_events) {
-                    d.auth_list.push(id);
                     walk(eventsById.get(id));
                 }
             };
             walk(d);
         }
 
+        d.auth_list = [];
         for (const id of authEvents) {
+            d.auth_list.push(id);
             const p = eventsById.get(id)!;
             if (!p.authLane) {
                 const lane = getNextAuthLane(p.y, i);
