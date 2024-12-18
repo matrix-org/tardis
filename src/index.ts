@@ -32,6 +32,7 @@ class Dag {
     cache: Cache;
     createEventId: string | null;
     showAuthChain: boolean;
+    showAuthDAG: boolean;
     showOutliers: boolean;
     collapse: boolean;
     shimUrl?: string;
@@ -45,6 +46,7 @@ class Dag {
         this.cache = cache;
         this.createEventId = null;
         this.showAuthChain = false;
+        this.showAuthDAG = false;
         this.showOutliers = false;
         this.collapse = false;
         this.renderEvents = {};
@@ -111,6 +113,9 @@ class Dag {
     setShowAuthChain(show: boolean) {
         this.showAuthChain = show;
     }
+    setShowAuthDAG(show: boolean) {
+        this.showAuthDAG = show;
+    }
     setShowOutliers(show: boolean) {
         this.showOutliers = show;
     }
@@ -134,6 +139,7 @@ class Dag {
             scenario: this.scenario,
             stateAtEvent: this.cache.stateAtEvent.getStateAsEventIds(this.debugger.current()),
             showAuthChain: this.showAuthChain,
+            showAuthDAG: this.showAuthDAG,
         });
     }
     // find the event(s) which aren't pointed to by anyone which has prev/auth events, as this is the
@@ -311,6 +317,14 @@ document.getElementById("showauthevents")!.addEventListener("change", (ev) => {
     dag.refresh();
 });
 (<HTMLInputElement>document.getElementById("showauthevents"))!.checked = dag.showAuthChain;
+
+document.getElementById("showauthdag")!.addEventListener("change", (ev) => {
+    dag.setShowAuthDAG((<HTMLInputElement>ev.target)!.checked);
+    dag.refresh();
+});
+(<HTMLInputElement>document.getElementById("showauthdag"))!.checked = dag.showAuthDAG;
+
+
 document.getElementById("showoutliers")!.addEventListener("change", (ev) => {
     dag.setShowOutliers((<HTMLInputElement>ev.target)!.checked);
     dag.refresh();
