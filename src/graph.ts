@@ -62,7 +62,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
             return (eventsById.get(a)?.streamPosition || 0) - (eventsById.get(b)?.streamPosition || 0);
         });
         // order auth events reverse chronologically
-        d.auth_events = d.auth_events.sort((a: string, b: string) => {
+        d.auth_events = (d.auth_events || []).sort((a: string, b: string) => {
             return (eventsById.get(b)?.streamPosition || 0) - (eventsById.get(a)?.streamPosition || 0);
         });
         // remove auth events that point to create events, as they are very duplicative.
