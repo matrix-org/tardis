@@ -27,7 +27,9 @@ body {
 #infocontainer {
     position: absolute;
     background-color: #eee;
-    width: 50%; /* don't let the popup occlude the entire graph */
+    padding: 10px;
+    width: min-content;
+    max-width: 50%; /* don't let the popup occlude the entire graph */
     overflow: scroll;
 }
 
