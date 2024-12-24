@@ -43,20 +43,28 @@ const textualRepresentation = (ev: RenderableMatrixEvent, scenario?: Scenario) =
 
 const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions) => {
     // copy the events so we don't alter the caller's copy
+    // https://developer.mozilla.org/en-US/docs/Web/API/Window/structuredClone
     // biome-ignore lint/style/noParameterAssign:
-    events = JSON.parse(JSON.stringify(events));
+    events = structuredClone(events);
     // sort events chronologically
     const data: Array<RenderableMatrixEvent> = events; // .sort((a, b) => a.origin_server_ts - b.origin_server_ts);
 
-    const eventsById: Map<string, RenderableMatrixEvent> = new Map();
-    for (let i = 0; i < data.length; i++) {
-        data[i].streamPosition = i;
-        eventsById.set(data[i].event_id, data[i]);
-    }
+    const eventsById: Map<string, RenderableMatrixEvent> = new Map(
+        data.map((ev, i) => {
+            ev.streamPosition = i;
+            return [ev.event_id, ev];
+        }),
+    );
 
     // and insert potential placeholders for dangling edges.
     // we slice to do a shallow copy given we're inserting placeholders into data
-    for (const d of data.slice()) {
+    const dataCopy = [...data];
+
+    // Lookup maps for inserting placeholders at the right position
+    const eventIdIndexLookup = new Map<string, number>();
+    const placeholdersByEventId: Map<string, RenderableMatrixEvent> = new Map();
+
+    for (const [index, d] of dataCopy.entries()) {
         // order parents chronologically
         d.prev_events = d.prev_events.sort((a: string, b: string) => {
             return (eventsById.get(a)?.streamPosition || 0) - (eventsById.get(b)?.streamPosition || 0);
@@ -67,6 +75,8 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         });
         // remove auth events that point to create events, as they are very duplicative.
         //d.auth_events = d.auth_events.filter(id => eventsById.get(id)?.type !== 'm.room.create');
+
+        eventIdIndexLookup.set(d.event_id, index);
 
         for (const p of d.prev_events) {
             if (!eventsById.get(p)) {
@@ -82,10 +92,8 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
                     origin_server_ts: 0,
                 };
                 eventsById.set(p, placeholder);
-                // insert the placeholder immediately before the event which refers to it
-                const i = data.findIndex((ev) => ev.event_id === d.event_id);
-                console.log("inserting placeholder prev_event at ", i);
-                data.splice(i, 0, placeholder);
+                // insert the placeholder into a temp map to later insert at the right position
+                placeholdersByEventId.set(d.event_id, placeholder);
             }
 
             // update children on parents
@@ -93,6 +101,22 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
             if (!parent.next_events) parent.next_events = [];
             //console.log(`push ${d.event_id} onto ${parent.event_id}.next_events`);
             parent.next_events.push(d.event_id);
+        }
+    }
+
+    // Insert placeholders into the data array at the right position before the referenced event
+    // The key is the event_id of the event that references the placeholder
+    //
+    // We do this to speed up the algorithm
+    for (const [key, value] of placeholdersByEventId) {
+        const index = eventIdIndexLookup.get(key);
+        if (index !== undefined) {
+            data.splice(index, 0, value);
+
+            // Update the indices in the map for subsequent elements
+            for (let i = index; i < data.length; i++) {
+                eventIdIndexLookup.set(data[i].event_id, i);
+            }
         }
     }
 
@@ -280,12 +304,23 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         }
         while (edges.length > 0 && i > edges.at(-1)?.y) edges.pop();
         if (p.next_events) {
-            edges.push({
+            const newEdge = {
                 x: eventsById.get(p.next_events.at(-1)).x,
                 y: eventsById.get(p.next_events.at(-1)).y,
-            });
+            };
+            // Insert newEdge into the sorted position
+            let inserted = false;
+            for (let j = edges.length - 1; j >= 0; j--) {
+                if (edges[j].x <= newEdge.x) {
+                    edges.splice(j + 1, 0, newEdge);
+                    inserted = true;
+                    break;
+                }
+            }
+            if (!inserted) {
+                edges.unshift(newEdge);
+            }
         }
-        edges.sort((a, b) => a.x - b.x);
         d.laneWidth = edges.at(-1)?.x;
         if (balanceTwoWayForks && d.laneWidth % 2) {
             // balance simple 2-way forks
