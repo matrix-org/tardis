@@ -4,6 +4,7 @@ export class EventList {
     private highlightedEventId: string;
     private positionListener: (eventId: string) => void;
     private jsonListener: (eventId: string) => void;
+    private tempList: DocumentFragment = document.createDocumentFragment();
     constructor(
         readonly container: HTMLElement,
         readonly template: HTMLTemplateElement,
@@ -11,6 +12,7 @@ export class EventList {
 
     clear(): void {
         this.container.innerHTML = "";
+        this.tempList = document.createDocumentFragment();
     }
 
     onEventClick(fn): void {
@@ -53,7 +55,11 @@ export class EventList {
         if (ev.state_key != null) {
             row.style.fontWeight = "600";
         }
-        this.container.appendChild(row);
+        this.tempList.appendChild(row);
+    }
+
+    render() {
+        this.container.appendChild(this.tempList);
     }
 
     highlight(eventId: string) {

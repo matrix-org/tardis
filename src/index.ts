@@ -94,6 +94,7 @@ class Dag {
         scenario.events.forEach((ev, i) => {
             eventList.appendEvent(i, ev);
         });
+        eventList.render();
         eventList.highlight(this.debugger.current());
         eventList.onEventClick((eventId: string) => {
             this.debugger.goTo(eventId);
