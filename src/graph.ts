@@ -629,7 +629,18 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         .attr("y", (d) => d.y * gy + 4);
 
     node.append("text")
-        .text((d) => (d.origin_server_ts ? new Date(d.origin_server_ts).toLocaleString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ""))
+        .text((d) =>
+            d.origin_server_ts
+                ? new Date(d.origin_server_ts).toLocaleString(undefined, {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      second: "2-digit",
+                  })
+                : "",
+        )
         .attr("x", -margin.left)
         .attr("y", (d) => d.y * gy + 4);
 

@@ -3,10 +3,10 @@ body {
 }
 #page {
     display: grid;
-    grid-template-areas: 
-                    "header header"
-                    "eventlist svgcontainer"
-                    "eventlist svgcontainer";
+    grid-template-areas:
+        "header header"
+        "eventlist svgcontainer"
+        "eventlist svgcontainer";
     grid-template-rows: min-content auto auto;
     /* Make the sidebar just enough wide for the content but the svgcontainer take the most space */
     grid-template-columns: 25% auto;
