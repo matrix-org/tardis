@@ -2,19 +2,26 @@ body {
     margin: 0px;
 }
 #page {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-areas: 
+                    "header header"
+                    "eventlist svgcontainer"
+                    "eventlist svgcontainer";
+    grid-template-rows: min-content auto auto;
+    /* Make the sidebar just enough wide for the content but the svgcontainer take the most space */
+    grid-template-columns: 25% auto;
     height: 100%;
 }
 
 #header {
-    top: 0;
-    left: 0;
+    grid-area: header;
+    height: min-content;
     padding: 8px;
     background-color: #a6b8c7;
     border: 1px solid #00060b;
     margin: 5px;
     display: flex;
+    gap: 8px;
 }
 
 #infocontainer {
@@ -28,24 +35,14 @@ body {
     cursor: pointer;
 }
 
-#contents {
-    display: flex;
-    /* 
-     * this makes firefox center-justify the contents and hide it when the svg is wide
-     * and don't hide the overflow when the svg is wide
-     */
-    /* justify-content: space-around; */
-    /* overflow: hidden; */
-    flex-grow: 1;
-}
-
 #svgcontainer {
-    flex-grow: 1;
+    grid-area: svgcontainer;
+    /* Prevent the svg from filling more than the available space by allowing it to scroll in both directions */
+    overflow: scroll;
 }
 
 #eventlist {
-    min-width: 25%;
-    max-width: 25%;
+    grid-area: eventlist;
     border: 1px solid;
     border-color: #00060b;
     margin: 5px;
