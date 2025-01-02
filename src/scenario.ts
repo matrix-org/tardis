@@ -61,7 +61,8 @@ export interface Scenario {
     };
 }
 
-// loadScenarioFromFile loads a scenario file (.json5) or new-line delimited JSON, which represents the events in the scenario, in the order they should be processed.
+// loadScenarioFromFile loads a scenario file (.json5) or new-line delimited JSON / JSON array, which represents the events in the scenario,
+// in the order they should be processed.
 // Throws if there is malformed events or malformed data. Requires `globalThis.gmslEventIDForEvent` to exist (loaded via gmsl.wasm).
 export async function loadScenarioFromFile(f: File): Promise<Scenario> {
     // read the file
@@ -87,7 +88,15 @@ export async function loadScenarioFromFile(f: File): Promise<Scenario> {
                     resolve(sfJson as ScenarioFile);
                     return;
                 }
-                const contents = (data.target.result as string)
+                const contents = data.target.result as string;
+                if (contents.startsWith("[")) {
+                    // it's a json array, resolve as-is.
+                    const j = JSON.parse(contents);
+                    resolve(j as Array<MatrixEvent>);
+                    return;
+                }
+                // it's ndjson
+                const ndjson = contents
                     .split("\n")
                     .filter((line) => {
                         return line.trim().length > 0;
@@ -96,7 +105,7 @@ export async function loadScenarioFromFile(f: File): Promise<Scenario> {
                         const j = JSON.parse(line);
                         return j;
                     });
-                resolve(contents as Array<MatrixEvent>);
+                resolve(ndjson as Array<MatrixEvent>);
             };
             reader.readAsText(f);
         },
