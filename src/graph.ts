@@ -604,7 +604,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
     const textOffset = (d) =>
         opts.showAuthChain || opts.showAuthDAG
             ? maxAuthLaneStart * gx + (maxAuthLane - maxAuthLaneStart) * agx
-            : d.laneWidth * gx;
+            : (d.laneWidth ?? 0) * gx;
 
     // Add event IDs on the right side
     node.append("text")
