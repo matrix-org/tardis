@@ -41,8 +41,13 @@ matrix=> select jsonb_insert(json::JSONB, '{event_id}', ('"' || event_id || '"')
         order by stream_ordering asc
     );
 ```
-You can drop the `stream_ordering` clauses if the room is small and you want to see the entire thing. The file created by these
-commands can be dropped **as-is** into TARDIS.
+You can drop the `stream_ordering` clauses if the room is small and you want to see the entire thing.
+
+It is important that the events are sorted in causal order. To do this with [jq](https://jqlang.github.io/jq/): just do:
+```
+cat the-file.ndjson | jq -s 'sort_by(.depth)' > sorted-file.ndjson
+```
+The file created by these commands can be dropped **as-is** into TARDIS.
 
 ### ..via scenario JSON5 files
 Provide a JSON5 file which contains the scenario to run. See the `examples` directory for examples on
