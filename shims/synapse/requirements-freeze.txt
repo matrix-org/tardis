@@ -14,7 +14,7 @@ idna==3.10
 ijson==3.3.0
 immutabledict==4.2.0
 incremental==24.7.2
-Jinja2==3.1.4
+Jinja2==3.1.5
 jsonschema==4.23.0
 jsonschema-specifications==2024.10.1
 MarkupSafe==3.0.1
