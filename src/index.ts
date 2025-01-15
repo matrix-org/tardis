@@ -1,3 +1,4 @@
+import { printAuthDagAnalysis } from "./auth_dag";
 import { Cache } from "./cache";
 import { Debugger } from "./debugger";
 import { EventList } from "./event_list";
@@ -18,10 +19,6 @@ const preloadedScenarios: Record<string, ScenarioFile> = {
     "Mainline Ordering": mainlineForks,
     "Reverse Topological Power Ordering": reverseTopologicalPowerOrdering,
 };
-
-interface Link {
-    auth: boolean;
-}
 
 const eventList = new EventList(
     document.getElementById("eventlist")!,
@@ -91,8 +88,12 @@ class Dag {
             this.debugger.goTo(scenario.events[1].event_id);
         }
         eventList.clear();
+        let hasAuthDAGEvents = false;
         scenario.events.forEach((ev, i) => {
             eventList.appendEvent(i, ev);
+            if (ev.prev_auth_events && ev.prev_auth_events.length > 0) {
+                hasAuthDAGEvents = true;
+            }
         });
         eventList.highlight(this.debugger.current());
         eventList.onEventClick((eventId: string) => {
@@ -108,6 +109,9 @@ class Dag {
             );
             document.getElementById("infocontainer")!.style.display = "block";
         });
+        if (hasAuthDAGEvents) {
+            printAuthDagAnalysis(scenario);
+        }
         this.refresh();
     }
     setShowAuthChain(show: boolean) {

@@ -10,6 +10,9 @@ interface MatrixEvent {
     room_id: string;
     origin_server_ts: number;
 
+    // only for auth dags
+    prev_auth_events: Array<string> | undefined;
+
     // TODO: fix metadata fields
     _collapse?: number;
     _backwards_extremity_key?: string;
