@@ -41,6 +41,9 @@ matrix=> select jsonb_insert(json::JSONB, '{event_id}', ('"' || event_id || '"')
         order by stream_ordering asc
     );
 ```
+
+For SQLite3 use `select '{"event_id":"' || event_id || '",' || substr(json, 2) from event_json`.
+
 You can drop the `stream_ordering` clauses if the room is small and you want to see the entire thing.
 
 It is important that the events are sorted in causal order. To do this with [jq](https://jqlang.github.io/jq/): just do:
