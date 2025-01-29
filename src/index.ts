@@ -95,6 +95,7 @@ class Dag {
                 hasAuthDAGEvents = true;
             }
         });
+        eventList.render();
         eventList.highlight(this.debugger.current());
         eventList.onEventClick((eventId: string) => {
             this.debugger.goTo(eventId);
