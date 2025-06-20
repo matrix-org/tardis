@@ -9,6 +9,7 @@ export interface RenderOptions {
     inverseStateSets?: Record<EventID, Set<EventID>>; // $random_state => {$prev, $events, $containing, $this, $state}
     scenario?: Scenario;
     showStateSets: boolean;
+    showAuthChainTransitiveReduction: boolean;
     onEventIDClick: (eventID: string) => void;
 }
 
@@ -26,13 +27,6 @@ interface RenderableMatrixEvent extends MatrixEvent {
 // https://www.nature.com/articles/nmeth.1618
 const colourBlindSafeColours = ["#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7"];
 
-// const edgesForEvent = (ev: RenderableMatrixEvent, opts: RenderOptions): string[] => {
-//     if (opts.showAuthChain) {
-//         return (ev.prev_events || []).concat(ev.auth_events || []);
-//     }
-//     return ev.prev_events;
-// };
-
 const textualRepresentation = (ev: RenderableMatrixEvent, scenario?: Scenario) => {
     const eventId = ev.event_id;
     if (scenario?.annotations?.events?.[eventId]) {
@@ -47,6 +41,14 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
     // copy the events so we don't alter the caller's copy
     // biome-ignore lint/style/noParameterAssign:
     events = JSON.parse(JSON.stringify(events));
+
+    if (opts.showAuthChainTransitiveReduction) {
+        events = events.map((e) => {
+            e.prev_events = e.auth_events;
+            return e;
+        });
+    }
+
     let currentEvent: MatrixEvent | null = null;
     for (const ev of events) {
         if (ev.event_id === opts.currentEventId) {
@@ -79,7 +81,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
 
         for (const p of d.prev_events) {
             if (!eventsById.get(p)) {
-                const placeholder = {
+                const placeholder: RenderableMatrixEvent = {
                     event_id: p,
                     type: "dangling",
                     prev_events: [],
@@ -216,28 +218,6 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         }
     }
 
-    // the current list of authLanes on the go, so we know where to insert new ones.
-    const authLanes: Array<string> = [];
-
-    function getNextAuthLane(y1: number, y2: number) {
-        let rightHandEdge = 0;
-        for (let y = y1; y <= y2; y++) {
-            rightHandEdge = data[y].x > rightHandEdge ? data[y].x : rightHandEdge;
-            // XXX: alternatively, we could push out beyond the prev-event laneWidth
-            // to avoid crisscrossing the prev-event DAG with the auth DAG
-        }
-        rightHandEdge++;
-        // XXX: ideally we'd ensure that the oldest lane keeps getting pushed out by newer ones
-        // as we find them, rather than just appending like this.
-        // So, we'd find the right slot based on comparing y1 with the y offsets of the
-        // events for these lanes, and then shuffle the events over if needed.
-        // however, this would be tricky when reusing lanes, as the order will break.
-        while (authLanes[rightHandEdge] !== undefined) {
-            rightHandEdge++;
-        }
-        return rightHandEdge;
-    }
-
     const balanceTwoWayForks = true;
 
     // another pass to figure out the right-hand edge
@@ -294,7 +274,6 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
     const lineWidthHighlight = 3;
 
     const currColor = "#0a0";
-    const authColor = "#888";
 
     // empty vis div
     d3.select(vis).html(null);
@@ -493,11 +472,6 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
             return textualRepresentation(d, opts.scenario);
         })
         .attr("class", (d) => "node-text")
-        // .text(
-        //     (d) =>
-        //         `${d.y} ${d.event_id.slice(0, 5)} ${d.sender} P:${d.prev_events.map((id) => id.slice(0, 5)).join(", ")} | N:${d.next_events?.map((id) => id.slice(0, 5)).join(", ")}`,
-        // )
-        //.text(d => `${d.y} ${d.event_id.substr(0, 5)} ${d.sender} ${d.type} prev:${d.prev_events.map(id => id.substr(0, 5)).join(", ")}`)
         .attr("x", (d) => textOffset(d) + agx + 100)
         .attr("y", (d) => d.y * gy + 4);
 

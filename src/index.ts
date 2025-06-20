@@ -44,7 +44,6 @@ class Dag {
     cache: Cache;
     createEventId: string | null;
     showAuthChain: boolean;
-    showAuthDAG: boolean;
     showOutliers: boolean;
     showStateSets: boolean;
     collapse: boolean;
@@ -60,7 +59,6 @@ class Dag {
         this.cache = cache;
         this.createEventId = null;
         this.showAuthChain = false;
-        this.showAuthDAG = false;
         this.showOutliers = false;
         this.showStateSets = false;
         this.collapse = false;
@@ -136,13 +134,9 @@ class Dag {
         document.getElementById("infocontainer-event-id")!.textContent = eventId;
         document.getElementById("eventdetails")!.innerHTML = highlightedCode.value;
         document.getElementById("infocontainer")!.style.display = "block";
-        console.log("set block display");
     }
     setShowAuthChain(show: boolean) {
         this.showAuthChain = show;
-    }
-    setShowAuthDAG(show: boolean) {
-        this.showAuthDAG = show;
     }
     setShowOutliers(show: boolean) {
         this.showOutliers = show;
@@ -178,6 +172,7 @@ class Dag {
             stateAtEvent: this.cache.stateAtEvent.getStateAsEventIds(this.debugger.current()),
             inverseStateSets: inverseStateSets,
             showStateSets: this.showStateSets,
+            showAuthChainTransitiveReduction: this.showAuthChain,
             onEventIDClick: this.showEventJSONDialog.bind(this),
         });
     }
@@ -353,22 +348,7 @@ const resolver = new StateResolver(transport, (data: DataGetEvent): MatrixEvent 
 
 document.getElementById("showauthevents")!.addEventListener("change", (ev) => {
     dag.setShowAuthChain((<HTMLInputElement>ev.target)!.checked);
-    if ((<HTMLInputElement>ev.target)!.checked) {
-        dag.setShowAuthDAG(false);
-    }
     dag.refresh();
-    (<HTMLInputElement>document.getElementById("showauthevents"))!.checked = dag.showAuthChain;
-    (<HTMLInputElement>document.getElementById("showauthdag"))!.checked = dag.showAuthDAG;
-});
-
-document.getElementById("showauthdag")!.addEventListener("change", (ev) => {
-    dag.setShowAuthDAG((<HTMLInputElement>ev.target)!.checked);
-    if ((<HTMLInputElement>ev.target)!.checked) {
-        dag.setShowAuthChain(false);
-    }
-    dag.refresh();
-    (<HTMLInputElement>document.getElementById("showauthevents"))!.checked = dag.showAuthChain;
-    (<HTMLInputElement>document.getElementById("showauthdag"))!.checked = dag.showAuthDAG;
 });
 
 document.getElementById("showstatesets")!.addEventListener("change", (ev) => {
