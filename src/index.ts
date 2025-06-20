@@ -363,7 +363,7 @@ document.getElementById("collapse")!.addEventListener("change", (ev) => {
 (<HTMLInputElement>document.getElementById("collapse"))!.checked = dag.collapse;
 (<HTMLInputElement>document.getElementById("jsonfile")).addEventListener(
     "change",
-    async (ev) => {
+    async (_) => {
         const files = (<HTMLInputElement>document.getElementById("jsonfile")).files;
         if (!files) {
             return;
@@ -376,17 +376,17 @@ document.getElementById("collapse")!.addEventListener("change", (ev) => {
     false,
 );
 
-document.getElementById("closeinfocontainer")!.addEventListener("click", (ev) => {
+document.getElementById("closeinfocontainer")!.addEventListener("click", (_) => {
     document.getElementById("infocontainer")!.style.display = "none";
 });
 document.getElementById("infocontainer")!.style.display = "none";
 
-document.getElementById("stepfwd")!.addEventListener("click", async (ev) => {
+document.getElementById("stepfwd")!.addEventListener("click", async (_) => {
     dag.debugger.next();
     dag.refresh();
     eventList.highlight(dag.debugger.current());
 });
-document.getElementById("stepbwd")!.addEventListener("click", async (ev) => {
+document.getElementById("stepbwd")!.addEventListener("click", async (_) => {
     dag.debugger.previous();
     dag.refresh();
     eventList.highlight(dag.debugger.current());
@@ -492,14 +492,14 @@ WebAssembly.instantiateStreaming(fetch("gmsl.wasm"), go.importObject).then((obj)
         dag.loadScenarioFile(sf);
     };
 
-    const select = document.getElementById("file-select");
+    const select = document.getElementById("file-select") as HTMLSelectElement;
     if (select) {
         select.innerHTML = "";
         Object.keys(preloadedScenarios).forEach((val, index) => {
             select[index] = new Option(val);
         });
         select.addEventListener("change", (event) => {
-            const sf = preloadedScenarios[event?.target?.value];
+            const sf = preloadedScenarios[(event?.target as HTMLSelectElement)?.value];
             loadPreloadedFile(sf);
         });
     }

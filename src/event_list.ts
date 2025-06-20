@@ -13,23 +13,23 @@ export class EventList {
         this.container.innerHTML = "";
     }
 
-    onEventClick(fn): void {
+    onEventClick(fn: (eventId: string) => void): void {
         this.positionListener = fn;
     }
-    onEventJsonClick(fn): void {
+    onEventJsonClick(fn: (eventId: string) => void): void {
         this.jsonListener = fn;
     }
 
-    private onCellClick(ev) {
+    private onCellClick(ev: Event) {
         this.onClick(ev, this.positionListener);
     }
 
-    private onJsonClick(ev) {
+    private onJsonClick(ev: Event) {
         this.onClick(ev, this.jsonListener);
     }
 
-    private onClick(ev, fn) {
-        const row = ev.target?.parentElement;
+    private onClick(ev: Event, fn: (eventId: string) => void) {
+        const row = (ev.target as HTMLElement)?.parentElement;
         if (!row) {
             return;
         }

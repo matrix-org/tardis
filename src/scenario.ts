@@ -164,8 +164,9 @@ export function loadScenarioFromScenarioFile(scenarioFile: ScenarioFile): Scenar
         }
         if (scenarioFile.calculate_event_ids) {
             const fakeEventId = ev.event_id;
+            type EventKeys = "prev_events" | "auth_events";
             // replace any references in prev_events and auth_events
-            for (const key of ["prev_events", "auth_events"]) {
+            for (const key of ["prev_events", "auth_events"] as EventKeys[]) {
                 const replacement: Array<string> = [];
                 for (const eventIdToReplace of ev[key]) {
                     const realEventId = fakeEventIdToRealEventId.get(eventIdToReplace);
