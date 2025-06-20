@@ -18,6 +18,8 @@ interface MatrixEvent {
     _backwards_extremity_key?: string;
 }
 
+export type EventKeys = "prev_events" | "auth_events";
+
 enum MsgType {
     GetEvent = "get_event",
     ResolveState = "resolve_state",

@@ -1,7 +1,7 @@
 import * as d3 from "d3";
 import { textRepresentation } from "./event_list";
 import type { Scenario } from "./scenario";
-import type { EventID, MatrixEvent } from "./state_resolver";
+import type { EventID, MatrixEvent, EventKeys } from "./state_resolver";
 
 export interface RenderOptions {
     currentEventId: string;
@@ -42,11 +42,13 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
     // biome-ignore lint/style/noParameterAssign:
     events = JSON.parse(JSON.stringify(events));
 
+    let edgesKey: EventKeys = "prev_events";
+
     if (opts.showAuthChainTransitiveReduction) {
-        events = events.map((e) => {
-            e.prev_events = e.auth_events;
-            return e;
-        });
+        // make it legible
+        events = transitiveReduction(events, "auth_events");
+        // render it and not prev_events
+        edgesKey = "auth_events";
     }
 
     let currentEvent: MatrixEvent | null = null;
@@ -503,5 +505,72 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
     }
     //title.text(currTitle);
 };
+
+/**
+ * Transitively reduce the provided events on the key provided e.g "auth_events".
+ * This removes redundant edges to make graphs easier to comprehend. For example:
+ *     A
+ *    / \
+ *   B   |
+ *    \ /
+ *     C
+ *  Would be reduced to just A <- B <- C (the C <- A link is removed).
+ *
+ * @param events The events to transitively reduce.
+ * @returns The events with the key provided modified to represent the transitive reduction.
+ */
+function transitiveReduction(events: Array<MatrixEvent>, key: EventKeys): Array<MatrixEvent> {
+    const eventMap = new Map<string, MatrixEvent>();
+    for (const ev of events) {
+        eventMap.set(ev.event_id, ev);
+    }
+
+    // Build adjacency list
+    const adj = new Map<string, Set<string>>();
+    for (const ev of events) {
+        adj.set(ev.event_id, new Set(ev[key]));
+    }
+
+    // Memoized reachability check using DFS
+    function isReachable(from: string, to: string, blocked: string | null): boolean {
+        const visited = new Set<string>();
+        const stack = [from];
+        while (stack.length) {
+            const curr = stack.pop()!;
+            if (curr === to) return true;
+            if (visited.has(curr) || curr === blocked) continue;
+            visited.add(curr);
+            for (const next of adj.get(curr) ?? []) {
+                stack.push(next);
+            }
+        }
+        return false;
+    }
+
+    const reduced: MatrixEvent[] = [];
+
+    for (const ev of events) {
+        const reducedPrev: string[] = [];
+        for (const candidate of ev[key]) {
+            // Temporarily remove 'candidate' from the graph of ev
+            const otherPrev = ev[key].filter((id) => id !== candidate);
+            let reachable = false;
+            for (const other of otherPrev) {
+                if (isReachable(other, candidate, ev.event_id)) {
+                    reachable = true;
+                    break;
+                }
+            }
+            if (!reachable) {
+                reducedPrev.push(candidate);
+            }
+        }
+        const evOut = JSON.parse(JSON.stringify(ev)) as MatrixEvent;
+        evOut[key] = reducedPrev;
+        reduced.push(evOut);
+    }
+
+    return reduced;
+}
 
 export { redraw };

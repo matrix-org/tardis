@@ -1,5 +1,5 @@
 import JSON5 from "json5";
-import type { EventID, MatrixEvent } from "./state_resolver";
+import type { EventID, MatrixEvent, EventKeys } from "./state_resolver";
 
 export const DEFAULT_ROOM_VERSION = "10";
 
@@ -164,7 +164,6 @@ export function loadScenarioFromScenarioFile(scenarioFile: ScenarioFile): Scenar
         }
         if (scenarioFile.calculate_event_ids) {
             const fakeEventId = ev.event_id;
-            type EventKeys = "prev_events" | "auth_events";
             // replace any references in prev_events and auth_events
             for (const key of ["prev_events", "auth_events"] as EventKeys[]) {
                 const replacement: Array<string> = [];
