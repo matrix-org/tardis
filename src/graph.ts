@@ -1,23 +1,19 @@
 import * as d3 from "d3";
 import { textRepresentation } from "./event_list";
 import type { Scenario } from "./scenario";
-import type { EventID, MatrixEvent } from "./state_resolver";
+import type { EventID, EventKeys, MatrixEvent } from "./state_resolver";
 
 export interface RenderOptions {
     currentEventId: string;
     stateAtEvent?: Set<EventID>;
     inverseStateSets?: Record<EventID, Set<EventID>>; // $random_state => {$prev, $events, $containing, $this, $state}
     scenario?: Scenario;
-    showAuthChain: boolean;
-    showAuthDAG: boolean;
     showStateSets: boolean;
+    showAuthChainTransitiveReduction: boolean;
     onEventIDClick: (eventID: string) => void;
 }
 
 interface RenderableMatrixEvent extends MatrixEvent {
-    prev_auth_events: Array<string>; // until MatrixEvent knows about it
-    authed_list: Array<string>; // list of events which this one is authenticated by in an auth DAG
-    auth_list: Array<string>; // list of events which this one authenticates in an auth DAG
     next_events: Array<string>;
     x: number;
     y: number;
@@ -31,13 +27,6 @@ interface RenderableMatrixEvent extends MatrixEvent {
 // https://www.nature.com/articles/nmeth.1618
 const colourBlindSafeColours = ["#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7"];
 
-// const edgesForEvent = (ev: RenderableMatrixEvent, opts: RenderOptions): string[] => {
-//     if (opts.showAuthChain) {
-//         return (ev.prev_events || []).concat(ev.auth_events || []);
-//     }
-//     return ev.prev_events;
-// };
-
 const textualRepresentation = (ev: RenderableMatrixEvent, scenario?: Scenario) => {
     const eventId = ev.event_id;
     if (scenario?.annotations?.events?.[eventId]) {
@@ -48,16 +37,28 @@ const textualRepresentation = (ev: RenderableMatrixEvent, scenario?: Scenario) =
     return `${text} ${collapse}`;
 };
 
-const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions) => {
+const redraw = (vis: HTMLDivElement, inputEvents: MatrixEvent[], opts: RenderOptions) => {
     // copy the events so we don't alter the caller's copy
-    // biome-ignore lint/style/noParameterAssign:
-    events = JSON.parse(JSON.stringify(events));
+    let events = JSON.parse(JSON.stringify(inputEvents));
     let currentEvent: MatrixEvent | null = null;
     for (const ev of events) {
         if (ev.event_id === opts.currentEventId) {
             currentEvent = ev;
             break;
         }
+    }
+
+    let edgesKey: EventKeys = "prev_events";
+
+    if (opts.showAuthChainTransitiveReduction) {
+        // make it legible
+        events = transitiveReduction(events, "auth_events");
+        // render it and not prev_events
+        edgesKey = "auth_events";
+        // strip out non-auth events else it just clouds the graph with leaves
+        events = events.filter((ev) => {
+            return ["m.room.create", "m.room.member", "m.room.join_rules", "m.room.power_levels"].includes(ev.type);
+        });
     }
     // sort events chronologically
     const data: Array<RenderableMatrixEvent> = events; // .sort((a, b) => a.origin_server_ts - b.origin_server_ts);
@@ -72,7 +73,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
     // we slice to do a shallow copy given we're inserting placeholders into data
     for (const d of data.slice()) {
         // order parents chronologically
-        d.prev_events = d.prev_events.sort((a: string, b: string) => {
+        d[edgesKey] = d[edgesKey].sort((a: string, b: string) => {
             return (eventsById.get(a)?.streamPosition || 0) - (eventsById.get(b)?.streamPosition || 0);
         });
         // order auth events reverse chronologically
@@ -82,9 +83,9 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         // remove auth events that point to create events, as they are very duplicative.
         //d.auth_events = d.auth_events.filter(id => eventsById.get(id)?.type !== 'm.room.create');
 
-        for (const p of d.prev_events) {
+        for (const p of d[edgesKey]) {
             if (!eventsById.get(p)) {
-                const placeholder = {
+                const placeholder: RenderableMatrixEvent = {
                     event_id: p,
                     type: "dangling",
                     prev_events: [],
@@ -175,7 +176,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
 
         // if any of my parents has a lane, position me under it, preferring the oldest
         let foundLane = false;
-        for (const p of d.prev_events!) {
+        for (const p of d[edgesKey]!) {
             const parent = eventsById.get(p)!;
             if (lanes.findIndex((id) => id === parent.event_id) !== -1) {
                 d.x = parent.x;
@@ -189,8 +190,8 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
             // don't re-use lanes if you have prev_events higher than the end of the lane
             // otherwise you'll overlap them.
             d.x = getNextLane();
-            if (d.prev_events && eventsById.get(d.prev_events[0])) {
-                const oldestPrevEventY = eventsById.get(d.prev_events[0])!.y;
+            if (d[edgesKey] && eventsById.get(d[edgesKey][0])) {
+                const oldestPrevEventY = eventsById.get(d[edgesKey][0])!.y;
                 while (laneEnd[d.x] !== undefined && oldestPrevEventY < laneEnd[d.x]) {
                     d.x = getNextLane(d.x);
                 }
@@ -203,7 +204,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         if (d.next_events) {
             for (const c of d.next_events) {
                 const child = eventsById.get(c);
-                if (child!.prev_events![0] === d.event_id) {
+                if (child![edgesKey]![0] === d.event_id) {
                     oldestParent = true;
                     break;
                 }
@@ -218,63 +219,6 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
             //console.log(`terminating lane ${d.x}`);
             delete lanes[d.x];
             laneEnd[d.x] = i;
-        }
-    }
-
-    // the current list of authLanes on the go, so we know where to insert new ones.
-    const authLanes: Array<string> = [];
-
-    function getNextAuthLane(y1: number, y2: number) {
-        let rightHandEdge = 0;
-        for (let y = y1; y <= y2; y++) {
-            rightHandEdge = data[y].x > rightHandEdge ? data[y].x : rightHandEdge;
-            // XXX: alternatively, we could push out beyond the prev-event laneWidth
-            // to avoid crisscrossing the prev-event DAG with the auth DAG
-        }
-        rightHandEdge++;
-        // XXX: ideally we'd ensure that the oldest lane keeps getting pushed out by newer ones
-        // as we find them, rather than just appending like this.
-        // So, we'd find the right slot based on comparing y1 with the y offsets of the
-        // events for these lanes, and then shuffle the events over if needed.
-        // however, this would be tricky when reusing lanes, as the order will break.
-        while (authLanes[rightHandEdge] !== undefined) {
-            rightHandEdge++;
-        }
-        return rightHandEdge;
-    }
-
-    // pass from bottom to top to figure out auth dag
-    for (let i = data.length - 1; i >= 0; i--) {
-        const d = data[i];
-        const authEvents = opts.showAuthChain ? d.auth_events : opts.showAuthDAG ? d.prev_auth_events : undefined;
-        if (!authEvents) continue;
-
-        if (opts.showAuthDAG) {
-            // walk the DAG to the root to get authed & authing events
-            const walk = (e) => {
-                e.authed_list ||= [];
-                e.authed_list.push(d.event_id);
-                for (const id of e.prev_auth_events) {
-                    walk(eventsById.get(id));
-                }
-            };
-            walk(d);
-        }
-
-        d.auth_list = [];
-        for (const id of authEvents) {
-            d.auth_list.push(id);
-            const p = eventsById.get(id)!;
-            if (!p.authLane) {
-                const lane = getNextAuthLane(p.y, i);
-                p.authLane = lane;
-                authLanes[lane] = id;
-                p.authLaneStart = authLanes.findIndex((lane) => lane !== undefined) - 1;
-            }
-        }
-        // reclaim lanes once we've moved past their events
-        if (d.authLane) {
-            delete authLanes[d.authLane];
         }
     }
 
@@ -333,15 +277,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
     const lineWidth = 2;
     const lineWidthHighlight = 3;
 
-    const authLineWidth = 1;
-    const authLineWidthHighlight = 3;
-
-    const prevColor = "#f00";
     const currColor = "#0a0";
-    const nextColor = "#00f";
-    const prevAuthColor = "#faa";
-    const nextAuthColor = "#aaf";
-    const authColor = "#888";
 
     // empty vis div
     d3.select(vis).html(null);
@@ -436,8 +372,8 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
                     nudge_y =
                         d.next_events.length > 1 ? nudgeOffset * (childIndex - (d.next_events.length - 2) / 2) : 0;
                     // nudge vertical left or right based on how many prev_events there are from this child.
-                    const childParentIndex = c.prev_events!.findIndex((id) => id === d.event_id);
-                    nudge_x = nudgeOffset * (childParentIndex - (c.prev_events!.length - 1) / 2);
+                    const childParentIndex = c[edgesKey]!.findIndex((id) => id === d.event_id);
+                    nudge_x = nudgeOffset * (childParentIndex - (c[edgesKey]!.length - 1) / 2);
                 }
 
                 path.moveTo(d.x * gx, d.y * gy + r + nudge_y);
@@ -485,92 +421,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
     // auth chains
     const agx = gx / 2; // tighter grid for auth events
 
-    if (opts.showAuthChain || opts.showAuthDAG) {
-        node.each((d, i, nodes) => {
-            const n = d3.select(nodes[i]);
-
-            const authEvents = opts.showAuthChain ? d.auth_events : d.prev_auth_events;
-            if (authEvents) {
-                for (const parent of authEvents) {
-                    const p = eventsById.get(parent);
-                    if (!p) continue;
-
-                    const path = d3.path();
-
-                    const nudge_y = 0;
-                    const nudge_x = 0;
-
-                    // XXX: is authLaneStart going to be constant enough for this to work?
-                    const authOffset = p.authLaneStart * gx + (p.authLane - p.authLaneStart) * agx;
-
-                    path.moveTo(d.x * gx + r + nudge_x, d.y * gy + nudge_y);
-                    path.arcTo(authOffset, d.y * gy + nudge_y, authOffset, p.y * gy + nudge_y, r * 2);
-                    path.arcTo(authOffset, p.y * gy + nudge_y, p.x * gx + r + nudge_x, p.y * gy + nudge_y, r * 2);
-                    // path.lineTo(p.authLane * gx, d.y * gy + nudge);
-                    // path.lineTo(p.authLane * gx, p.y * gy + nudge);
-                    path.lineTo(p.x * gx + r + nudge_x, p.y * gy + nudge_y);
-
-                    // arrowhead
-                    path.moveTo(p.x * gx + nudge_x + r + r / 2, p.y * gy + nudge_y + r / 3);
-                    path.lineTo(p.x * gx + nudge_x + r, p.y * gy + nudge_y);
-                    path.lineTo(p.x * gx + nudge_x + r + r / 2, p.y * gy + nudge_y - r / 3);
-                    path.lineTo(p.x * gx + nudge_x + r + r / 2, p.y * gy + nudge_y + r / 3);
-                    path.lineTo(p.x * gx + nudge_x + r, p.y * gy + nudge_y);
-
-                    const classes = (d) => {
-                        if (opts.showAuthChain) {
-                            return `authchild-${p.event_id.slice(1, 5)} authparent-${d?.event_id.slice(1, 5)}`;
-                        }
-                        return `${d.authed_list.map((id) => `authparent-${id?.slice(1, 5)}`).join(" ")} ${d.auth_list.map((id) => `authchild-${id?.slice(1, 5)}`).join(" ")}`;
-                    };
-
-                    n.append("path")
-                        .attr("d", path.toString())
-                        .attr("class", classes)
-                        .attr("stroke", authColor)
-                        .attr("stroke-width", 1)
-                        // .attr("stroke-dasharray", `${lineWidth * 2},${lineWidth}`)
-                        .attr("fill", "none");
-                }
-            }
-        });
-    }
-
-    /*
-    // auth chain made out of arcs
-    node.each((d, i, nodes) => {
-        const n = d3.select(nodes[i]);
-
-        if (d.auth_events) {
-            for (const parent of d.auth_events) {
-                const p = eventsById.get(parent);
-                if (!p) continue;
-
-                const path = d3.path();
-
-                path.moveTo(d.x * gx, d.y * gy);
-                path.arcTo(
-                    ((d.x + p.x) * 0.5 * gx) + ((d.y - p.y) * 0.5 * gy), (p.y + d.y) * 0.5 * gy,
-                    p.x * gx, p.y * gy,
-                    (d.y - p.y) * 0.5 * (gx + gy)/2
-                );
-
-                n.append("path")
-                    .attr("d", path.toString())
-                    // .attr("class", (d) => `child-${d.event_id.slice(1, 5)} parent-${c?.event_id.slice(1, 5)}`)
-                    .attr("stroke", "#888")
-                    .attr("stroke-width", 1)
-                    .attr("stroke-dasharray", `${lineWidth * 2},${lineWidth}`)
-                    .attr("fill", "none");
-            }
-        }
-    });
-    */
-
-    const textOffset = (d) =>
-        opts.showAuthChain || opts.showAuthDAG
-            ? maxAuthLaneStart * gx + (maxAuthLane - maxAuthLaneStart) * agx
-            : (d.laneWidth ?? 0) * gx;
+    const textOffset = (d) => (d.laneWidth ?? 0) * gx;
 
     // Add event IDs on the right side
     node.append("text")
@@ -608,10 +459,8 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         }
         // now change the prev_event colours to show the mappings
         const childEventID = currentEvent.event_id;
-        console.log("currentEvent", currentEvent);
         for (let i = 0; i < currentEvent.prev_events.length; i++) {
             const parentEventID = currentEvent.prev_events[i];
-            console.log(`.edge-${parentEventID.slice(1, 5)}-${childEventID.slice(1, 5)}`);
             d3.selectAll(`.edge-${parentEventID.slice(1, 5)}-${childEventID.slice(1, 5)}`)
                 .raise()
                 .attr("stroke", colourBlindSafeColours[i] || "#fff") // white to indicate a problem
@@ -625,11 +474,6 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
             return textualRepresentation(d, opts.scenario);
         })
         .attr("class", (d) => "node-text")
-        // .text(
-        //     (d) =>
-        //         `${d.y} ${d.event_id.slice(0, 5)} ${d.sender} P:${d.prev_events.map((id) => id.slice(0, 5)).join(", ")} | N:${d.next_events?.map((id) => id.slice(0, 5)).join(", ")}`,
-        // )
-        //.text(d => `${d.y} ${d.event_id.substr(0, 5)} ${d.sender} ${d.type} prev:${d.prev_events.map(id => id.substr(0, 5)).join(", ")}`)
         .attr("x", (d) => textOffset(d) + agx + 100)
         .attr("y", (d) => d.y * gy + 4);
 
@@ -661,5 +505,72 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
     }
     //title.text(currTitle);
 };
+
+/**
+ * Transitively reduce the provided events on the key provided e.g "auth_events".
+ * This removes redundant edges to make graphs easier to comprehend. For example:
+ *     A
+ *    / \
+ *   B   |
+ *    \ /
+ *     C
+ *  Would be reduced to just A <- B <- C (the C <- A link is removed).
+ *
+ * @param events The events to transitively reduce.
+ * @returns The events with the key provided modified to represent the transitive reduction.
+ */
+function transitiveReduction(events: Array<MatrixEvent>, key: EventKeys): Array<MatrixEvent> {
+    const eventMap = new Map<string, MatrixEvent>();
+    for (const ev of events) {
+        eventMap.set(ev.event_id, ev);
+    }
+
+    // Build adjacency list
+    const adj = new Map<string, Set<string>>();
+    for (const ev of events) {
+        adj.set(ev.event_id, new Set(ev[key]));
+    }
+
+    // Memoized reachability check using DFS
+    function isReachable(from: string, to: string, blocked: string | null): boolean {
+        const visited = new Set<string>();
+        const stack = [from];
+        while (stack.length) {
+            const curr = stack.pop()!;
+            if (curr === to) return true;
+            if (visited.has(curr) || curr === blocked) continue;
+            visited.add(curr);
+            for (const next of adj.get(curr) ?? []) {
+                stack.push(next);
+            }
+        }
+        return false;
+    }
+
+    const reduced: MatrixEvent[] = [];
+
+    for (const ev of events) {
+        const reducedPrev: string[] = [];
+        for (const candidate of ev[key]) {
+            // Temporarily remove 'candidate' from the graph of ev
+            const otherPrev = ev[key].filter((id) => id !== candidate);
+            let reachable = false;
+            for (const other of otherPrev) {
+                if (isReachable(other, candidate, ev.event_id)) {
+                    reachable = true;
+                    break;
+                }
+            }
+            if (!reachable) {
+                reducedPrev.push(candidate);
+            }
+        }
+        const evOut = JSON.parse(JSON.stringify(ev)) as MatrixEvent;
+        evOut[key] = reducedPrev;
+        reduced.push(evOut);
+    }
+
+    return reduced;
+}
 
 export { redraw };
