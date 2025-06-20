@@ -1,11 +1,12 @@
 <html>
 
 <head>
+    <link rel="stylesheet" href="highlight.css">
     <link rel="icon" href="favicon.svg">
     <title>TARDIS - Time Agnostic Room DAG Inspection Service</title>
     <script src="wasm_exec.js"></script>
-  <script type="module" crossorigin src="/tardis/assets/index-BDBkoRf3.js"></script>
-  <link rel="stylesheet" crossorigin href="/tardis/assets/index-D8eRBwOh.css">
+  <script type="module" crossorigin src="/tardis/assets/index-C_Dn3H3j.js"></script>
+  <link rel="stylesheet" crossorigin href="/tardis/assets/index-Cq7yunYm.css">
 </head>
 
 <body>
@@ -23,7 +24,7 @@
             <span class="loader-status" id="loader-status"></span>
         </div>
         <div id="infocontainer">
-            <pre id="closeinfocontainer">[ Close ]</pre>
+            <span id="infocontainer-event-id" class="monospace"></span>
             <pre id="eventdetails" />
         </div>
         <div id="eventlist"></div>
@@ -31,7 +32,6 @@
     </div>
     <div class="view-options">
         <label><input id="showauthevents" type="checkbox" /><span>Auth Chain</span></label>
-        <label><input id="showauthdag" type="checkbox" /><span>Auth DAG</span></label>
         <label><input id="showoutliers" type="checkbox" /><span>Outliers</span></label>
         <label><input id="collapse" type="checkbox" /><span>Collapse</span></label>
         <label><input id="showstatesets" type="checkbox" /><span>State Sets</span></label>
