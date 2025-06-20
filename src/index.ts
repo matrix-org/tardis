@@ -15,6 +15,16 @@ import {
     StateResolverTransport,
 } from "./state_resolver";
 
+declare global {
+    var wasm: WebAssembly.Instance;
+    // from wasm_exec.js
+    class Go {
+        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+        run(thing: any): Promise<void>;
+        importObject: WebAssembly.Imports;
+    }
+}
+
 const preloadedScenarios: Record<string, ScenarioFile> = {
     "Quick Start": quickstartFile,
     "Mainline Ordering": mainlineForks,
@@ -39,6 +49,7 @@ class Dag {
 
     renderEvents: Record<string, MatrixEvent>;
     scenario?: Scenario;
+    scenarioFile?: ScenarioFile | null;
 
     constructor(cache: Cache) {
         this.cache = cache;
@@ -48,6 +59,7 @@ class Dag {
         this.showOutliers = false;
         this.collapse = false;
         this.renderEvents = {};
+        this.scenarioFile = null;
     }
 
     setShimUrl(u: string) {
@@ -56,11 +68,13 @@ class Dag {
     }
 
     async loadFile(file: File) {
-        const scenario = await loadScenarioFromFile(file);
-        this.loadScenario(scenario);
+        const scenarioFile = await loadScenarioFromFile(file);
+        this.loadScenarioFile(scenarioFile);
     }
 
-    loadScenario(scenario: Scenario) {
+    loadScenarioFile(scenarioFile: ScenarioFile) {
+        this.scenarioFile = scenarioFile;
+        const scenario = loadScenarioFromScenarioFile(scenarioFile);
         for (const ev of scenario.events) {
             this.cache.eventCache.store(ev);
             if (ev.type === "m.room.create" && ev.state_key === "") {
@@ -436,16 +450,29 @@ document.getElementById("resolve")!.addEventListener("click", async (_) => {
     dag.refresh();
 });
 
+document.getElementById("share")?.addEventListener("click", async (_) => {
+    try {
+        if (!dag.scenarioFile) {
+            throw new Error("no loaded file");
+        }
+        const fragment = toURLSafeBase64(dag.scenarioFile);
+        const urlWithoutFragment = window.location.href.split("#")[0];
+        await navigator.clipboard.writeText(`${urlWithoutFragment}#${fragment}`);
+        setLoaderMessage("Share link copied to clipboard");
+    } catch (err) {
+        setLoaderMessage(`Unable to copy to clipboard: ${err}`);
+    }
+});
+
 // pull in GMSL bits
-const go = new Go(); // Defined in wasm_exec.js
+const go = new Go();
 WebAssembly.instantiateStreaming(fetch("gmsl.wasm"), go.importObject).then((obj) => {
     globalThis.wasm = obj.instance;
     go.run(globalThis.wasm);
 
     const loadPreloadedFile = (sf: ScenarioFile) => {
         // now load the tutorial scenario
-        const tutorial = loadScenarioFromScenarioFile(sf);
-        dag.loadScenario(tutorial);
+        dag.loadScenarioFile(sf);
     };
 
     const select = document.getElementById("file-select");
