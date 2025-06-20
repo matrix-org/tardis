@@ -14,6 +14,10 @@ import {
     StateResolver,
     StateResolverTransport,
 } from "./state_resolver";
+import hljs from "highlight.js/lib/core";
+import hljsjson from "highlight.js/lib/languages/json";
+
+hljs.registerLanguage("json", hljsjson);
 
 declare global {
     var wasm: WebAssembly.Instance;
@@ -119,11 +123,10 @@ class Dag {
             eventList.highlight(dag.debugger.current());
         });
         eventList.onEventJsonClick((eventId: string) => {
-            document.getElementById("eventdetails")!.textContent = JSON.stringify(
-                this.cache.eventCache.get(eventId),
-                null,
-                2,
-            );
+            const highlightedCode = hljs.highlight(JSON.stringify(this.cache.eventCache.get(eventId), null, 2), {
+                language: "json",
+            });
+            document.getElementById("eventdetails")!.innerHTML = highlightedCode.value;
             document.getElementById("infocontainer")!.style.display = "block";
         });
         if (hasAuthDAGEvents) {
@@ -394,10 +397,14 @@ document.getElementById("collapse")!.addEventListener("change", (ev) => {
     false,
 );
 
-document.getElementById("closeinfocontainer")!.addEventListener("click", (_) => {
-    document.getElementById("infocontainer")!.style.display = "none";
-});
 document.getElementById("infocontainer")!.style.display = "none";
+
+document.addEventListener("click", (event) => {
+    const popup = document.getElementById("infocontainer")!;
+    if (!popup.contains(event.target as Node)) {
+        popup.style.display = "none";
+    }
+});
 
 document.getElementById("stepfwd")!.addEventListener("click", async (_) => {
     dag.debugger.next();

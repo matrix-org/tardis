@@ -25,6 +25,7 @@ export class EventList {
     }
 
     private onJsonClick(ev: Event) {
+        ev.stopPropagation();
         this.onClick(ev, this.jsonListener);
     }
 
