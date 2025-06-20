@@ -3,6 +3,10 @@ import type { EventID, MatrixEvent } from "./state_resolver";
 
 export const DEFAULT_ROOM_VERSION = "10";
 
+declare global {
+    function gmslEventIDForEvent(jsonString: string, roomVersion: string): string;
+}
+
 // ScenarioFile is the file format of .json5 files used with tardis.
 export interface ScenarioFile {
     // Required. The version of the file, always '1'.
@@ -64,7 +68,7 @@ export interface Scenario {
 // loadScenarioFromFile loads a scenario file (.json5) or new-line delimited JSON / JSON array, which represents the events in the scenario,
 // in the order they should be processed.
 // Throws if there is malformed events or malformed data. Requires `globalThis.gmslEventIDForEvent` to exist (loaded via gmsl.wasm).
-export async function loadScenarioFromFile(f: File): Promise<Scenario> {
+export async function loadScenarioFromFile(f: File): Promise<ScenarioFile> {
     // read the file
     const eventsOrScenario = await new Promise(
         (resolve: (value: Array<MatrixEvent> | ScenarioFile) => void, reject) => {
@@ -125,7 +129,7 @@ export async function loadScenarioFromFile(f: File): Promise<Scenario> {
         // it's a test scenario
         scenarioFile = eventsOrScenario;
     }
-    return loadScenarioFromScenarioFile(scenarioFile);
+    return scenarioFile;
 }
 
 export function loadScenarioFromScenarioFile(scenarioFile: ScenarioFile): Scenario {
