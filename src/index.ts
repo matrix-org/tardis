@@ -1,4 +1,5 @@
 import { printAuthDagAnalysis } from "./auth_dag";
+import { fromURLSafeBase64, toURLSafeBase64 } from "./base64";
 import { Cache } from "./cache";
 import { Debugger } from "./debugger";
 import { EventList } from "./event_list";
@@ -150,7 +151,7 @@ class Dag {
     // forward extremity, we do this by playing a deathmatch - everyone is eligible at first and
     // then we loop all the prev/auth events and remove from the set until only the ones not being
     // pointed at exist.
-    findForwardExtremities(events): Set<string> {
+    findForwardExtremities(events: Record<string, MatrixEvent>): Set<string> {
         const s = new Set<string>();
 
         for (const id in events) {
@@ -458,5 +459,16 @@ WebAssembly.instantiateStreaming(fetch("gmsl.wasm"), go.importObject).then((obj)
             loadPreloadedFile(sf);
         });
     }
+    if (globalThis.location.hash.length > 1) {
+        // we may have an inline scenario, so use that if we can.
+        try {
+            const possibleScenario = fromURLSafeBase64(globalThis.location.hash.substring(1)) as ScenarioFile;
+            loadPreloadedFile(possibleScenario);
+            return;
+        } catch (err) {
+            console.error("failed to read fragment: ", err);
+        }
+    }
+    // console.log(toURLSafeBase64(reverseTopologicalPowerOrdering));
     loadPreloadedFile(quickstartFile);
 });
