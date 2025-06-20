@@ -1,7 +1,7 @@
 import * as d3 from "d3";
 import { textRepresentation } from "./event_list";
 import type { Scenario } from "./scenario";
-import type { EventID, MatrixEvent, EventKeys } from "./state_resolver";
+import type { EventID, EventKeys, MatrixEvent } from "./state_resolver";
 
 export interface RenderOptions {
     currentEventId: string;
@@ -37,10 +37,9 @@ const textualRepresentation = (ev: RenderableMatrixEvent, scenario?: Scenario) =
     return `${text} ${collapse}`;
 };
 
-const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions) => {
+const redraw = (vis: HTMLDivElement, inputEvents: MatrixEvent[], opts: RenderOptions) => {
     // copy the events so we don't alter the caller's copy
-    // biome-ignore lint/style/noParameterAssign:
-    events = JSON.parse(JSON.stringify(events));
+    let events = JSON.parse(JSON.stringify(inputEvents));
     let currentEvent: MatrixEvent | null = null;
     for (const ev of events) {
         if (ev.event_id === opts.currentEventId) {

@@ -1,5 +1,5 @@
 import JSON5 from "json5";
-import type { EventID, MatrixEvent, EventKeys } from "./state_resolver";
+import type { EventID, EventKeys, MatrixEvent } from "./state_resolver";
 
 export const DEFAULT_ROOM_VERSION = "10";
 
