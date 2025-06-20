@@ -34,10 +34,9 @@ body {
   border-radius: 8px;
   z-index: 1000;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-}
-
-#closeinfocontainer {
-    cursor: pointer;
+  max-width: 50vw;
+  max-height: 50vh;
+  overflow: auto;
 }
 
 #svgcontainer {
