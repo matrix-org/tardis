@@ -41,6 +41,13 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
     // copy the events so we don't alter the caller's copy
     // biome-ignore lint/style/noParameterAssign:
     events = JSON.parse(JSON.stringify(events));
+    let currentEvent: MatrixEvent | null = null;
+    for (const ev of events) {
+        if (ev.event_id === opts.currentEventId) {
+            currentEvent = ev;
+            break;
+        }
+    }
 
     let edgesKey: EventKeys = "prev_events";
 
@@ -49,14 +56,10 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         events = transitiveReduction(events, "auth_events");
         // render it and not prev_events
         edgesKey = "auth_events";
-    }
-
-    let currentEvent: MatrixEvent | null = null;
-    for (const ev of events) {
-        if (ev.event_id === opts.currentEventId) {
-            currentEvent = ev;
-            break;
-        }
+        // strip out non-auth events else it just clouds the graph with leaves
+        events = events.filter((ev) => {
+            return ["m.room.create", "m.room.member", "m.room.join_rules", "m.room.power_levels"].includes(ev.type);
+        });
     }
     // sort events chronologically
     const data: Array<RenderableMatrixEvent> = events; // .sort((a, b) => a.origin_server_ts - b.origin_server_ts);
@@ -71,7 +74,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
     // we slice to do a shallow copy given we're inserting placeholders into data
     for (const d of data.slice()) {
         // order parents chronologically
-        d.prev_events = d.prev_events.sort((a: string, b: string) => {
+        d[edgesKey] = d[edgesKey].sort((a: string, b: string) => {
             return (eventsById.get(a)?.streamPosition || 0) - (eventsById.get(b)?.streamPosition || 0);
         });
         // order auth events reverse chronologically
@@ -81,7 +84,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         // remove auth events that point to create events, as they are very duplicative.
         //d.auth_events = d.auth_events.filter(id => eventsById.get(id)?.type !== 'm.room.create');
 
-        for (const p of d.prev_events) {
+        for (const p of d[edgesKey]) {
             if (!eventsById.get(p)) {
                 const placeholder: RenderableMatrixEvent = {
                     event_id: p,
@@ -174,7 +177,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
 
         // if any of my parents has a lane, position me under it, preferring the oldest
         let foundLane = false;
-        for (const p of d.prev_events!) {
+        for (const p of d[edgesKey]!) {
             const parent = eventsById.get(p)!;
             if (lanes.findIndex((id) => id === parent.event_id) !== -1) {
                 d.x = parent.x;
@@ -188,8 +191,8 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
             // don't re-use lanes if you have prev_events higher than the end of the lane
             // otherwise you'll overlap them.
             d.x = getNextLane();
-            if (d.prev_events && eventsById.get(d.prev_events[0])) {
-                const oldestPrevEventY = eventsById.get(d.prev_events[0])!.y;
+            if (d[edgesKey] && eventsById.get(d[edgesKey][0])) {
+                const oldestPrevEventY = eventsById.get(d[edgesKey][0])!.y;
                 while (laneEnd[d.x] !== undefined && oldestPrevEventY < laneEnd[d.x]) {
                     d.x = getNextLane(d.x);
                 }
@@ -202,7 +205,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         if (d.next_events) {
             for (const c of d.next_events) {
                 const child = eventsById.get(c);
-                if (child!.prev_events![0] === d.event_id) {
+                if (child![edgesKey]![0] === d.event_id) {
                     oldestParent = true;
                     break;
                 }
@@ -370,8 +373,8 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
                     nudge_y =
                         d.next_events.length > 1 ? nudgeOffset * (childIndex - (d.next_events.length - 2) / 2) : 0;
                     // nudge vertical left or right based on how many prev_events there are from this child.
-                    const childParentIndex = c.prev_events!.findIndex((id) => id === d.event_id);
-                    nudge_x = nudgeOffset * (childParentIndex - (c.prev_events!.length - 1) / 2);
+                    const childParentIndex = c[edgesKey]!.findIndex((id) => id === d.event_id);
+                    nudge_x = nudgeOffset * (childParentIndex - (c[edgesKey]!.length - 1) / 2);
                 }
 
                 path.moveTo(d.x * gx, d.y * gy + r + nudge_y);
@@ -457,10 +460,8 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         }
         // now change the prev_event colours to show the mappings
         const childEventID = currentEvent.event_id;
-        console.log("currentEvent", currentEvent);
         for (let i = 0; i < currentEvent.prev_events.length; i++) {
             const parentEventID = currentEvent.prev_events[i];
-            console.log(`.edge-${parentEventID.slice(1, 5)}-${childEventID.slice(1, 5)}`);
             d3.selectAll(`.edge-${parentEventID.slice(1, 5)}-${childEventID.slice(1, 5)}`)
                 .raise()
                 .attr("stroke", colourBlindSafeColours[i] || "#fff") // white to indicate a problem
