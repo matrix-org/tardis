@@ -73,7 +73,7 @@ class Dag {
     }
 
     loadScenarioFile(scenarioFile: ScenarioFile) {
-        this.scenarioFile = scenarioFile;
+        this.scenarioFile = JSON.parse(JSON.stringify(scenarioFile));
         const scenario = loadScenarioFromScenarioFile(scenarioFile);
         for (const ev of scenario.events) {
             this.cache.eventCache.store(ev);
