@@ -2,6 +2,7 @@
 
 <head>
     <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="highlight.css">
     <link rel="icon" href="favicon.svg">
     <title>TARDIS - Time Agnostic Room DAG Inspection Service</title>
     <script src="wasm_exec.js"></script>
@@ -22,7 +23,7 @@
             <span class="loader-status" id="loader-status"></span>
         </div>
         <div id="infocontainer">
-            <pre id="closeinfocontainer">[ Close ]</pre>
+            <span id="infocontainer-event-id" class="monospace"></span>
             <pre id="eventdetails" />
         </div>
         <div id="eventlist"></div>

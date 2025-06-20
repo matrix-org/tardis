@@ -1,3 +1,5 @@
+import hljs from "highlight.js/lib/core";
+import hljsjson from "highlight.js/lib/languages/json";
 import { printAuthDagAnalysis } from "./auth_dag";
 import { fromURLSafeBase64, toURLSafeBase64 } from "./base64";
 import { Cache } from "./cache";
@@ -14,6 +16,8 @@ import {
     StateResolver,
     StateResolverTransport,
 } from "./state_resolver";
+
+hljs.registerLanguage("json", hljsjson);
 
 declare global {
     var wasm: WebAssembly.Instance;
@@ -118,18 +122,21 @@ class Dag {
             this.refresh();
             eventList.highlight(dag.debugger.current());
         });
-        eventList.onEventJsonClick((eventId: string) => {
-            document.getElementById("eventdetails")!.textContent = JSON.stringify(
-                this.cache.eventCache.get(eventId),
-                null,
-                2,
-            );
-            document.getElementById("infocontainer")!.style.display = "block";
-        });
+        eventList.onEventJsonClick(this.showEventJSONDialog.bind(this));
         if (hasAuthDAGEvents) {
             printAuthDagAnalysis(scenario);
         }
         this.refresh();
+    }
+    showEventJSONDialog(eventId: string): void {
+        console.log("showEventJSONDialog", eventId);
+        const highlightedCode = hljs.highlight(JSON.stringify(this.cache.eventCache.get(eventId), null, 2), {
+            language: "json",
+        });
+        document.getElementById("infocontainer-event-id")!.textContent = eventId;
+        document.getElementById("eventdetails")!.innerHTML = highlightedCode.value;
+        document.getElementById("infocontainer")!.style.display = "block";
+        console.log("set block display");
     }
     setShowAuthChain(show: boolean) {
         this.showAuthChain = show;
@@ -173,6 +180,7 @@ class Dag {
             showAuthChain: this.showAuthChain,
             showAuthDAG: this.showAuthDAG,
             showStateSets: this.showStateSets,
+            onEventIDClick: this.showEventJSONDialog.bind(this),
         });
     }
     // find the event(s) which aren't pointed to by anyone which has prev/auth events, as this is the
@@ -394,10 +402,14 @@ document.getElementById("collapse")!.addEventListener("change", (ev) => {
     false,
 );
 
-document.getElementById("closeinfocontainer")!.addEventListener("click", (_) => {
-    document.getElementById("infocontainer")!.style.display = "none";
-});
 document.getElementById("infocontainer")!.style.display = "none";
+
+document.addEventListener("click", (event) => {
+    const popup = document.getElementById("infocontainer")!;
+    if (!popup.contains(event.target as Node)) {
+        popup.style.display = "none";
+    }
+});
 
 document.getElementById("stepfwd")!.addEventListener("click", async (_) => {
     dag.debugger.next();

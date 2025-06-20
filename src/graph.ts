@@ -11,6 +11,7 @@ export interface RenderOptions {
     showAuthChain: boolean;
     showAuthDAG: boolean;
     showStateSets: boolean;
+    onEventIDClick: (eventID: string) => void;
 }
 
 interface RenderableMatrixEvent extends MatrixEvent {
@@ -577,7 +578,11 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
             return d.event_id.substr(0, 5);
         })
         .attr("x", (d) => textOffset(d) + agx)
-        .attr("y", (d) => d.y * gy + 4);
+        .attr("y", (d) => d.y * gy + 4)
+        .on("click", (ev, d) => {
+            opts.onEventIDClick(d.event_id);
+            ev.stopPropagation(); // else we will hide the dialog immediately
+        });
 
     // Add state sets
     if (opts.showStateSets && currentEvent && opts.inverseStateSets) {
