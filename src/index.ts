@@ -177,8 +177,6 @@ class Dag {
             scenario: this.scenario,
             stateAtEvent: this.cache.stateAtEvent.getStateAsEventIds(this.debugger.current()),
             inverseStateSets: inverseStateSets,
-            showAuthChain: this.showAuthChain,
-            showAuthDAG: this.showAuthDAG,
             showStateSets: this.showStateSets,
             onEventIDClick: this.showEventJSONDialog.bind(this),
         });
