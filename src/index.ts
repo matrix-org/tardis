@@ -464,6 +464,23 @@ document.getElementById("share")?.addEventListener("click", async (_) => {
     }
 });
 
+document.getElementById("save")?.addEventListener("click", async (_) => {
+    if (!dag.scenarioFile) {
+        setLoaderMessage("No loaded scenario");
+        return;
+    }
+    const blob = new Blob([JSON.stringify(dag.scenarioFile, null, 4)], { type: "text/plain" });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "scenario.json5";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url); // clean up
+});
+
 // pull in GMSL bits
 const go = new Go();
 WebAssembly.instantiateStreaming(fetch("gmsl.wasm"), go.importObject).then((obj) => {
