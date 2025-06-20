@@ -122,17 +122,21 @@ class Dag {
             this.refresh();
             eventList.highlight(dag.debugger.current());
         });
-        eventList.onEventJsonClick((eventId: string) => {
-            const highlightedCode = hljs.highlight(JSON.stringify(this.cache.eventCache.get(eventId), null, 2), {
-                language: "json",
-            });
-            document.getElementById("eventdetails")!.innerHTML = highlightedCode.value;
-            document.getElementById("infocontainer")!.style.display = "block";
-        });
+        eventList.onEventJsonClick(this.showEventJSONDialog.bind(this));
         if (hasAuthDAGEvents) {
             printAuthDagAnalysis(scenario);
         }
         this.refresh();
+    }
+    showEventJSONDialog(eventId: string): void {
+        console.log("showEventJSONDialog", eventId);
+        const highlightedCode = hljs.highlight(JSON.stringify(this.cache.eventCache.get(eventId), null, 2), {
+            language: "json",
+        });
+        document.getElementById("infocontainer-event-id")!.textContent = eventId;
+        document.getElementById("eventdetails")!.innerHTML = highlightedCode.value;
+        document.getElementById("infocontainer")!.style.display = "block";
+        console.log("set block display");
     }
     setShowAuthChain(show: boolean) {
         this.showAuthChain = show;
@@ -176,6 +180,7 @@ class Dag {
             showAuthChain: this.showAuthChain,
             showAuthDAG: this.showAuthDAG,
             showStateSets: this.showStateSets,
+            onEventIDClick: this.showEventJSONDialog.bind(this),
         });
     }
     // find the event(s) which aren't pointed to by anyone which has prev/auth events, as this is the
