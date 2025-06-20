@@ -4,23 +4,21 @@
     <link rel="icon" href="favicon.svg">
     <title>TARDIS - Time Agnostic Room DAG Inspection Service</title>
     <script src="wasm_exec.js"></script>
-  <script type="module" crossorigin src="/tardis/assets/index-D4vk66y4.js"></script>
-  <link rel="stylesheet" crossorigin href="/tardis/assets/index-gNDGzECN.css">
+  <script type="module" crossorigin src="/tardis/assets/index-BDBkoRf3.js"></script>
+  <link rel="stylesheet" crossorigin href="/tardis/assets/index-D8eRBwOh.css">
 </head>
 
 <body>
     <div id="page">
         <div id="header">
-            <input id="jsonfile" type="file" />
+            <input id="jsonfile" type="file"  accept=".ndjson, .json5, application/json, application/json5, application/jsonlines+json, application/jsonlines" />
             <select id="file-select"></select>
-            <label>Auth Chain<input id="showauthevents" type="checkbox" /></label>
-            <label>Auth DAG<input id="showauthdag" type="checkbox" /></label>
-            <label>Outliers<input id="showoutliers" type="checkbox" /></label>
-            <label>Collapse<input id="collapse" type="checkbox" /></label>
             <input id="stepbwd" type="button" value="&larr;" />
             <input id="stepfwd" type="button" value="&rarr;" />
             <input id="shimurl" type="text" value="https://tardis.element.dev/" placeholder="Shim URL" />
             <input id="resolve" type="button" value="Resolve State" />
+            <input id="share" type="button" value="Share Scenario" />
+            <input id="save" type="button" value="Save Scenario" />
             <div class="loader" id="loader"></div>
             <span class="loader-status" id="loader-status"></span>
         </div>
@@ -28,10 +26,15 @@
             <pre id="closeinfocontainer">[ Close ]</pre>
             <pre id="eventdetails" />
         </div>
-        <div id="contents">
-            <div id="eventlist"></div>
-            <div id="svgcontainer" class="monospace" />
-        </div>
+        <div id="eventlist"></div>
+        <div id="svgcontainer" class="monospace" />
+    </div>
+    <div class="view-options">
+        <label><input id="showauthevents" type="checkbox" /><span>Auth Chain</span></label>
+        <label><input id="showauthdag" type="checkbox" /><span>Auth DAG</span></label>
+        <label><input id="showoutliers" type="checkbox" /><span>Outliers</span></label>
+        <label><input id="collapse" type="checkbox" /><span>Collapse</span></label>
+        <label><input id="showstatesets" type="checkbox" /><span>State Sets</span></label>
     </div>
 
     <template id="eventlisttemplate">
