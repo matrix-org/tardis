@@ -35,6 +35,27 @@ export class StateAtEvent {
         }
         return JSON.parse(JSON.stringify(this.state[eventId]));
     }
+
+    /**
+     * For each event ID provided, retrieve the state at each event and return the inverse
+     * lookup. This is useful for plotting state sets as you need to know which state sets
+     * a random state event is part of when drawing that row.
+     * @returns A map from an arbitrary state event ID to one or more of the `eventIDs` provided,
+     * which indicates that this arbitrary state event is part of the state set for that event(s).
+     */
+    getInverseStateForEventIds(eventIDs: Set<EventID>): Record<EventID, Set<EventID>> {
+        const result: Record<EventID, Set<EventID>> = {};
+        for (const id of eventIDs) {
+            const stateAtEvent = this.getStateAsEventIds(id);
+            // now store the inverse lookup
+            for (const stateEventId of stateAtEvent) {
+                const existingState = result[stateEventId] || new Set<EventID>();
+                existingState.add(id);
+                result[stateEventId] = existingState;
+            }
+        }
+        return result;
+    }
 }
 
 export class EventCache {

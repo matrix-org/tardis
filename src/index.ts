@@ -42,6 +42,7 @@ class Dag {
     showAuthChain: boolean;
     showAuthDAG: boolean;
     showOutliers: boolean;
+    showStateSets: boolean;
     collapse: boolean;
     shimUrl?: string;
 
@@ -57,6 +58,7 @@ class Dag {
         this.showAuthChain = false;
         this.showAuthDAG = false;
         this.showOutliers = false;
+        this.showStateSets = false;
         this.collapse = false;
         this.renderEvents = {};
         this.scenarioFile = null;
@@ -138,6 +140,9 @@ class Dag {
     setShowOutliers(show: boolean) {
         this.showOutliers = show;
     }
+    setShowStateSets(show: boolean) {
+        this.showStateSets = show;
+    }
     setCollapse(col: boolean) {
         this.collapse = col;
     }
@@ -153,12 +158,21 @@ class Dag {
         for (const k in renderEvents) {
             eventsArray.push(renderEvents[k]);
         }
+        let inverseStateSets: Record<EventID, Set<EventID>> = {};
+        const currentEvent = this.cache.eventCache.get(this.debugger.current());
+        if (currentEvent) {
+            inverseStateSets = this.cache.stateAtEvent.getInverseStateForEventIds(
+                new Set<EventID>(currentEvent.prev_events),
+            );
+        }
         redraw(document.getElementById("svgcontainer")! as HTMLDivElement, eventsArray, {
             currentEventId: this.debugger.current(),
             scenario: this.scenario,
             stateAtEvent: this.cache.stateAtEvent.getStateAsEventIds(this.debugger.current()),
+            inverseStateSets: inverseStateSets,
             showAuthChain: this.showAuthChain,
             showAuthDAG: this.showAuthDAG,
+            showStateSets: this.showStateSets,
         });
     }
     // find the event(s) which aren't pointed to by anyone which has prev/auth events, as this is the
@@ -351,6 +365,10 @@ document.getElementById("showauthdag")!.addEventListener("change", (ev) => {
     (<HTMLInputElement>document.getElementById("showauthdag"))!.checked = dag.showAuthDAG;
 });
 
+document.getElementById("showstatesets")!.addEventListener("change", (ev) => {
+    dag.setShowStateSets((<HTMLInputElement>ev.target)!.checked);
+    dag.refresh();
+});
 document.getElementById("showoutliers")!.addEventListener("change", (ev) => {
     dag.setShowOutliers((<HTMLInputElement>ev.target)!.checked);
     dag.refresh();

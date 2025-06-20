@@ -6,9 +6,11 @@ import type { EventID, MatrixEvent } from "./state_resolver";
 export interface RenderOptions {
     currentEventId: string;
     stateAtEvent?: Set<EventID>;
+    inverseStateSets?: Record<EventID, Set<EventID>>; // $random_state => {$prev, $events, $containing, $this, $state}
     scenario?: Scenario;
     showAuthChain: boolean;
     showAuthDAG: boolean;
+    showStateSets: boolean;
 }
 
 interface RenderableMatrixEvent extends MatrixEvent {
@@ -23,6 +25,10 @@ interface RenderableMatrixEvent extends MatrixEvent {
     authLane: number; // which lane for auth events which point to this event, if any
     authLaneStart: number; // what's the oldest auth lane in play at this event (for layout)
 }
+
+// We support showing state sets for up to this many prev_events
+// https://www.nature.com/articles/nmeth.1618
+const colourBlindSafeColours = ["#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7"];
 
 // const edgesForEvent = (ev: RenderableMatrixEvent, opts: RenderOptions): string[] => {
 //     if (opts.showAuthChain) {
@@ -45,6 +51,13 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
     // copy the events so we don't alter the caller's copy
     // biome-ignore lint/style/noParameterAssign:
     events = JSON.parse(JSON.stringify(events));
+    let currentEvent: MatrixEvent | null = null;
+    for (const ev of events) {
+        if (ev.event_id === opts.currentEventId) {
+            currentEvent = ev;
+            break;
+        }
+    }
     // sort events chronologically
     const data: Array<RenderableMatrixEvent> = events; // .sort((a, b) => a.origin_server_ts - b.origin_server_ts);
 
@@ -354,61 +367,9 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         .on("mouseover", function (e, d) {
             const node = d3.select(this);
             node.attr("fill", currColor).attr("font-weight", "bold");
-
-            d3.selectAll(`.child-${d.event_id.slice(1, 5)}`)
-                .raise()
-                .attr("stroke", nextColor)
-                .attr("stroke-width", lineWidthHighlight);
-            d3.selectAll(`.parent-${d.event_id.slice(1, 5)}`)
-                .raise()
-                .attr("stroke", prevColor)
-                .attr("stroke-width", lineWidthHighlight);
-
-            d3.selectAll(`.authchild-${d.event_id.slice(1, 5)}`)
-                .raise()
-                .attr("stroke", nextAuthColor)
-                .attr("stroke-width", authLineWidthHighlight);
-            // .each(function() {
-            //     d3.select(this.parentNode).raise();
-            // });
-            d3.selectAll(`.authparent-${d.event_id.slice(1, 5)}`)
-                .raise()
-                .attr("stroke", prevAuthColor)
-                .attr("stroke-width", authLineWidthHighlight);
-            // .each(function() {
-            //     d3.select(this.parentNode).raise();
-            // });
-
-            for (const id of d.next_events || []) {
-                d3.select(`.node-${id.slice(1, 5)}`).attr("fill", nextColor);
-            }
-            for (const id of d.prev_events!) {
-                d3.select(`.node-${id.slice(1, 5)}`).attr("fill", prevColor);
-            }
         })
         .on("mouseout", function (e, d) {
             d3.select(this).attr("fill", null).attr("font-weight", null);
-
-            for (const id of d.next_events || []) {
-                d3.select(`.node-${id.slice(1, 5)}`).attr("fill", null);
-            }
-            for (const id of d.prev_events!) {
-                d3.select(`.node-${id.slice(1, 5)}`).attr("fill", null);
-            }
-
-            d3.selectAll(`.child-${d.event_id.slice(1, 5)}`)
-                .attr("stroke", "black")
-                .attr("stroke-width", lineWidth);
-            d3.selectAll(`.parent-${d.event_id.slice(1, 5)}`)
-                .attr("stroke", "black")
-                .attr("stroke-width", lineWidth);
-
-            d3.selectAll(`.authchild-${d.event_id.slice(1, 5)}`)
-                .attr("stroke", authColor)
-                .attr("stroke-width", authLineWidth);
-            d3.selectAll(`.authparent-${d.event_id.slice(1, 5)}`)
-                .attr("stroke", authColor)
-                .attr("stroke-width", authLineWidth);
         });
 
     // draw data points
@@ -508,7 +469,11 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
 
                 n.append("path")
                     .attr("d", path.toString())
-                    .attr("class", (d) => `child-${d.event_id.slice(1, 5)} parent-${c?.event_id.slice(1, 5)}`)
+                    .attr(
+                        "class",
+                        (d) =>
+                            `child-${d.event_id.slice(1, 5)} parent-${c?.event_id.slice(1, 5)} edge-${d.event_id.slice(1, 5)}-${c?.event_id.slice(1, 5)}`,
+                    )
                     .attr("stroke", "black")
                     .attr("stroke-width", lineWidth)
                     .attr("fill", "none");
@@ -614,6 +579,41 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         .attr("x", (d) => textOffset(d) + agx)
         .attr("y", (d) => d.y * gy + 4);
 
+    // Add state sets
+    if (opts.showStateSets && currentEvent && opts.inverseStateSets) {
+        // We always render every single colour, we just make them transparent if there
+        // aren't enough state sets.
+        for (let i = 0; i < colourBlindSafeColours.length; i++) {
+            node.append("circle")
+                .attr("cx", (d) => textOffset(d) + agx + 60 + i * 5)
+                .attr("cy", (d) => d.y * gy)
+                .attr("r", r)
+                .style("fill", (d) => {
+                    return colourBlindSafeColours[i];
+                })
+                .style("fill-opacity", (d) => {
+                    // only render as many circles as we have prev_events
+                    if (i >= currentEvent.prev_events.length) return "0";
+                    // only render this circle if the circle's event ID is part of the state set for this prev_event
+                    if ((opts.inverseStateSets![d.event_id] || new Set<EventID>()).has(currentEvent.prev_events[i])) {
+                        return "1";
+                    }
+                    return "0";
+                });
+        }
+        // now change the prev_event colours to show the mappings
+        const childEventID = currentEvent.event_id;
+        console.log("currentEvent", currentEvent);
+        for (let i = 0; i < currentEvent.prev_events.length; i++) {
+            const parentEventID = currentEvent.prev_events[i];
+            console.log(`.edge-${parentEventID.slice(1, 5)}-${childEventID.slice(1, 5)}`);
+            d3.selectAll(`.edge-${parentEventID.slice(1, 5)}-${childEventID.slice(1, 5)}`)
+                .raise()
+                .attr("stroke", colourBlindSafeColours[i] || "#fff") // white to indicate a problem
+                .attr("stroke-width", lineWidthHighlight);
+        }
+    }
+
     // Add descriptions alongside the event ID
     node.append("text")
         .text((d) => {
@@ -625,7 +625,7 @@ const redraw = (vis: HTMLDivElement, events: MatrixEvent[], opts: RenderOptions)
         //         `${d.y} ${d.event_id.slice(0, 5)} ${d.sender} P:${d.prev_events.map((id) => id.slice(0, 5)).join(", ")} | N:${d.next_events?.map((id) => id.slice(0, 5)).join(", ")}`,
         // )
         //.text(d => `${d.y} ${d.event_id.substr(0, 5)} ${d.sender} ${d.type} prev:${d.prev_events.map(id => id.substr(0, 5)).join(", ")}`)
-        .attr("x", (d) => textOffset(d) + agx + 70)
+        .attr("x", (d) => textOffset(d) + agx + 100)
         .attr("y", (d) => d.y * gy + 4);
 
     node.append("text")
