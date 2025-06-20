@@ -1,3 +1,5 @@
+import hljs from "highlight.js/lib/core";
+import hljsjson from "highlight.js/lib/languages/json";
 import { printAuthDagAnalysis } from "./auth_dag";
 import { fromURLSafeBase64, toURLSafeBase64 } from "./base64";
 import { Cache } from "./cache";
@@ -14,8 +16,6 @@ import {
     StateResolver,
     StateResolverTransport,
 } from "./state_resolver";
-import hljs from "highlight.js/lib/core";
-import hljsjson from "highlight.js/lib/languages/json";
 
 hljs.registerLanguage("json", hljsjson);
 
