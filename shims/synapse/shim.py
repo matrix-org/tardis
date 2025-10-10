@@ -16,6 +16,7 @@ from synapse.event_auth import (
     check_state_dependent_auth_rules,
 )
 from synapse.storage.databases.main.events_worker import EventRedactBehaviour
+from synapse.storage.databases.main.event_federation import StateDifference
 from synapse.state.v2 import resolve_events_with_store
 from synapse.events import EventBase, make_event_from_dict
 from synapse.types import StateMap
@@ -93,7 +94,8 @@ class Connection:
         # use the state to auth the new event
         err_str = ""
         if at_event_json.get("state_key") is not None:
-            print(f"authing at_event {at_event_json["type"]}")
+            ev_type = at_event_json["type"]
+            print(f"authing at_event {ev_type}")
             try:
                 at_event_json.pop("event_id")
                 at_event = make_event_from_dict(
@@ -170,7 +172,8 @@ class Connection:
         for event_id in event_ids:
             print(f"  get_event {event_id}")
             ev = await self.get_event(event_id)
-            print(f"  get_event {event_id} obtained. type={ev["type"]}")
+            ev_type = ev["type"]
+            print(f"  get_event {event_id} obtained. type={ev_type}")
             result[event_id] = ev
 
         return result
@@ -213,11 +216,18 @@ class Connection:
         return list(result)
 
     async def get_auth_chain_difference(
-        self, room_id: str, auth_sets: List[Set[str]]
-    ) -> Set[str]:
-        chains = [frozenset(await self._get_auth_chain(a)) for a in auth_sets]
+        self,
+        room_id: str,
+        state_sets: List[Set[str]],
+        conflicted_state: Optional[Set[str]],
+        additional_backwards_reachable_conflicted_events: Optional[set[str]],
+    ) -> StateDifference:
+        chains = [frozenset(await self._get_auth_chain(a)) for a in state_sets]
         common = set(chains[0]).intersection(*chains[1:])
-        return set(chains[0]).union(*chains[1:]) - common
+        return StateDifference(
+            auth_difference=set(chains[0]).union(*chains[1:]) - common,
+            conflicted_subgraph=None,
+        )
 
 
 async def handler(websocket):
@@ -251,7 +261,8 @@ async def handler(websocket):
 
 
 async def main():
-    print(f"Running on commit {os.getenv("COMMIT")}", flush=True)
+    commit = os.getenv("COMMIT")
+    print(f"Running on commit {commit}", flush=True)
     print("Listening on 0.0.0.0:1234")
     async with serve(handler, "0.0.0.0", 1234):
         await asyncio.get_running_loop().create_future()  # run forever
