@@ -49,7 +49,7 @@ jobs:
                 apt update && apt install -y jq
                 wget -O websocat 'https://github.com/vi/websocat/releases/download/v1.14.0/websocat.x86_64-unknown-linux-musl'
                 chmod u+x ./websocat
-                ( echo '{"id":"9f2b4e90-8261-4988-952c-04741da2f98c","type":"resolve_state","data":{"state":[],"room_id":"!quickstart:tardis","room_version":"10","event":{"type":"m.room.create","state_key":"","sender":"@creator:tardis","auth_events":[],"prev_events":[],"content":{"creator":"@creator:tardis"},"event_id":"$rejaKriQdJnPoF0xEY9yqYU8Nt-jNnmD6ypuXY-0H14","origin_server_ts":1704067200000,"room_id":"!quickstart:tardis"}}}' | timeout -p 3 ./websocat --no-close --oneshot ws://localhost:1234 ) > resp.log || echo ''
+                ( echo '{"id":"9f2b4e90-8261-4988-952c-04741da2f98c","type":"resolve_state","data":{"state":[],"room_id":"!quickstart:tardis","room_version":"10","event":{"type":"m.room.create","state_key":"","sender":"@creator:tardis","auth_events":[],"prev_events":[],"content":{"creator":"@creator:tardis"},"event_id":"$rejaKriQdJnPoF0xEY9yqYU8Nt-jNnmD6ypuXY-0H14","origin_server_ts":1704067200000,"room_id":"!quickstart:tardis"}}}' | timeout 3 ./websocat --no-close --oneshot ws://localhost:1234 ) > resp.log || echo ''
                 cat resp.log
                 output=$(cat resp.log | jq -r .data.error)
                 if [ -n "$output" ]; then
