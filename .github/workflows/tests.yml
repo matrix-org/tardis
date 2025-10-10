@@ -54,3 +54,4 @@ jobs:
                 output=$(cat resp.log | jq -r .data.error)
                 if [ -n "$output" ]; then
                   exit 1
+                fi
