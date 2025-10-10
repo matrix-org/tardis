@@ -1,4 +1,5 @@
 FROM python:3.12
+
 COPY requirements-freeze.txt .
 # don't use requirements.txt as it doesn't pin transitive deps
 # twisted 24.10 breaks synapse as synapse is using `_encodeName` from twisted
