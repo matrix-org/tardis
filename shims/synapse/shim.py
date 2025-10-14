@@ -224,10 +224,54 @@ class Connection:
     ) -> StateDifference:
         chains = [frozenset(await self._get_auth_chain(a)) for a in state_sets]
         common = set(chains[0]).intersection(*chains[1:])
+        conflicted_subgraph: Optional[Set[str]] = None
+        if conflicted_state:
+            # v12+ rooms
+            event_to_auth_events: Dict[str,Collection[str]] = {}
+            for ev in self.event_map.values():
+                event_to_auth_events[ev.event_id] = ev.auth_event_ids()
+            conflicted_subgraph = self.subgraph_via_conflicted(event_to_auth_events, conflicted_state)
+            print(f"conflicted_subgraph={conflicted_subgraph}")
         return StateDifference(
             auth_difference=set(chains[0]).union(*chains[1:]) - common,
-            conflicted_subgraph=None,
+            conflicted_subgraph=conflicted_subgraph,
         )
+
+    def subgraph_via_conflicted(self, graph: Dict[str, Set[str]], conflicted: Set[str]) -> Set[str]:
+        # Build reverse graph for ancestor lookup
+        rev_graph: Dict[str, Set[str]] = {}
+        for src, dsts in graph.items():
+            for dst in dsts:
+                rev_graph.setdefault(dst, set()).add(src)
+
+        def dfs(start: str, g: Dict[str, Set[str]]) -> Set[str]:
+            visited = set()
+            stack = [start]
+            while stack:
+                node = stack.pop()
+                for nxt in g.get(node, ()):
+                    if nxt not in visited:
+                        visited.add(nxt)
+                        stack.append(nxt)
+            return visited
+
+        reachable_from_conflicted = set()
+        reaches_conflicted = set()
+
+        # Collect all reachable nodes from conflicted nodes
+        for c in conflicted:
+            reachable_from_conflicted |= dfs(c, graph)
+        # Collect all nodes that can reach conflicted nodes
+        for c in conflicted:
+            reaches_conflicted |= dfs(c, rev_graph)
+
+        # Intersection gives nodes that are "between" conflicted ones
+        intermediate = reachable_from_conflicted & reaches_conflicted
+
+        # Remove the conflicted nodes themselves
+        intermediate -= conflicted
+        return intermediate
+
 
 
 async def handler(websocket):
