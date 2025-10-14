@@ -95,7 +95,11 @@ export class Debugger {
             states.push(prevState);
         }
         console.log("performing state resolution for prev_events:", atEvent.prev_events);
-        const theState = await resolveState(atEvent.room_id, this.scenario.roomVersion, states, atEvent);
+        let roomId = atEvent.room_id;
+        if (!roomId && this.scenario.roomVersion === "12") {
+            roomId = `!${atEvent.event_id.slice(1)}`;
+        }
+        const theState = await resolveState(roomId, this.scenario.roomVersion, states, atEvent);
         cache.stateAtEvent.setState(atEventId, theState);
     }
 }

@@ -97,7 +97,7 @@ class StateResolver implements StateResolverReceiver {
         states: Array<Record<StateKeyTuple, EventID>>,
         atEvent: MatrixEvent,
     ): Promise<ResolvedState> {
-        console.log("resolveState", states, atEvent);
+        console.log("resolveState", roomId, states, atEvent);
         // make an id so we can pair it up when we get the response
         const id = globalThis.crypto.randomUUID();
         const promise = new Promise<ResolvedState>((resolve, reject) => {

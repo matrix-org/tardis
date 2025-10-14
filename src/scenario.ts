@@ -143,6 +143,19 @@ export function loadScenarioFromScenarioFile(scenarioFile: ScenarioFile): Scenar
     // validate and preprocess the scenario file into a valid scenario
     const fakeEventIdToRealEventId = new Map<string, string>();
     let time = new Date(2024, 0, 1).getTime();
+    let createEventID = "";
+    if (scenarioFile.events.length > 0) {
+        const firstEvent = scenarioFile.events[0];
+        if (firstEvent.type === "m.room.create") {
+            if (scenarioFile.calculate_event_ids) {
+                createEventID = globalThis.gmslEventIDForEvent(JSON.stringify(firstEvent), scenarioFile.room_version);
+                fakeEventIdToRealEventId.set(firstEvent.event_id, createEventID);
+                console.log("Calculated create event ID: ", createEventID);
+            } else {
+                createEventID = firstEvent.event_id;
+            }
+        }
+    }
     for (const ev of scenarioFile.events) {
         if (!ev) {
             throw new Error("missing event");
@@ -160,7 +173,16 @@ export function loadScenarioFromScenarioFile(scenarioFile: ScenarioFile): Scenar
             time = ev.origin_server_ts + 1000;
         }
         if (!ev.room_id && scenarioFile.room_id) {
-            ev.room_id = scenarioFile.room_id;
+            const isCreateEventInV12 =
+                scenarioFile.room_version === "12" &&
+                (ev.event_id === createEventID || fakeEventIdToRealEventId.get(ev.event_id) === createEventID);
+            if (isCreateEventInV12) {
+                // don't set the room_id on the create event
+                // clobber the room ID with the create event ID
+                scenarioFile.room_id = `!${createEventID.slice(1)}`;
+            } else {
+                ev.room_id = scenarioFile.room_id;
+            }
         }
         if (scenarioFile.calculate_event_ids) {
             const fakeEventId = ev.event_id;
